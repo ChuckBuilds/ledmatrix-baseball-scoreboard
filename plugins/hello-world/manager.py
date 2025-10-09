@@ -8,6 +8,8 @@ on the LED matrix. Used to demonstrate and test the plugin system.
 from src.plugin_system.base_plugin import BasePlugin
 import time
 from datetime import datetime
+import freetype
+import os
 
 
 class HelloWorldPlugin(BasePlugin):
@@ -21,19 +23,37 @@ class HelloWorldPlugin(BasePlugin):
     def __init__(self, plugin_id, config, display_manager, cache_manager, plugin_manager):
         """Initialize the Hello World plugin."""
         super().__init__(plugin_id, config, display_manager, cache_manager, plugin_manager)
-        
+
         # Plugin-specific configuration
         self.message = config.get('message', 'Hello, World!')
         self.show_time = config.get('show_time', True)
         self.color = tuple(config.get('color', [255, 255, 255]))
         self.time_color = tuple(config.get('time_color', [0, 255, 255]))
-        
+
+        # Load the 6x9 BDF font
+        self._load_font()
+
         # State
         self.last_update = None
         self.current_time_str = ""
-        
+
         self.logger.info(f"Hello World plugin initialized with message: '{self.message}'")
-    
+
+    def _load_font(self):
+        """Load the 6x9 BDF font for text rendering."""
+        try:
+            font_path = "assets/fonts/6x9.bdf"
+            if not os.path.exists(font_path):
+                self.logger.error(f"Font file not found: {font_path}")
+                self.bdf_font = None
+                return
+
+            self.bdf_font = freetype.Face(font_path)
+            self.logger.info(f"6x9 BDF font loaded successfully from {font_path}")
+        except Exception as e:
+            self.logger.error(f"Failed to load 6x9 BDF font: {e}")
+            self.bdf_font = None
+
     def update(self):
         """
         Update plugin data.
@@ -84,7 +104,7 @@ class HelloWorldPlugin(BasePlugin):
                     x=width // 2,
                     y=message_y,
                     color=self.color,
-                    font_name='6x9.bdf'
+                    font=self.bdf_font
                 )
                 
                 # Draw the current time
@@ -94,7 +114,7 @@ class HelloWorldPlugin(BasePlugin):
                         x=width // 2,
                         y=time_y,
                         color=self.time_color,
-                        font_name='6x9.bdf'
+                        font=self.bdf_font
                     )
             else:
                 # Display message centered
@@ -103,7 +123,7 @@ class HelloWorldPlugin(BasePlugin):
                     x=width // 2,
                     y=height // 2,
                     color=self.color,
-                    font_name='6x9.bdf'
+                    font=self.bdf_font
                 )
             
             # Update the physical display
@@ -124,7 +144,7 @@ class HelloWorldPlugin(BasePlugin):
                     x=width // 2,
                     y=height // 2,
                     color=(255, 0, 0),
-                    font_name='6x9.bdf'
+                    font=self.bdf_font
                 )
                 self.display_manager.update_display()
             except:
