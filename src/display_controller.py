@@ -1324,124 +1324,124 @@ class DisplayController:
                             # Fall back to hardcoded managers if no plugin handles this mode
                             if manager_to_display is None:
                                 if self.current_display_mode == 'clock' and self.clock:
-                                manager_to_display = self.clock
-                            elif self.current_display_mode == 'weather_current' and self.weather:
-                                manager_to_display = self.weather
-                            elif self.current_display_mode == 'weather_hourly' and self.weather:
-                                manager_to_display = self.weather
-                            elif self.current_display_mode == 'weather_daily' and self.weather:
-                                manager_to_display = self.weather
-                            elif self.current_display_mode == 'stocks' and self.stocks:
-                                manager_to_display = self.stocks
-                            elif self.current_display_mode == 'stock_news' and self.news:
-                                manager_to_display = self.news
-                            elif self.current_display_mode == 'odds_ticker' and self.odds_ticker:
-                                manager_to_display = self.odds_ticker
-                            elif self.current_display_mode == 'leaderboard' and self.leaderboard:
-                                manager_to_display = self.leaderboard
-                            elif self.current_display_mode == 'calendar' and self.calendar:
-                                manager_to_display = self.calendar
-                            elif self.current_display_mode == 'youtube' and self.youtube:
-                                manager_to_display = self.youtube
-                            elif self.current_display_mode == 'text_display' and self.text_display:
-                                manager_to_display = self.text_display
-                            elif self.current_display_mode == 'static_image' and self.static_image:
-                                manager_to_display = self.static_image
-                            elif self.current_display_mode == 'of_the_day' and self.of_the_day:
-                                manager_to_display = self.of_the_day
-                            elif self.current_display_mode == 'news_manager' and self.news_manager:
-                                manager_to_display = self.news_manager
-                            elif self.current_display_mode == 'nhl_recent' and self.nhl_recent:
-                                manager_to_display = self.nhl_recent
-                            elif self.current_display_mode == 'nhl_upcoming' and self.nhl_upcoming:
-                                manager_to_display = self.nhl_upcoming
-                            elif self.current_display_mode == 'nba_recent' and self.nba_recent:
-                                manager_to_display = self.nba_recent
-                            elif self.current_display_mode == 'nba_upcoming' and self.nba_upcoming:
-                                manager_to_display = self.nba_upcoming
-                            elif self.current_display_mode == 'wnba_recent' and self.wnba_recent:
-                                manager_to_display = self.wnba_recent
-                            elif self.current_display_mode == 'wnba_upcoming' and self.wnba_upcoming:
-                                manager_to_display = self.wnba_upcoming
-                            elif self.current_display_mode == 'nfl_recent' and self.nfl_recent:
-                                manager_to_display = self.nfl_recent
-                            elif self.current_display_mode == 'nfl_upcoming' and self.nfl_upcoming:
-                                manager_to_display = self.nfl_upcoming
-                            elif self.current_display_mode == 'ncaa_fb_recent' and self.ncaa_fb_recent:
-                                manager_to_display = self.ncaa_fb_recent
-                            elif self.current_display_mode == 'ncaa_fb_upcoming' and self.ncaa_fb_upcoming:
-                                manager_to_display = self.ncaa_fb_upcoming
-                            elif self.current_display_mode == 'ncaa_baseball_recent' and self.ncaa_baseball_recent:
-                                manager_to_display = self.ncaa_baseball_recent
-                            elif self.current_display_mode == 'ncaa_baseball_upcoming' and self.ncaa_baseball_upcoming:
-                                manager_to_display = self.ncaa_baseball_upcoming
-                            elif self.current_display_mode == 'ncaam_basketball_recent' and self.ncaam_basketball_recent:
-                                manager_to_display = self.ncaam_basketball_recent
-                            elif self.current_display_mode == 'ncaam_basketball_upcoming' and self.ncaam_basketball_upcoming:
-                                manager_to_display = self.ncaam_basketball_upcoming
-                            elif self.current_display_mode == 'ncaaw_basketball_recent' and self.ncaaw_basketball_recent:
-                                manager_to_display = self.ncaaw_basketball_recent
-                            elif self.current_display_mode == 'ncaaw_basketball_upcoming' and self.ncaaw_basketball_upcoming:
-                                manager_to_display = self.ncaaw_basketball_upcoming
-                            elif self.current_display_mode == 'mlb_recent' and self.mlb_recent:
-                                manager_to_display = self.mlb_recent
-                            elif self.current_display_mode == 'mlb_upcoming' and self.mlb_upcoming:
-                                manager_to_display = self.mlb_upcoming
-                            elif self.current_display_mode == 'milb_recent' and self.milb_recent:
-                                manager_to_display = self.milb_recent
-                            elif self.current_display_mode == 'milb_upcoming' and self.milb_upcoming:
-                                manager_to_display = self.milb_upcoming
-                            elif self.current_display_mode == 'soccer_recent' and self.soccer_recent:
-                                manager_to_display = self.soccer_recent
-                            elif self.current_display_mode == 'soccer_upcoming' and self.soccer_upcoming:
-                                manager_to_display = self.soccer_upcoming
-                            elif self.current_display_mode == 'music' and self.music_manager:
-                                manager_to_display = self.music_manager
-                            elif self.current_display_mode == 'nhl_live' and self.nhl_live:
-                                manager_to_display = self.nhl_live
-                            elif self.current_display_mode == 'nba_live' and self.nba_live:
-                                manager_to_display = self.nba_live
-                            elif self.current_display_mode == 'wnba_live' and self.wnba_live:
-                                manager_to_display = self.wnba_live
-                            elif self.current_display_mode == 'nfl_live' and self.nfl_live:
-                                manager_to_display = self.nfl_live
-                            elif self.current_display_mode == 'ncaa_fb_live' and self.ncaa_fb_live:
-                                manager_to_display = self.ncaa_fb_live
-                            elif self.current_display_mode == 'ncaa_baseball_live' and self.ncaa_baseball_live:
-                                manager_to_display = self.ncaa_baseball_live
-                            elif self.current_display_mode == 'ncaam_basketball_live' and self.ncaam_basketball_live:
-                                manager_to_display = self.ncaam_basketball_live
-                            elif self.current_display_mode == 'ncaaw_basketball_live' and self.ncaaw_basketball_live:
-                                manager_to_display = self.ncaaw_basketball_live
-                            elif self.current_display_mode == 'ncaam_hockey_live' and self.ncaam_hockey_live:
-                                manager_to_display = self.ncaam_hockey_live
-                            elif self.current_display_mode == 'ncaam_hockey_recent' and self.ncaam_hockey_recent:
-                                manager_to_display = self.ncaam_hockey_recent
-                            elif self.current_display_mode == 'ncaam_hockey_upcoming' and self.ncaam_hockey_upcoming:
-                                manager_to_display = self.ncaam_hockey_upcoming
-                            elif self.current_display_mode == 'ncaaw_hockey_live' and self.ncaaw_hockey_live:
-                                manager_to_display = self.ncaaw_hockey_live
-                            elif self.current_display_mode == 'ncaaw_hockey_recent' and self.ncaaw_hockey_recent:
-                                manager_to_display = self.ncaaw_hockey_recent
-                            elif self.current_display_mode == 'ncaaw_hockey_upcoming' and self.ncaaw_hockey_upcoming:
-                                manager_to_display = self.ncaaw_hockey_upcoming
-                            elif self.current_display_mode == 'mlb_live' and self.mlb_live:
-                                manager_to_display = self.mlb_live
-                            elif self.current_display_mode == 'milb_live' and self.milb_live:
-                                manager_to_display = self.milb_live
-                            elif self.current_display_mode == 'soccer_live' and self.soccer_live:
-                                manager_to_display = self.soccer_live
-                            # Check if this is a plugin mode
-                            elif self.plugin_manager:
-                                # Try to find a plugin that handles this display mode
-                                for plugin_id, plugin in self.plugin_manager.get_all_plugins().items():
-                                    if not plugin.enabled:
-                                        continue
-                                    manifest = self.plugin_manager.plugin_manifests.get(plugin_id, {})
-                                    plugin_modes = manifest.get('display_modes', [plugin_id])
-                                    if self.current_display_mode in plugin_modes:
-                                        manager_to_display = plugin
-                                        break
+                                    manager_to_display = self.clock
+                                elif self.current_display_mode == 'weather_current' and self.weather:
+                                    manager_to_display = self.weather
+                                elif self.current_display_mode == 'weather_hourly' and self.weather:
+                                    manager_to_display = self.weather
+                                elif self.current_display_mode == 'weather_daily' and self.weather:
+                                    manager_to_display = self.weather
+                                elif self.current_display_mode == 'stocks' and self.stocks:
+                                    manager_to_display = self.stocks
+                                elif self.current_display_mode == 'stock_news' and self.news:
+                                    manager_to_display = self.news
+                                elif self.current_display_mode == 'odds_ticker' and self.odds_ticker:
+                                    manager_to_display = self.odds_ticker
+                                elif self.current_display_mode == 'leaderboard' and self.leaderboard:
+                                    manager_to_display = self.leaderboard
+                                elif self.current_display_mode == 'calendar' and self.calendar:
+                                    manager_to_display = self.calendar
+                                elif self.current_display_mode == 'youtube' and self.youtube:
+                                    manager_to_display = self.youtube
+                                elif self.current_display_mode == 'text_display' and self.text_display:
+                                    manager_to_display = self.text_display
+                                elif self.current_display_mode == 'static_image' and self.static_image:
+                                    manager_to_display = self.static_image
+                                elif self.current_display_mode == 'of_the_day' and self.of_the_day:
+                                    manager_to_display = self.of_the_day
+                                elif self.current_display_mode == 'news_manager' and self.news_manager:
+                                    manager_to_display = self.news_manager
+                                elif self.current_display_mode == 'nhl_recent' and self.nhl_recent:
+                                    manager_to_display = self.nhl_recent
+                                elif self.current_display_mode == 'nhl_upcoming' and self.nhl_upcoming:
+                                    manager_to_display = self.nhl_upcoming
+                                elif self.current_display_mode == 'nba_recent' and self.nba_recent:
+                                    manager_to_display = self.nba_recent
+                                elif self.current_display_mode == 'nba_upcoming' and self.nba_upcoming:
+                                    manager_to_display = self.nba_upcoming
+                                elif self.current_display_mode == 'wnba_recent' and self.wnba_recent:
+                                    manager_to_display = self.wnba_recent
+                                elif self.current_display_mode == 'wnba_upcoming' and self.wnba_upcoming:
+                                    manager_to_display = self.wnba_upcoming
+                                elif self.current_display_mode == 'nfl_recent' and self.nfl_recent:
+                                    manager_to_display = self.nfl_recent
+                                elif self.current_display_mode == 'nfl_upcoming' and self.nfl_upcoming:
+                                    manager_to_display = self.nfl_upcoming
+                                elif self.current_display_mode == 'ncaa_fb_recent' and self.ncaa_fb_recent:
+                                    manager_to_display = self.ncaa_fb_recent
+                                elif self.current_display_mode == 'ncaa_fb_upcoming' and self.ncaa_fb_upcoming:
+                                    manager_to_display = self.ncaa_fb_upcoming
+                                elif self.current_display_mode == 'ncaa_baseball_recent' and self.ncaa_baseball_recent:
+                                    manager_to_display = self.ncaa_baseball_recent
+                                elif self.current_display_mode == 'ncaa_baseball_upcoming' and self.ncaa_baseball_upcoming:
+                                    manager_to_display = self.ncaa_baseball_upcoming
+                                elif self.current_display_mode == 'ncaam_basketball_recent' and self.ncaam_basketball_recent:
+                                    manager_to_display = self.ncaam_basketball_recent
+                                elif self.current_display_mode == 'ncaam_basketball_upcoming' and self.ncaam_basketball_upcoming:
+                                    manager_to_display = self.ncaam_basketball_upcoming
+                                elif self.current_display_mode == 'ncaaw_basketball_recent' and self.ncaaw_basketball_recent:
+                                    manager_to_display = self.ncaaw_basketball_recent
+                                elif self.current_display_mode == 'ncaaw_basketball_upcoming' and self.ncaaw_basketball_upcoming:
+                                    manager_to_display = self.ncaaw_basketball_upcoming
+                                elif self.current_display_mode == 'mlb_recent' and self.mlb_recent:
+                                    manager_to_display = self.mlb_recent
+                                elif self.current_display_mode == 'mlb_upcoming' and self.mlb_upcoming:
+                                    manager_to_display = self.mlb_upcoming
+                                elif self.current_display_mode == 'milb_recent' and self.milb_recent:
+                                    manager_to_display = self.milb_recent
+                                elif self.current_display_mode == 'milb_upcoming' and self.milb_upcoming:
+                                    manager_to_display = self.milb_upcoming
+                                elif self.current_display_mode == 'soccer_recent' and self.soccer_recent:
+                                    manager_to_display = self.soccer_recent
+                                elif self.current_display_mode == 'soccer_upcoming' and self.soccer_upcoming:
+                                    manager_to_display = self.soccer_upcoming
+                                elif self.current_display_mode == 'music' and self.music_manager:
+                                    manager_to_display = self.music_manager
+                                elif self.current_display_mode == 'nhl_live' and self.nhl_live:
+                                    manager_to_display = self.nhl_live
+                                elif self.current_display_mode == 'nba_live' and self.nba_live:
+                                    manager_to_display = self.nba_live
+                                elif self.current_display_mode == 'wnba_live' and self.wnba_live:
+                                    manager_to_display = self.wnba_live
+                                elif self.current_display_mode == 'nfl_live' and self.nfl_live:
+                                    manager_to_display = self.nfl_live
+                                elif self.current_display_mode == 'ncaa_fb_live' and self.ncaa_fb_live:
+                                    manager_to_display = self.ncaa_fb_live
+                                elif self.current_display_mode == 'ncaa_baseball_live' and self.ncaa_baseball_live:
+                                    manager_to_display = self.ncaa_baseball_live
+                                elif self.current_display_mode == 'ncaam_basketball_live' and self.ncaam_basketball_live:
+                                    manager_to_display = self.ncaam_basketball_live
+                                elif self.current_display_mode == 'ncaaw_basketball_live' and self.ncaaw_basketball_live:
+                                    manager_to_display = self.ncaaw_basketball_live
+                                elif self.current_display_mode == 'ncaam_hockey_live' and self.ncaam_hockey_live:
+                                    manager_to_display = self.ncaam_hockey_live
+                                elif self.current_display_mode == 'ncaam_hockey_recent' and self.ncaam_hockey_recent:
+                                    manager_to_display = self.ncaam_hockey_recent
+                                elif self.current_display_mode == 'ncaam_hockey_upcoming' and self.ncaam_hockey_upcoming:
+                                    manager_to_display = self.ncaam_hockey_upcoming
+                                elif self.current_display_mode == 'ncaaw_hockey_live' and self.ncaaw_hockey_live:
+                                    manager_to_display = self.ncaaw_hockey_live
+                                elif self.current_display_mode == 'ncaaw_hockey_recent' and self.ncaaw_hockey_recent:
+                                    manager_to_display = self.ncaaw_hockey_recent
+                                elif self.current_display_mode == 'ncaaw_hockey_upcoming' and self.ncaaw_hockey_upcoming:
+                                    manager_to_display = self.ncaaw_hockey_upcoming
+                                elif self.current_display_mode == 'mlb_live' and self.mlb_live:
+                                    manager_to_display = self.mlb_live
+                                elif self.current_display_mode == 'milb_live' and self.milb_live:
+                                    manager_to_display = self.milb_live
+                                elif self.current_display_mode == 'soccer_live' and self.soccer_live:
+                                    manager_to_display = self.soccer_live
+                                # Check if this is a plugin mode
+                                elif self.plugin_manager:
+                                    # Try to find a plugin that handles this display mode
+                                    for plugin_id, plugin in self.plugin_manager.get_all_plugins().items():
+                                        if not plugin.enabled:
+                                            continue
+                                        manifest = self.plugin_manager.plugin_manifests.get(plugin_id, {})
+                                        plugin_modes = manifest.get('display_modes', [plugin_id])
+                                        if self.current_display_mode in plugin_modes:
+                                            manager_to_display = plugin
+                                            break
 
                 # --- Perform Display Update ---
                 try:
@@ -1479,80 +1479,80 @@ class DisplayController:
                             # This is a legacy manager - use the specific display methods
                             if self.current_display_mode == 'clock':
                                 manager_to_display.display_time(force_clear=self.force_clear)
-                        elif self.current_display_mode == 'weather_current':
-                            manager_to_display.display_weather(force_clear=self.force_clear)
-                        elif self.current_display_mode == 'weather_hourly':
-                            manager_to_display.display_hourly_forecast(force_clear=self.force_clear)
-                        elif self.current_display_mode == 'weather_daily':
-                            manager_to_display.display_daily_forecast(force_clear=self.force_clear)
-                        elif self.current_display_mode == 'stocks':
-                            manager_to_display.display_stocks(force_clear=self.force_clear)
-                        elif self.current_display_mode == 'stock_news':
-                             manager_to_display.display_news() # Assumes internal clearing
-                        elif self.current_display_mode in {'odds_ticker', 'leaderboard'}:
-                            try:
+                            elif self.current_display_mode == 'weather_current':
+                                manager_to_display.display_weather(force_clear=self.force_clear)
+                            elif self.current_display_mode == 'weather_hourly':
+                                manager_to_display.display_hourly_forecast(force_clear=self.force_clear)
+                            elif self.current_display_mode == 'weather_daily':
+                                manager_to_display.display_daily_forecast(force_clear=self.force_clear)
+                            elif self.current_display_mode == 'stocks':
+                                manager_to_display.display_stocks(force_clear=self.force_clear)
+                            elif self.current_display_mode == 'stock_news':
+                                manager_to_display.display_news() # Assumes internal clearing
+                            elif self.current_display_mode in {'odds_ticker', 'leaderboard'}:
+                                try:
+                                    manager_to_display.display(force_clear=self.force_clear)
+                                except StopIteration:
+                                    self.force_change = True
+                            elif self.current_display_mode == 'calendar':
                                 manager_to_display.display(force_clear=self.force_clear)
-                            except StopIteration:
-                                self.force_change = True
-                        elif self.current_display_mode == 'calendar':
-                             manager_to_display.display(force_clear=self.force_clear)
-                        elif self.current_display_mode == 'youtube':
-                             manager_to_display.display(force_clear=self.force_clear)
-                        elif self.current_display_mode == 'text_display':
-                             manager_to_display.display() # Assumes internal clearing
-                        elif self.current_display_mode == 'static_image':
-                             manager_to_display.display(force_clear=self.force_clear)
-                        elif self.current_display_mode == 'of_the_day':
-                             manager_to_display.display(force_clear=self.force_clear)
-                        elif self.current_display_mode == 'news_manager':
-                             manager_to_display.display_news()
-                        elif self.current_display_mode == 'ncaa_fb_upcoming' and self.ncaa_fb_upcoming:
-                            self.ncaa_fb_upcoming.display(force_clear=self.force_clear)
-                        elif self.current_display_mode == 'ncaam_basketball_recent' and self.ncaam_basketball_recent:
-                            self.ncaam_basketball_recent.display(force_clear=self.force_clear)
-                        elif self.current_display_mode == 'ncaam_basketball_upcoming' and self.ncaam_basketball_upcoming:
-                            self.ncaam_basketball_upcoming.display(force_clear=self.force_clear)
-                        elif self.current_display_mode == 'ncaaw_basketball_recent' and self.ncaaw_basketball_recent:
-                            self.ncaaw_basketball_recent.display(force_clear=self.force_clear)
-                        elif self.current_display_mode == 'ncaaw_basketball_upcoming' and self.ncaaw_basketball_upcoming:
-                            self.ncaaw_basketball_upcoming.display(force_clear=self.force_clear)
-                        elif self.current_display_mode == 'ncaa_baseball_recent' and self.ncaa_baseball_recent:
-                            self.ncaa_baseball_recent.display(force_clear=self.force_clear)
-                        elif self.current_display_mode == 'ncaa_baseball_upcoming' and self.ncaa_baseball_upcoming:
-                            self.ncaa_baseball_upcoming.display(force_clear=self.force_clear)
-                        elif self.current_display_mode == 'ncaam_hockey_recent' and self.ncaam_hockey_recent:
-                            self.ncaam_hockey_recent.display(force_clear=self.force_clear)
-                        elif self.current_display_mode == 'ncaam_hockey_upcoming' and self.ncaam_hockey_upcoming:
-                            self.ncaam_hockey_upcoming.display(force_clear=self.force_clear)
-                        elif self.current_display_mode == 'ncaaw_hockey_recent' and self.ncaaw_hockey_recent:
-                            self.ncaaw_hockey_recent.display(force_clear=self.force_clear)
-                        elif self.current_display_mode == 'ncaaw_hockey_upcoming' and self.ncaaw_hockey_upcoming:
-                            self.ncaaw_hockey_upcoming.display(force_clear=self.force_clear)
-                        elif self.current_display_mode == 'milb_live' and self.milb_live and len(self.milb_live.live_games) > 0:
-                            logger.debug(f"[DisplayController] Calling MiLB live display with {len(self.milb_live.live_games)} live games")
-                            # Update data before displaying for live managers
-                            self.milb_live.update()
-                            self.milb_live.display(force_clear=self.force_clear)
-                        elif self.current_display_mode == 'milb_live' and self.milb_live:
-                            logger.debug(f"[DisplayController] MiLB live manager exists but has {len(self.milb_live.live_games)} live games, switching to next mode")
-                            # Switch to next mode since there are no live games
-                            self.current_mode_index = (self.current_mode_index + 1) % len(self.available_modes)
-                            self.current_display_mode = self.available_modes[self.current_mode_index]
-                            self.force_clear = True
-                            self.last_switch = current_time
-                            logger.info(f"[DisplayController] Switched from milb_live (no games) to {self.current_display_mode}")
-                        elif hasattr(manager_to_display, 'display'): # General case for most managers
-                            # Special handling for live managers that need update before display
-                            if self.current_display_mode.endswith('_live') and hasattr(manager_to_display, 'update'):
-                                manager_to_display.update()
-                            # Only log display method calls occasionally to reduce spam
-                            current_time = time.time()
-                            if not hasattr(self, '_last_display_method_log_time') or current_time - getattr(self, '_last_display_method_log_time', 0) >= 30:
-                                logger.info(f"Calling display method for {self.current_display_mode}")
-                                self._last_display_method_log_time = current_time
-                            manager_to_display.display(force_clear=self.force_clear)
-                        else:
-                            logger.warning(f"Manager {type(manager_to_display).__name__} for mode {self.current_display_mode} does not have a standard 'display' method.")
+                            elif self.current_display_mode == 'youtube':
+                                manager_to_display.display(force_clear=self.force_clear)
+                            elif self.current_display_mode == 'text_display':
+                                manager_to_display.display() # Assumes internal clearing
+                            elif self.current_display_mode == 'static_image':
+                                manager_to_display.display(force_clear=self.force_clear)
+                            elif self.current_display_mode == 'of_the_day':
+                                manager_to_display.display(force_clear=self.force_clear)
+                            elif self.current_display_mode == 'news_manager':
+                                manager_to_display.display_news()
+                            elif self.current_display_mode == 'ncaa_fb_upcoming' and self.ncaa_fb_upcoming:
+                                self.ncaa_fb_upcoming.display(force_clear=self.force_clear)
+                            elif self.current_display_mode == 'ncaam_basketball_recent' and self.ncaam_basketball_recent:
+                                self.ncaam_basketball_recent.display(force_clear=self.force_clear)
+                            elif self.current_display_mode == 'ncaam_basketball_upcoming' and self.ncaam_basketball_upcoming:
+                                self.ncaam_basketball_upcoming.display(force_clear=self.force_clear)
+                            elif self.current_display_mode == 'ncaaw_basketball_recent' and self.ncaaw_basketball_recent:
+                                self.ncaaw_basketball_recent.display(force_clear=self.force_clear)
+                            elif self.current_display_mode == 'ncaaw_basketball_upcoming' and self.ncaaw_basketball_upcoming:
+                                self.ncaaw_basketball_upcoming.display(force_clear=self.force_clear)
+                            elif self.current_display_mode == 'ncaa_baseball_recent' and self.ncaa_baseball_recent:
+                                self.ncaa_baseball_recent.display(force_clear=self.force_clear)
+                            elif self.current_display_mode == 'ncaa_baseball_upcoming' and self.ncaa_baseball_upcoming:
+                                self.ncaa_baseball_upcoming.display(force_clear=self.force_clear)
+                            elif self.current_display_mode == 'ncaam_hockey_recent' and self.ncaam_hockey_recent:
+                                self.ncaam_hockey_recent.display(force_clear=self.force_clear)
+                            elif self.current_display_mode == 'ncaam_hockey_upcoming' and self.ncaam_hockey_upcoming:
+                                self.ncaam_hockey_upcoming.display(force_clear=self.force_clear)
+                            elif self.current_display_mode == 'ncaaw_hockey_recent' and self.ncaaw_hockey_recent:
+                                self.ncaaw_hockey_recent.display(force_clear=self.force_clear)
+                            elif self.current_display_mode == 'ncaaw_hockey_upcoming' and self.ncaaw_hockey_upcoming:
+                                self.ncaaw_hockey_upcoming.display(force_clear=self.force_clear)
+                            elif self.current_display_mode == 'milb_live' and self.milb_live and len(self.milb_live.live_games) > 0:
+                                logger.debug(f"[DisplayController] Calling MiLB live display with {len(self.milb_live.live_games)} live games")
+                                # Update data before displaying for live managers
+                                self.milb_live.update()
+                                self.milb_live.display(force_clear=self.force_clear)
+                            elif self.current_display_mode == 'milb_live' and self.milb_live:
+                                logger.debug(f"[DisplayController] MiLB live manager exists but has {len(self.milb_live.live_games)} live games, switching to next mode")
+                                # Switch to next mode since there are no live games
+                                self.current_mode_index = (self.current_mode_index + 1) % len(self.available_modes)
+                                self.current_display_mode = self.available_modes[self.current_mode_index]
+                                self.force_clear = True
+                                self.last_switch = current_time
+                                logger.info(f"[DisplayController] Switched from milb_live (no games) to {self.current_display_mode}")
+                            elif hasattr(manager_to_display, 'display'): # General case for most managers
+                                # Special handling for live managers that need update before display
+                                if self.current_display_mode.endswith('_live') and hasattr(manager_to_display, 'update'):
+                                    manager_to_display.update()
+                                # Only log display method calls occasionally to reduce spam
+                                current_time = time.time()
+                                if not hasattr(self, '_last_display_method_log_time') or current_time - getattr(self, '_last_display_method_log_time', 0) >= 30:
+                                    logger.info(f"Calling display method for {self.current_display_mode}")
+                                    self._last_display_method_log_time = current_time
+                                manager_to_display.display(force_clear=self.force_clear)
+                            else:
+                                logger.warning(f"Manager {type(manager_to_display).__name__} for mode {self.current_display_mode} does not have a standard 'display' method.")
                         
                         # Reset force_clear *after* a successful display call that used it
                         # Important: Only reset if the display method *might* have used it.
