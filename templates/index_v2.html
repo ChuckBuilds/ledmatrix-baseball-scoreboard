@@ -840,6 +840,16 @@
             border-radius: var(--border-radius);
             margin-bottom: 20px;
         }
+
+        .no-plugins {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-style: italic;
+            background: rgba(149, 165, 166, 0.1);
+            border-radius: var(--border-radius);
+            border: 2px dashed #bdc3c7;
+        }
     </style>
 </head>
 <body>
@@ -4018,15 +4028,19 @@
             try {
                 showNotification('Refreshing plugins...', 'info');
                 const response = await fetch('/api/plugins/installed');
-                if (response.ok) {
-                    const data = await response.json();
+                const data = await response.json();
+
+                if (response.ok && data.status === 'success') {
                     renderInstalledPlugins(data.plugins);
                     showNotification('Plugins refreshed successfully', 'success');
                 } else {
-                    showNotification('Failed to refresh plugins', 'error');
+                    const errorMessage = data.message || 'Failed to refresh plugins';
+                    showNotification(errorMessage, 'error');
+                    renderInstalledPlugins([]); // Show empty state
                 }
             } catch (error) {
                 showNotification('Error refreshing plugins: ' + error.message, 'error');
+                renderInstalledPlugins([]); // Show empty state on error
             }
         }
 
@@ -4182,15 +4196,19 @@
                 }
 
                 const response = await fetch(url);
-                if (response.ok) {
-                    const data = await response.json();
+                const data = await response.json();
+
+                if (response.ok && data.status === 'success') {
                     renderPluginStore(data.plugins);
                     showNotification(`Found ${data.plugins.length} plugins`, 'success');
                 } else {
-                    showNotification('Failed to search plugin store', 'error');
+                    const errorMessage = data.message || 'Failed to search plugin store';
+                    showNotification(errorMessage, 'error');
+                    renderPluginStore([]); // Show empty state
                 }
             } catch (error) {
                 showNotification('Error searching plugins: ' + error.message, 'error');
+                renderPluginStore([]); // Show empty state on error
             }
         }
 

@@ -1663,11 +1663,19 @@ def api_plugin_store_list():
             'status': 'success',
             'plugins': registry.get('plugins', [])
         })
+    except ImportError as e:
+        logger.error(f"Import error in plugin store: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': f'Plugin store not available: {e}. Please install required dependencies.',
+            'plugins': []
+        }), 503
     except Exception as e:
         logger.error(f"Error fetching plugin store list: {e}", exc_info=True)
         return jsonify({
             'status': 'error',
-            'message': str(e)
+            'message': f'Failed to load plugin store: {str(e)}',
+            'plugins': []
         }), 500
 
 @app.route('/api/plugins/installed', methods=['GET'])
@@ -1699,11 +1707,19 @@ def api_plugins_installed():
             'status': 'success',
             'plugins': plugins
         })
+    except ImportError as e:
+        logger.error(f"Import error in plugin system: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': f'Plugin system not available: {e}. Please install required dependencies.',
+            'plugins': []
+        }), 503
     except Exception as e:
         logger.error(f"Error fetching installed plugins: {e}", exc_info=True)
         return jsonify({
             'status': 'error',
-            'message': str(e)
+            'message': f'Failed to load plugins: {str(e)}',
+            'plugins': []
         }), 500
 
 @app.route('/api/plugins/install', methods=['POST'])
