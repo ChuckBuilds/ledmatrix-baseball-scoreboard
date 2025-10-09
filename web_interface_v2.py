@@ -1941,12 +1941,18 @@ def api_plugin_config():
             config[plugin_id] = {}
 
         # Update the specific configuration value
-        try:
-            # Try to parse as JSON first (for arrays, objects, etc.)
-            parsed_value = json.loads(config_value)
-            config[plugin_id][config_key] = parsed_value
-        except (json.JSONDecodeError, ValueError):
-            # If not valid JSON, store as string
+        # config_value is already the correct Python type from JSON parsing
+        # Only try to parse it if it's a string that looks like JSON (for backwards compatibility)
+        if isinstance(config_value, str) and (config_value.startswith('[') or config_value.startswith('{')):
+            try:
+                # Try to parse as JSON for arrays/objects entered as strings
+                parsed_value = json.loads(config_value)
+                config[plugin_id][config_key] = parsed_value
+            except (json.JSONDecodeError, ValueError):
+                # If parsing fails, store as string
+                config[plugin_id][config_key] = config_value
+        else:
+            # Use the value directly (already correct type)
             config[plugin_id][config_key] = config_value
 
         # Save the updated config
