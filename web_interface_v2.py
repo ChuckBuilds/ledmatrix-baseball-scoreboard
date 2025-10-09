@@ -1694,6 +1694,40 @@ def api_plugin_store_list():
             'plugins': []
         }), 500
 
+@app.route('/api/plugins/store/search', methods=['GET'])
+def api_plugin_store_search():
+    """Search for plugins in the store registry."""
+    try:
+        query = request.args.get('q', '')
+        category = request.args.get('category', '')
+        tags = request.args.getlist('tags')  # Can pass multiple ?tags=tag1&tags=tag2
+        
+        from src.plugin_system import get_store_manager
+        PluginStoreManager = get_store_manager()
+        store_manager = PluginStoreManager()
+        
+        results = store_manager.search_plugins(query=query, category=category, tags=tags)
+        
+        return jsonify({
+            'status': 'success',
+            'plugins': results,
+            'count': len(results)
+        })
+    except ImportError as e:
+        logger.error(f"Import error in plugin store: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': f'Plugin store not available: {e}',
+            'plugins': []
+        }), 503
+    except Exception as e:
+        logger.error(f"Error searching plugin store: {e}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': f'Search failed: {str(e)}',
+            'plugins': []
+        }), 500
+
 @app.route('/api/plugins/installed', methods=['GET'])
 def api_plugins_installed():
     """Get list of installed and discovered plugins."""
@@ -2003,7 +2037,7 @@ def api_plugin_config():
 
 @app.route('/api/plugins/install-from-url', methods=['POST'])
 def api_plugin_install_from_url():
-    """Install a plugin directly from a GitHub URL."""
+    """Install a plugin directly from a GitHub URL (for custom/unverified plugins)."""
     try:
         data = request.get_json()
         repo_url = data.get('repo_url')
@@ -2017,17 +2051,18 @@ def api_plugin_install_from_url():
         from src.plugin_system import get_store_manager
         PluginStoreManager = get_store_manager()
         store_manager = PluginStoreManager()
-        success = store_manager.install_from_url(repo_url)
+        result = store_manager.install_from_url(repo_url)
         
-        if success:
+        if result.get('success'):
             return jsonify({
                 'status': 'success',
-                'message': 'Plugin installed from URL successfully. Restart display to activate.'
+                'message': f'Plugin "{result.get("name")}" (v{result.get("version")}) installed successfully. Restart display to activate.',
+                'plugin_id': result.get('plugin_id')
             })
         else:
             return jsonify({
                 'status': 'error',
-                'message': 'Failed to install plugin from URL'
+                'message': result.get('error', 'Failed to install plugin from URL')
             }), 500
     except Exception as e:
         logger.error(f"Error installing plugin from URL: {e}", exc_info=True)
