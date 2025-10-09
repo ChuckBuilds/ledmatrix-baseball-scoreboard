@@ -480,6 +480,520 @@ class DisplayController:
         # ... etc ...
 ```
 
+### Base Classes and Code Reuse
+
+#### Philosophy: Core Provides Stable Plugin API
+
+The core LEDMatrix provides stable base classes and utilities for common plugin types. This approach balances code reuse with plugin independence.
+
+#### Plugin API Base Classes
+
+```
+src/
+├── plugin_system/
+│   ├── base_plugin.py              # Core plugin interface (required)
+│   └── base_classes/               # Optional base classes for common use cases
+│       ├── __init__.py
+│       ├── sports_plugin.py        # Generic sports displays
+│       ├── hockey_plugin.py        # Hockey-specific features
+│       ├── basketball_plugin.py    # Basketball-specific features
+│       ├── baseball_plugin.py      # Baseball-specific features
+│       ├── football_plugin.py      # Football-specific features
+│       └── display_helpers.py      # Common rendering utilities
+```
+
+#### Sports Plugin Base Class
+
+```python
+# src/plugin_system/base_classes/sports_plugin.py
+
+from src.plugin_system.base_plugin import BasePlugin
+from typing import List, Dict, Any, Optional
+import requests
+
+class SportsPlugin(BasePlugin):
+    """
+    Base class for sports-related plugins.
+    
+    API Version: 1.0.0
+    Stability: Stable - maintains backward compatibility
+    
+    Provides common functionality:
+    - Favorite team filtering
+    - ESPN API integration
+    - Standard game data structures
+    - Common rendering methods
+    """
+    
+    API_VERSION = "1.0.0"
+    
+    def __init__(self, plugin_id, config, display_manager, cache_manager, plugin_manager):
+        super().__init__(plugin_id, config, display_manager, cache_manager, plugin_manager)
+        
+        # Standard sports plugin configuration
+        self.favorite_teams = config.get('favorite_teams', [])
+        self.show_favorite_only = config.get('show_favorite_teams_only', True)
+        self.show_odds = config.get('show_odds', True)
+        self.show_records = config.get('show_records', True)
+        self.logo_dir = config.get('logo_dir', 'assets/sports/logos')
+    
+    def filter_by_favorites(self, games: List[Dict]) -> List[Dict]:
+        """
+        Filter games to show only favorite teams.
+        
+        Args:
+            games: List of game dictionaries
+            
+        Returns:
+            Filtered list of games
+        """
+        if not self.show_favorite_only or not self.favorite_teams:
+            return games
+        
+        return [g for g in games if self._is_favorite_game(g)]
+    
+    def _is_favorite_game(self, game: Dict) -> bool:
+        """Check if game involves a favorite team."""
+        home_team = game.get('home_team', '')
+        away_team = game.get('away_team', '')
+        return home_team in self.favorite_teams or away_team in self.favorite_teams
+    
+    def fetch_espn_data(self, sport: str, endpoint: str = "scoreboard", 
+                        params: Dict = None) -> Optional[Dict]:
+        """
+        Fetch data from ESPN API.
+        
+        Args:
+            sport: Sport identifier (e.g., 'hockey/nhl', 'basketball/nba')
+            endpoint: API endpoint (default: 'scoreboard')
+            params: Query parameters
+            
+        Returns:
+            API response data or None on error
+        """
+        url = f"https://site.api.espn.com/apis/site/v2/sports/{sport}/{endpoint}"
+        cache_key = f"espn_{sport}_{endpoint}"
+        
+        # Try cache first
+        cached = self.cache_manager.get(cache_key, max_age=60)
+        if cached:
+            return cached
+        
+        try:
+            response = requests.get(url, params=params, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            
+            # Cache the response
+            self.cache_manager.set(cache_key, data)
+            
+            return data
+        except Exception as e:
+            self.logger.error(f"Error fetching ESPN data: {e}")
+            return None
+    
+    def render_team_logo(self, team_abbr: str, x: int, y: int, size: int = 16):
+        """
+        Render a team logo at specified position.
+        
+        Args:
+            team_abbr: Team abbreviation
+            x, y: Position on display
+            size: Logo size in pixels
+        """
+        from pathlib import Path
+        from PIL import Image
+        
+        # Try plugin assets first
+        logo_path = Path(self.plugin_id) / "assets" / "logos" / f"{team_abbr}.png"
+        
+        # Fall back to core assets
+        if not logo_path.exists():
+            logo_path = Path(self.logo_dir) / f"{team_abbr}.png"
+        
+        if logo_path.exists():
+            try:
+                logo = Image.open(logo_path)
+                logo = logo.resize((size, size), Image.LANCZOS)
+                self.display_manager.image.paste(logo, (x, y))
+            except Exception as e:
+                self.logger.error(f"Error rendering logo for {team_abbr}: {e}")
+    
+    def render_score(self, away_team: str, away_score: int, 
+                     home_team: str, home_score: int, 
+                     x: int, y: int):
+        """
+        Render a game score in standard format.
+        
+        Args:
+            away_team, away_score: Away team info
+            home_team, home_score: Home team info
+            x, y: Position on display
+        """
+        # Render away team
+        self.render_team_logo(away_team, x, y)
+        self.display_manager.draw_text(
+            f"{away_score}",
+            x=x + 20, y=y + 4,
+            color=(255, 255, 255)
+        )
+        
+        # Render home team
+        self.render_team_logo(home_team, x + 40, y)
+        self.display_manager.draw_text(
+            f"{home_score}",
+            x=x + 60, y=y + 4,
+            color=(255, 255, 255)
+        )
+```
+
+#### Hockey Plugin Base Class
+
+```python
+# src/plugin_system/base_classes/hockey_plugin.py
+
+from src.plugin_system.base_classes.sports_plugin import SportsPlugin
+from typing import Dict, List, Optional
+
+class HockeyPlugin(SportsPlugin):
+    """
+    Base class for hockey plugins (NHL, NCAA Hockey, etc).
+    
+    API Version: 1.0.0
+    Provides hockey-specific features:
+    - Period handling
+    - Power play indicators
+    - Shots on goal display
+    """
+    
+    def __init__(self, plugin_id, config, display_manager, cache_manager, plugin_manager):
+        super().__init__(plugin_id, config, display_manager, cache_manager, plugin_manager)
+        
+        # Hockey-specific config
+        self.show_shots = config.get('show_shots_on_goal', True)
+        self.show_power_play = config.get('show_power_play', True)
+    
+    def fetch_hockey_games(self, league: str = "nhl") -> List[Dict]:
+        """
+        Fetch hockey games from ESPN.
+        
+        Args:
+            league: League identifier (nhl, college-hockey)
+            
+        Returns:
+            List of standardized game dictionaries
+        """
+        sport = f"hockey/{league}"
+        data = self.fetch_espn_data(sport)
+        
+        if not data:
+            return []
+        
+        return self._parse_hockey_games(data.get('events', []))
+    
+    def _parse_hockey_games(self, events: List[Dict]) -> List[Dict]:
+        """
+        Parse ESPN hockey events into standardized format.
+        
+        Returns:
+            List of dicts with keys: id, home_team, away_team, home_score,
+            away_score, period, clock, status, power_play, shots
+        """
+        games = []
+        
+        for event in events:
+            try:
+                competition = event['competitions'][0]
+                
+                game = {
+                    'id': event['id'],
+                    'home_team': competition['competitors'][0]['team']['abbreviation'],
+                    'away_team': competition['competitors'][1]['team']['abbreviation'],
+                    'home_score': int(competition['competitors'][0]['score']),
+                    'away_score': int(competition['competitors'][1]['score']),
+                    'status': competition['status']['type']['state'],
+                    'period': competition.get('period', 0),
+                    'clock': competition.get('displayClock', ''),
+                    'power_play': self._extract_power_play(competition),
+                    'shots': self._extract_shots(competition)
+                }
+                
+                games.append(game)
+            except (KeyError, IndexError, ValueError) as e:
+                self.logger.error(f"Error parsing hockey game: {e}")
+                continue
+        
+        return games
+    
+    def render_hockey_game(self, game: Dict, x: int = 0, y: int = 0):
+        """
+        Render a hockey game in standard format.
+        
+        Args:
+            game: Game dictionary (from _parse_hockey_games)
+            x, y: Position on display
+        """
+        # Render score
+        self.render_score(
+            game['away_team'], game['away_score'],
+            game['home_team'], game['home_score'],
+            x, y
+        )
+        
+        # Render period and clock
+        if game['status'] == 'in':
+            period_text = f"P{game['period']} {game['clock']}"
+            self.display_manager.draw_text(
+                period_text,
+                x=x, y=y + 20,
+                color=(255, 255, 0)
+            )
+        
+        # Render power play indicator
+        if self.show_power_play and game.get('power_play'):
+            self.display_manager.draw_text(
+                "PP",
+                x=x + 80, y=y + 20,
+                color=(255, 0, 0)
+            )
+        
+        # Render shots
+        if self.show_shots and game.get('shots'):
+            shots_text = f"SOG: {game['shots']['away']}-{game['shots']['home']}"
+            self.display_manager.draw_text(
+                shots_text,
+                x=x, y=y + 28,
+                color=(200, 200, 200),
+                small_font=True
+            )
+    
+    def _extract_power_play(self, competition: Dict) -> Optional[str]:
+        """Extract power play information from competition data."""
+        # Implementation details...
+        return None
+    
+    def _extract_shots(self, competition: Dict) -> Optional[Dict]:
+        """Extract shots on goal from competition data."""
+        # Implementation details...
+        return None
+```
+
+#### Using Base Classes in Plugins
+
+**Example: NHL Scores Plugin**
+
+```python
+# plugins/nhl-scores/manager.py
+
+from src.plugin_system.base_classes.hockey_plugin import HockeyPlugin
+
+class NHLScoresPlugin(HockeyPlugin):
+    """
+    NHL Scores plugin using stable hockey base class.
+    
+    Inherits all hockey functionality, just needs to implement
+    update() and display() for NHL-specific behavior.
+    """
+    
+    def update(self):
+        """Fetch NHL games using inherited method."""
+        self.games = self.fetch_hockey_games(league="nhl")
+        
+        # Filter to favorites
+        if self.show_favorite_only:
+            self.games = self.filter_by_favorites(self.games)
+        
+        self.logger.info(f"Fetched {len(self.games)} NHL games")
+    
+    def display(self, force_clear=False):
+        """Display NHL games using inherited rendering."""
+        if force_clear:
+            self.display_manager.clear()
+        
+        if not self.games:
+            self._show_no_games()
+            return
+        
+        # Show first game using inherited method
+        self.render_hockey_game(self.games[0], x=0, y=5)
+        
+        self.display_manager.update_display()
+    
+    def _show_no_games(self):
+        """Show no games message."""
+        self.display_manager.draw_text(
+            "No NHL games",
+            x=5, y=15,
+            color=(255, 255, 255)
+        )
+```
+
+**Example: Custom Hockey Plugin (NCAA Hockey)**
+
+```python
+# plugins/ncaa-hockey/manager.py
+
+from src.plugin_system.base_classes.hockey_plugin import HockeyPlugin
+
+class NCAAHockeyPlugin(HockeyPlugin):
+    """
+    NCAA Hockey plugin - different league, same base class.
+    """
+    
+    def update(self):
+        """Fetch NCAA hockey games."""
+        self.games = self.fetch_hockey_games(league="college-hockey")
+        self.games = self.filter_by_favorites(self.games)
+    
+    def display(self, force_clear=False):
+        """Display using inherited hockey rendering."""
+        if force_clear:
+            self.display_manager.clear()
+        
+        if self.games:
+            # Use inherited rendering method
+            self.render_hockey_game(self.games[0], x=0, y=5)
+        
+        self.display_manager.update_display()
+```
+
+#### API Versioning and Compatibility
+
+**Manifest declares required API version:**
+
+```json
+{
+  "id": "nhl-scores",
+  "plugin_api_version": "1.0.0",
+  "compatible_versions": [">=2.0.0"]
+}
+```
+
+**Plugin Manager checks compatibility:**
+
+```python
+# In plugin_manager.py
+
+def load_plugin(self, plugin_id: str) -> bool:
+    manifest = self.plugin_manifests.get(plugin_id)
+    
+    # Check API compatibility
+    required_api = manifest.get('plugin_api_version', '1.0.0')
+    
+    from src.plugin_system.base_classes.sports_plugin import SportsPlugin
+    current_api = SportsPlugin.API_VERSION
+    
+    if not self._is_api_compatible(required_api, current_api):
+        self.logger.error(
+            f"Plugin {plugin_id} requires API {required_api}, "
+            f"but {current_api} is available. Please update plugin or core."
+        )
+        return False
+    
+    # Continue loading...
+    return True
+
+def _is_api_compatible(self, required: str, current: str) -> bool:
+    """
+    Check if required API version is compatible with current.
+    Uses semantic versioning: MAJOR.MINOR.PATCH
+    
+    - Same major version = compatible
+    - Different major version = incompatible (breaking changes)
+    """
+    req_major = int(required.split('.')[0])
+    cur_major = int(current.split('.')[0])
+    
+    return req_major == cur_major
+```
+
+#### Handling API Changes
+
+**Non-Breaking Changes (Minor/Patch versions):**
+
+```python
+# v1.0.0 -> v1.1.0 (new optional parameter)
+class HockeyPlugin:
+    def render_hockey_game(self, game, x=0, y=0, show_penalties=False):
+        # Added optional parameter, old code still works
+        pass
+```
+
+**Breaking Changes (Major version):**
+
+```python
+# v1.x.x
+class HockeyPlugin:
+    def render_hockey_game(self, game, x=0, y=0):
+        pass
+
+# v2.0.0 (breaking change)
+class HockeyPlugin:
+    API_VERSION = "2.0.0"
+    
+    def render_hockey_game(self, game, position=(0, 0), style="default"):
+        # Changed signature - plugins need updates
+        pass
+```
+
+Plugins requiring v1.x would fail to load with v2.0.0 core, prompting user to update.
+
+#### Benefits of This Approach
+
+1. **No Code Duplication**: Plugins import from core
+2. **Consistent Behavior**: All hockey plugins render the same way
+3. **Easy Updates**: Bug fixes in base classes benefit all plugins
+4. **Smaller Plugins**: No need to bundle common code
+5. **Clear API Contract**: Versioned, stable interface
+6. **Flexibility**: Plugins can override any method
+
+#### When NOT to Use Base Classes
+
+Plugins should implement BasePlugin directly when:
+
+- Creating completely custom displays (no common patterns)
+- Needing full control over every aspect
+- Prototyping new display types
+- External data sources (not ESPN)
+
+Example:
+```python
+# plugins/custom-animation/manager.py
+
+from src.plugin_system.base_plugin import BasePlugin
+
+class CustomAnimationPlugin(BasePlugin):
+    """Fully custom plugin - doesn't need sports base classes."""
+    
+    def update(self):
+        # Custom data fetching
+        pass
+    
+    def display(self, force_clear=False):
+        # Custom rendering
+        pass
+```
+
+#### Migration Strategy for Existing Base Classes
+
+**Current base classes** (`src/base_classes/`):
+- `sports.py`
+- `hockey.py`
+- `basketball.py`
+- etc.
+
+**Phase 1**: Create new plugin-specific base classes
+- Keep old ones for backward compatibility
+- New base classes in `src/plugin_system/base_classes/`
+
+**Phase 2**: Migrate existing managers
+- Legacy managers still use old base classes
+- New plugins use new base classes
+
+**Phase 3**: Deprecate old base classes (v3.0)
+- Remove old `src/base_classes/`
+- All code uses plugin system base classes
+
 ---
 
 ## 3. Plugin Store & Discovery
