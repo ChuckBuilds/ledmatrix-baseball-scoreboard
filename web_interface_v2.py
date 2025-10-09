@@ -1819,10 +1819,23 @@ def api_plugin_uninstall():
 def api_plugin_toggle():
     """Enable or disable a plugin."""
     try:
+        # Check if request contains JSON data
+        if not request.is_json:
+            return jsonify({
+                'status': 'error',
+                'message': 'Request must be JSON'
+            }), 400
+
         data = request.get_json()
+        if data is None:
+            return jsonify({
+                'status': 'error',
+                'message': 'Invalid JSON data'
+            }), 400
+
         plugin_id = data.get('plugin_id')
         enabled = data.get('enabled', True)
-        
+
         if not plugin_id:
             return jsonify({
                 'status': 'error',
@@ -1892,7 +1905,20 @@ def api_plugin_update():
 def api_plugin_config():
     """Update plugin configuration."""
     try:
+        # Check if request contains JSON data
+        if not request.is_json:
+            return jsonify({
+                'status': 'error',
+                'message': 'Request must be JSON'
+            }), 400
+
         data = request.get_json()
+        if data is None:
+            return jsonify({
+                'status': 'error',
+                'message': 'Invalid JSON data'
+            }), 400
+
         plugin_id = data.get('plugin_id')
         config_key = data.get('key')
         config_value = data.get('value')
