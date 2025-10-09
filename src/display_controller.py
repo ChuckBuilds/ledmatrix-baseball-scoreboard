@@ -399,11 +399,11 @@ class DisplayController:
                 display_manager=self.display_manager,
                 cache_manager=self.cache_manager
             )
-            
+
             # Discover plugins
             discovered_plugins = self.plugin_manager.discover_plugins()
             logger.info(f"Discovered {len(discovered_plugins)} plugin(s)")
-            
+
             # Load enabled plugins
             for plugin_id in discovered_plugins:
                 plugin_config = self.config.get(plugin_id, {})
