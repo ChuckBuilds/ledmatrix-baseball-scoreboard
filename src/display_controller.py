@@ -386,10 +386,13 @@ class DisplayController:
         self._update_live_modes_in_rotation()
         
         # Initialize Plugin System (Phase 1: Foundation)
+        import traceback
         plugin_time = time.time()
         self.plugin_manager = None
         try:
+            logger.info("Attempting to import plugin system...")
             from src.plugin_system import PluginManager
+            logger.info("Plugin system imported successfully")
             self.plugin_manager = PluginManager(
                 plugins_dir="plugins",
                 config_manager=self.config_manager,
@@ -421,6 +424,7 @@ class DisplayController:
             logger.info(f"Plugin system initialized in {time.time() - plugin_time:.3f} seconds")
         except ImportError as e:
             logger.warning(f"Plugin system not available: {e}")
+            logger.warning(f"Full traceback:\n{traceback.format_exc()}")
             self.plugin_manager = None
         except Exception as e:
             logger.error(f"Error initializing plugin system: {e}", exc_info=True)
