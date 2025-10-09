@@ -390,6 +390,8 @@ class DisplayController:
         import traceback
         plugin_time = time.time()
         self.plugin_manager = None
+        self.plugin_modes = {}  # mode -> plugin_instance mapping for plugin-first dispatch
+        
         try:
             logger.info("Attempting to import plugin system...")
             from src.plugin_system import PluginManager
@@ -412,9 +414,17 @@ class DisplayController:
                     if self.plugin_manager.load_plugin(plugin_id):
                         logger.info(f"Loaded plugin: {plugin_id}")
                         
-                        # Add plugin display modes to available_modes
+                        # Get plugin instance and manifest
+                        plugin_instance = self.plugin_manager.get_plugin(plugin_id)
                         manifest = self.plugin_manager.plugin_manifests.get(plugin_id, {})
                         display_modes = manifest.get('display_modes', [plugin_id])
+                        
+                        # Register plugin modes for dispatch
+                        for mode in display_modes:
+                            self.plugin_modes[mode] = plugin_instance
+                            logger.info(f"Registered plugin mode: {mode} -> {plugin_id}")
+                        
+                        # Add plugin display modes to available_modes
                         for mode in display_modes:
                             if mode not in self.available_modes:
                                 self.available_modes.append(mode)
@@ -615,9 +625,40 @@ class DisplayController:
         # to force a redraw of the music screen itself, unless DisplayController wants to switch TO music mode.
         # Example: if self.current_display_mode == 'music': self.force_clear = True (but MusicManager.display handles this)
 
+    def _try_display_plugin(self, mode, force_clear=False):
+        """
+        Try to display a plugin for the given mode.
+        Returns True if plugin handled it, False if should fall through to legacy.
+        """
+        plugin = self.plugin_modes.get(mode)
+        if not plugin:
+            return False
+        
+        try:
+            plugin.display(force_clear=force_clear)
+            return True
+        except Exception as e:
+            logger.error(f"Error displaying plugin for mode {mode}: {e}", exc_info=True)
+            return False
+
     def get_current_duration(self) -> int:
         """Get the duration for the current display mode."""
         mode_key = self.current_display_mode
+        
+        # Check if current mode is a plugin and get its duration
+        if mode_key in self.plugin_modes:
+            try:
+                plugin = self.plugin_modes[mode_key]
+                duration = plugin.get_display_duration()
+                # Only log if duration has changed or we haven't logged this duration yet
+                if not hasattr(self, '_last_logged_plugin_duration') or self._last_logged_plugin_duration != (mode_key, duration):
+                    logger.info(f"Using plugin duration for {mode_key}: {duration} seconds")
+                    self._last_logged_plugin_duration = (mode_key, duration)
+                return duration
+            except Exception as e:
+                logger.error(f"Error getting plugin duration for {mode_key}: {e}")
+                # Fall back to configured duration
+                return self.display_durations.get(mode_key, 15)
 
         # Handle dynamic duration for news manager
         if mode_key == 'news_manager' and self.news_manager:
@@ -1310,19 +1351,6 @@ class DisplayController:
                             self.force_clear = False
                         # Only set manager_to_display if it hasn't been set by live priority logic
                         if manager_to_display is None:
-                            # Check if this is a plugin mode FIRST
-                            if self.plugin_manager:
-                                for plugin_id, plugin in self.plugin_manager.get_all_plugins().items():
-                                    if not plugin.enabled:
-                                        continue
-                                    manifest = self.plugin_manager.plugin_manifests.get(plugin_id, {})
-                                    plugin_modes = manifest.get('display_modes', [plugin_id])
-                                    if self.current_display_mode in plugin_modes:
-                                        manager_to_display = plugin
-                                        break
-
-                            # Fall back to hardcoded managers if no plugin handles this mode
-                            if manager_to_display is None:
                                 if self.current_display_mode == 'clock' and self.clock:
                                     manager_to_display = self.clock
                                 elif self.current_display_mode == 'weather_current' and self.weather:
@@ -1431,17 +1459,6 @@ class DisplayController:
                                     manager_to_display = self.milb_live
                                 elif self.current_display_mode == 'soccer_live' and self.soccer_live:
                                     manager_to_display = self.soccer_live
-                                # Check if this is a plugin mode
-                                elif self.plugin_manager:
-                                    # Try to find a plugin that handles this display mode
-                                    for plugin_id, plugin in self.plugin_manager.get_all_plugins().items():
-                                        if not plugin.enabled:
-                                            continue
-                                        manifest = self.plugin_manager.plugin_manifests.get(plugin_id, {})
-                                        plugin_modes = manifest.get('display_modes', [plugin_id])
-                                        if self.current_display_mode in plugin_modes:
-                                            manager_to_display = plugin
-                                            break
 
                 # --- Perform Display Update ---
                 try:
@@ -1456,7 +1473,12 @@ class DisplayController:
                         logger.info(f"manager_to_display is {current_manager_type}")
                         self._last_logged_manager_type = current_manager_type
                     
-                    if self.current_display_mode == 'music' and self.music_manager:
+                    # Try plugin-first dispatch
+                    if self._try_display_plugin(self.current_display_mode, force_clear=self.force_clear):
+                        # Plugin handled it, reset force_clear and continue
+                        if self.force_clear:
+                            self.force_clear = False
+                    elif self.current_display_mode == 'music' and self.music_manager:
                         # Call MusicManager's display method
                         self.music_manager.display(force_clear=self.force_clear)
                         # Reset force_clear if it was true for this mode
