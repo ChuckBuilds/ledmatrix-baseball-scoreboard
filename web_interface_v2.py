@@ -108,6 +108,7 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode=ASYNC_MODE)
 # Global variables
 config_manager = ConfigManager()
 display_manager = None
+cache_manager = None
 display_thread = None
 display_running = False
 editor_mode = False
@@ -683,12 +684,14 @@ def start_display():
             config = config_manager.load_config()
             try:
                 display_manager = DisplayManager(config)
-                logger.info("DisplayManager initialized successfully")
+                cache_manager = CacheManager()
+                logger.info("DisplayManager and CacheManager initialized successfully")
             except Exception as dm_error:
                 logger.error(f"Failed to initialize DisplayManager: {dm_error}")
                 # Re-attempt with explicit fallback mode for web preview
                 display_manager = DisplayManager({'display': {'hardware': {}}}, force_fallback=True)
-                logger.info("Using fallback DisplayManager for web simulation")
+                cache_manager = CacheManager()
+                logger.info("Using fallback DisplayManager and CacheManager for web simulation")
             
             display_monitor.start()
             # Immediately publish a snapshot for the client
@@ -730,16 +733,19 @@ def start_display():
 @app.route('/api/display/stop', methods=['POST'])
 def stop_display():
     """Stop the LED matrix display."""
-    global display_manager, display_running
-    
+    global display_manager, cache_manager, display_running
+
     try:
         display_running = False
         display_monitor.stop()
-        
+
         if display_manager:
             display_manager.clear()
             display_manager.cleanup()
             display_manager = None
+
+        if cache_manager:
+            cache_manager = None
             
         return jsonify({
             'status': 'success',
@@ -754,11 +760,11 @@ def stop_display():
 @app.route('/api/editor/toggle', methods=['POST'])
 def toggle_editor_mode():
     """Toggle display editor mode."""
-    global editor_mode, display_running, display_manager
-    
+    global editor_mode, display_running, display_manager, cache_manager
+
     try:
         editor_mode = not editor_mode
-        
+
         if editor_mode:
             # Stop normal display operation
             display_running = False
@@ -767,12 +773,14 @@ def toggle_editor_mode():
                 config = config_manager.load_config()
                 try:
                     display_manager = DisplayManager(config)
-                    logger.info("DisplayManager initialized for editor mode")
+                    cache_manager = CacheManager()
+                    logger.info("DisplayManager and CacheManager initialized for editor mode")
                 except Exception as dm_error:
                     logger.error(f"Failed to initialize DisplayManager for editor: {dm_error}")
                     # Create a fallback display manager for web simulation
                     display_manager = DisplayManager(config, force_fallback=True)
-                    logger.info("Using fallback DisplayManager for editor simulation")
+                    cache_manager = CacheManager()
+                    logger.info("Using fallback DisplayManager and CacheManager for editor simulation")
                 display_monitor.start()
         else:
             # Resume normal display operation
