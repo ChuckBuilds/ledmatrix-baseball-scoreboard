@@ -8,6 +8,12 @@ project_dir = os.path.dirname(os.path.abspath(__file__))
 if project_dir not in sys.path:
     sys.path.insert(0, project_dir)
 
+# Debug: Print Python path (will show in systemd logs)
+print(f"DEBUG: Project directory: {project_dir}", flush=True)
+print(f"DEBUG: Python path[0]: {sys.path[0]}", flush=True)
+print(f"DEBUG: src/__init__.py exists: {os.path.exists(os.path.join(project_dir, 'src', '__init__.py'))}", flush=True)
+print(f"DEBUG: src/plugin_system/__init__.py exists: {os.path.exists(os.path.join(project_dir, 'src', 'plugin_system', '__init__.py'))}", flush=True)
+
 # Configure logging before importing any other modules
 logging.basicConfig(
     level=logging.DEBUG,
