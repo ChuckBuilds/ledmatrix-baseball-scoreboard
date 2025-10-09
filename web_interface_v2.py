@@ -1852,18 +1852,18 @@ def api_plugin_update():
     try:
         data = request.get_json()
         plugin_id = data.get('plugin_id')
-        
+
         if not plugin_id:
             return jsonify({
                 'status': 'error',
                 'message': 'plugin_id is required'
             }), 400
-        
+
         from src.plugin_system import get_store_manager
         PluginStoreManager = get_store_manager()
         store_manager = PluginStoreManager()
         success = store_manager.update_plugin(plugin_id)
-        
+
         if success:
             return jsonify({
                 'status': 'success',
@@ -1879,6 +1879,52 @@ def api_plugin_update():
         return jsonify({
             'status': 'error',
             'message': str(e)
+        }), 500
+
+@app.route('/api/plugins/config', methods=['POST'])
+def api_plugin_config():
+    """Update plugin configuration."""
+    try:
+        data = request.get_json()
+        plugin_id = data.get('plugin_id')
+        config_key = data.get('key')
+        config_value = data.get('value')
+
+        if not plugin_id or not config_key:
+            return jsonify({
+                'status': 'error',
+                'message': 'plugin_id and key are required'
+            }), 400
+
+        # Load current config
+        config = config_manager.load_config()
+
+        # Ensure plugin config section exists
+        if plugin_id not in config:
+            config[plugin_id] = {}
+
+        # Update the specific configuration value
+        try:
+            # Try to parse as JSON first (for arrays, objects, etc.)
+            parsed_value = json.loads(config_value)
+            config[plugin_id][config_key] = parsed_value
+        except (json.JSONDecodeError, ValueError):
+            # If not valid JSON, store as string
+            config[plugin_id][config_key] = config_value
+
+        # Save the updated config
+        config_manager.save_config(config)
+
+        return jsonify({
+            'status': 'success',
+            'message': f'Plugin {plugin_id} configuration updated successfully'
+        })
+
+    except Exception as e:
+        logger.error(f"Error updating plugin config: {e}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': f'Failed to update plugin configuration: {str(e)}'
         }), 500
 
 @app.route('/api/plugins/install-from-url', methods=['POST'])

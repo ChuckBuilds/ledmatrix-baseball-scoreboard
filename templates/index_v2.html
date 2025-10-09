@@ -4171,9 +4171,23 @@
 
         async function updatePluginConfig(pluginId, key, value) {
             try {
-                // For now, just show a notification. In a full implementation,
-                // this would save the configuration change
-                showNotification(`Configuration updated for ${pluginId}.${key}`, 'success');
+                const response = await fetch('/api/plugins/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        plugin_id: pluginId,
+                        key: key,
+                        value: value
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.status === 'success') {
+                    showNotification(`Configuration updated for ${pluginId}.${key}`, 'success');
+                } else {
+                    showNotification(`Failed to update configuration: ${data.message}`, 'error');
+                }
             } catch (error) {
                 showNotification('Error updating plugin config: ' + error.message, 'error');
             }
