@@ -105,7 +105,41 @@ class PluginManager:
         
         self.logger.info(f"Discovered {len(discovered)} plugin(s)")
         return discovered
-    
+
+    def _install_plugin_dependencies(self, requirements_file: Path) -> bool:
+        """
+        Install Python dependencies for a plugin.
+
+        Args:
+            requirements_file: Path to requirements.txt file
+
+        Returns:
+            True if successful or no dependencies needed, False on error
+        """
+        try:
+            import subprocess
+
+            self.logger.info(f"Installing dependencies for plugin from {requirements_file}")
+
+            result = subprocess.run(
+                ['pip3', 'install', '--break-system-packages', '-r', str(requirements_file)],
+                check=True,
+                capture_output=True,
+                text=True
+            )
+
+            self.logger.info(f"Successfully installed dependencies for {requirements_file}")
+            return True
+
+        except subprocess.CalledProcessError as e:
+            self.logger.error(f"Error installing dependencies: {e.stderr}")
+            # Don't fail plugin loading if dependencies fail to install
+            # User can manually install them
+            return True
+        except FileNotFoundError:
+            self.logger.warning("pip3 not found, skipping dependency installation")
+            return True
+
     def load_plugin(self, plugin_id: str) -> bool:
         """
         Load a plugin by ID.
@@ -147,15 +181,20 @@ class PluginManager:
             if not entry_file.exists():
                 self.logger.error(f"Entry point not found: {entry_file}")
                 return False
-            
+
+            # Install plugin dependencies if requirements.txt exists
+            requirements_file = plugin_dir / "requirements.txt"
+            if requirements_file.exists():
+                self._install_plugin_dependencies(requirements_file)
+
             # Import the plugin module
             module_name = f"plugin_{plugin_id.replace('-', '_')}"
             spec = importlib.util.spec_from_file_location(module_name, entry_file)
-            
+
             if spec is None or spec.loader is None:
                 self.logger.error(f"Could not create module spec for {entry_file}")
                 return False
-            
+
             module = importlib.util.module_from_spec(spec)
             sys.modules[module_name] = module
             spec.loader.exec_module(module)

@@ -8,8 +8,12 @@ on the LED matrix. Used to demonstrate and test the plugin system.
 from src.plugin_system.base_plugin import BasePlugin
 import time
 from datetime import datetime
-import freetype
 import os
+
+try:
+    import freetype
+except ImportError:
+    freetype = None
 
 
 class HelloWorldPlugin(BasePlugin):
@@ -41,6 +45,11 @@ class HelloWorldPlugin(BasePlugin):
 
     def _load_font(self):
         """Load the 6x9 BDF font for text rendering."""
+        if freetype is None:
+            self.logger.warning("freetype not available, font rendering disabled")
+            self.bdf_font = None
+            return
+
         try:
             font_path = "assets/fonts/6x9.bdf"
             if not os.path.exists(font_path):

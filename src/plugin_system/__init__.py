@@ -12,11 +12,19 @@ __api_version__ = "1.0.0"
 
 from .base_plugin import BasePlugin
 from .plugin_manager import PluginManager
-from .store_manager import PluginStoreManager
+
+# Import store_manager only when needed to avoid dependency issues
+def get_store_manager():
+    """Get PluginStoreManager, importing only when needed."""
+    try:
+        from .store_manager import PluginStoreManager
+        return PluginStoreManager
+    except ImportError as e:
+        raise ImportError("PluginStoreManager requires additional dependencies. Install requests: pip install requests") from e
 
 __all__ = [
     'BasePlugin',
     'PluginManager',
-    'PluginStoreManager',
+    'get_store_manager',
 ]
 

@@ -1655,7 +1655,8 @@ def get_custom_layouts():
 def api_plugin_store_list():
     """Get list of available plugins from store registry."""
     try:
-        from src.plugin_system import PluginStoreManager
+        from src.plugin_system import get_store_manager
+        PluginStoreManager = get_store_manager()
         store_manager = PluginStoreManager()
         registry = store_manager.fetch_registry()
         return jsonify({
@@ -1719,7 +1720,8 @@ def api_plugin_install():
                 'message': 'plugin_id is required'
             }), 400
         
-        from src.plugin_system import PluginStoreManager
+        from src.plugin_system import get_store_manager
+        PluginStoreManager = get_store_manager()
         store_manager = PluginStoreManager()
         success = store_manager.install_plugin(plugin_id, version)
         
@@ -1753,7 +1755,8 @@ def api_plugin_uninstall():
                 'message': 'plugin_id is required'
             }), 400
         
-        from src.plugin_system import PluginStoreManager
+        from src.plugin_system import get_store_manager
+        PluginStoreManager = get_store_manager()
         store_manager = PluginStoreManager()
         success = store_manager.uninstall_plugin(plugin_id)
         
@@ -1825,7 +1828,8 @@ def api_plugin_update():
                 'message': 'plugin_id is required'
             }), 400
         
-        from src.plugin_system import PluginStoreManager
+        from src.plugin_system import get_store_manager
+        PluginStoreManager = get_store_manager()
         store_manager = PluginStoreManager()
         success = store_manager.update_plugin(plugin_id)
         
@@ -1859,7 +1863,8 @@ def api_plugin_install_from_url():
                 'message': 'repo_url is required'
             }), 400
         
-        from src.plugin_system import PluginStoreManager
+        from src.plugin_system import get_store_manager
+        PluginStoreManager = get_store_manager()
         store_manager = PluginStoreManager()
         success = store_manager.install_from_url(repo_url)
         
