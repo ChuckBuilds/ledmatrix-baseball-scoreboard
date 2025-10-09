@@ -114,6 +114,13 @@ display_running = False
 editor_mode = False
 current_display_data = {}
 
+# Initialize cache_manager at startup
+try:
+    cache_manager = CacheManager()
+except Exception as e:
+    logger.warning(f"Failed to initialize cache_manager at startup: {e}. Will initialize on-demand.")
+    cache_manager = None
+
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
