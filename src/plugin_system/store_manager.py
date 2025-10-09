@@ -26,7 +26,7 @@ class PluginStoreManager:
     2. From custom GitHub URL (any repo)
     """
     
-    REGISTRY_URL = "https://raw.githubusercontent.com/ChuckBuilds/ledmatrix-plugin-registry/main/plugins.json"
+    REGISTRY_URL = "https://raw.githubusercontent.com/ChuckBuilds/ledmatrix-plugins/main/plugins.json"
     
     def __init__(self, plugins_dir: str = "plugins"):
         """
