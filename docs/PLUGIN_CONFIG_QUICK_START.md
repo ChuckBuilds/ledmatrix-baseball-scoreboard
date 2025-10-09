@@ -109,11 +109,14 @@ Reference it in `manifest.json`:
 ```json
 {
   "id": "my-plugin",
+  "icon": "fas fa-star",              // Optional: add a custom icon!
   "config_schema": "config_schema.json"
 }
 ```
 
 **Done!** Your plugin now has a configuration tab.
+
+**Bonus:** Add an `icon` field for a custom tab icon! Use Font Awesome icons (`fas fa-star`), emoji (⭐), or custom images. See [PLUGIN_CUSTOM_ICONS.md](PLUGIN_CUSTOM_ICONS.md) for the full guide.
 
 ## 🎨 Supported Input Types
 

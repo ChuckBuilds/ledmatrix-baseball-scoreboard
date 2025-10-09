@@ -47,10 +47,13 @@ To enable automatic configuration tab generation, your plugin must:
 {
   "id": "your-plugin",
   "name": "Your Plugin",
+  "icon": "fas fa-star",  // Optional: Custom tab icon
   ...
   "config_schema": "config_schema.json"
 }
 ```
+
+**Note:** You can optionally specify a custom `icon` for your plugin tab. See [Plugin Custom Icons Guide](PLUGIN_CUSTOM_ICONS.md) for details.
 
 ### Supported JSON Schema Types
 

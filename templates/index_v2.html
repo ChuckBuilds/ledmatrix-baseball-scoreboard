@@ -3980,7 +3980,10 @@
                 const tabBtn = document.createElement('button');
                 tabBtn.className = 'tab-btn plugin-tab-btn';
                 tabBtn.setAttribute('onclick', `showTab('plugin-${plugin.id}')`);
-                tabBtn.innerHTML = `<i class="fas fa-puzzle-piece"></i> ${plugin.name}`;
+                
+                // Get icon from plugin manifest or use default
+                const iconHTML = getPluginIcon(plugin);
+                tabBtn.innerHTML = `${iconHTML} ${plugin.name}`;
                 
                 // Insert before the last tab (or at the end)
                 tabsContainer.appendChild(tabBtn);
@@ -3999,10 +4002,37 @@
             });
         }
 
+        function getPluginIcon(plugin) {
+            // Check if plugin has a custom icon specified
+            if (plugin.icon) {
+                const icon = plugin.icon;
+                
+                // Support for Font Awesome icons (e.g., "fas fa-clock")
+                if (icon.includes('fa-')) {
+                    return `<i class="${icon}"></i>`;
+                }
+                
+                // Support for emoji (single character)
+                if (icon.length <= 4) {  // Emojis can be 1-4 bytes in UTF-8
+                    return `<span style="font-size: 1.1em;">${icon}</span>`;
+                }
+                
+                // Support for custom image URL
+                if (icon.startsWith('http://') || icon.startsWith('https://') || icon.startsWith('/')) {
+                    return `<img src="${icon}" alt="" style="width: 16px; height: 16px; vertical-align: middle;">`;
+                }
+            }
+            
+            // Default fallback icon
+            return '<i class="fas fa-puzzle-piece"></i>';
+        }
+
         function generatePluginConfigForm(plugin) {
+            const iconHTML = getPluginIcon(plugin);
+            
             if (!plugin.config_schema_data) {
                 return `
-                    <h3><i class="fas fa-puzzle-piece"></i> ${plugin.name} Configuration</h3>
+                    <h3>${iconHTML} ${plugin.name} Configuration</h3>
                     <p style="color: #666;">No configuration schema available for this plugin.</p>
                     <div style="margin-top: 20px;">
                         <button class="btn btn-secondary" onclick="showTab('plugins')">
@@ -4017,7 +4047,7 @@
             const properties = schema.properties || {};
             
             let formHTML = `
-                <h3><i class="fas fa-puzzle-piece"></i> ${plugin.name} Configuration</h3>
+                <h3>${iconHTML} ${plugin.name} Configuration</h3>
                 <p style="color: #666; margin-bottom: 20px;">${schema.description || plugin.description || ''}</p>
                 
                 <form id="plugin-config-form-${plugin.id}" class="config-form" onsubmit="event.preventDefault(); savePluginConfiguration('${plugin.id}');">
