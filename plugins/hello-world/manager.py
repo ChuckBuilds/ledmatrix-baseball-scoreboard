@@ -1,0 +1,187 @@
+"""
+Hello World Plugin
+
+A simple test plugin that displays a customizable greeting message
+on the LED matrix. Used to demonstrate and test the plugin system.
+"""
+
+from src.plugin_system.base_plugin import BasePlugin
+import time
+from datetime import datetime
+
+
+class HelloWorldPlugin(BasePlugin):
+    """
+    Simple Hello World plugin for LEDMatrix.
+    
+    Displays a customizable greeting message with the current time.
+    Demonstrates basic plugin functionality.
+    """
+    
+    def __init__(self, plugin_id, config, display_manager, cache_manager, plugin_manager):
+        """Initialize the Hello World plugin."""
+        super().__init__(plugin_id, config, display_manager, cache_manager, plugin_manager)
+        
+        # Plugin-specific configuration
+        self.message = config.get('message', 'Hello, World!')
+        self.show_time = config.get('show_time', True)
+        self.color = tuple(config.get('color', [255, 255, 255]))
+        self.time_color = tuple(config.get('time_color', [0, 255, 255]))
+        
+        # State
+        self.last_update = None
+        self.current_time_str = ""
+        
+        self.logger.info(f"Hello World plugin initialized with message: '{self.message}'")
+    
+    def update(self):
+        """
+        Update plugin data.
+        
+        For this simple plugin, we just update the current time string.
+        In a real plugin, this would fetch data from APIs, databases, etc.
+        """
+        try:
+            self.last_update = time.time()
+            
+            if self.show_time:
+                now = datetime.now()
+                self.current_time_str = now.strftime("%I:%M %p")
+                self.logger.debug(f"Updated time: {self.current_time_str}")
+            
+            # Log update occasionally to avoid spam
+            if not hasattr(self, '_last_log_time') or time.time() - self._last_log_time > 60:
+                self.logger.info(f"Plugin updated successfully")
+                self._last_log_time = time.time()
+                
+        except Exception as e:
+            self.logger.error(f"Error during update: {e}", exc_info=True)
+    
+    def display(self, force_clear=False):
+        """
+        Render the plugin display.
+        
+        Displays the configured message and optionally the current time.
+        """
+        try:
+            # Clear display if requested
+            if force_clear:
+                self.display_manager.clear()
+            
+            # Get display dimensions
+            width = self.display_manager.width
+            height = self.display_manager.height
+            
+            # Calculate positions for centered text
+            if self.show_time:
+                # Display message at top, time at bottom
+                message_y = height // 3
+                time_y = (2 * height) // 3
+                
+                # Draw the greeting message
+                self.display_manager.draw_text(
+                    self.message,
+                    x=width // 2,
+                    y=message_y,
+                    color=self.color,
+                    font_name='6x9.bdf'
+                )
+                
+                # Draw the current time
+                if self.current_time_str:
+                    self.display_manager.draw_text(
+                        self.current_time_str,
+                        x=width // 2,
+                        y=time_y,
+                        color=self.time_color,
+                        font_name='6x9.bdf'
+                    )
+            else:
+                # Display message centered
+                self.display_manager.draw_text(
+                    self.message,
+                    x=width // 2,
+                    y=height // 2,
+                    color=self.color,
+                    font_name='6x9.bdf'
+                )
+            
+            # Update the physical display
+            self.display_manager.update_display()
+            
+            # Log display occasionally to reduce spam
+            if not hasattr(self, '_last_display_log') or time.time() - self._last_display_log > 30:
+                self.logger.debug(f"Display rendered: '{self.message}'")
+                self._last_display_log = time.time()
+                
+        except Exception as e:
+            self.logger.error(f"Error during display: {e}", exc_info=True)
+            # Show error message on display
+            try:
+                self.display_manager.clear()
+                self.display_manager.draw_text(
+                    "Error!",
+                    x=width // 2,
+                    y=height // 2,
+                    color=(255, 0, 0),
+                    font_name='6x9.bdf'
+                )
+                self.display_manager.update_display()
+            except:
+                pass  # If we can't even show error, just log it
+    
+    def validate_config(self):
+        """
+        Validate plugin configuration.
+        
+        Ensures the configuration values are valid.
+        """
+        # Call parent validation
+        if not super().validate_config():
+            return False
+        
+        # Validate message
+        if 'message' in self.config:
+            if not isinstance(self.config['message'], str):
+                self.logger.error("'message' must be a string")
+                return False
+            if len(self.config['message']) > 50:
+                self.logger.warning("'message' is very long, may not fit on display")
+        
+        # Validate colors
+        for color_key in ['color', 'time_color']:
+            if color_key in self.config:
+                color = self.config[color_key]
+                if not isinstance(color, (list, tuple)) or len(color) != 3:
+                    self.logger.error(f"'{color_key}' must be an RGB array [R, G, B]")
+                    return False
+                if not all(isinstance(c, int) and 0 <= c <= 255 for c in color):
+                    self.logger.error(f"'{color_key}' values must be integers 0-255")
+                    return False
+        
+        # Validate show_time
+        if 'show_time' in self.config:
+            if not isinstance(self.config['show_time'], bool):
+                self.logger.error("'show_time' must be a boolean")
+                return False
+        
+        self.logger.info("Configuration validated successfully")
+        return True
+    
+    def get_info(self):
+        """
+        Return plugin information for web UI.
+        """
+        info = super().get_info()
+        info['message'] = self.message
+        info['show_time'] = self.show_time
+        info['last_update'] = self.last_update
+        return info
+    
+    def cleanup(self):
+        """
+        Cleanup resources when plugin is unloaded.
+        """
+        self.logger.info("Cleaning up Hello World plugin")
+        super().cleanup()
+
