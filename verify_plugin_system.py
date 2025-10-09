@@ -65,7 +65,7 @@ def main():
     ]
 
     for name, path in files_to_check:
-        print(f"{name"30"} {check_file_exists(path)}")
+        print(f"{name:30} {check_file_exists(path)}")
     print()
 
     # Check directories
@@ -78,7 +78,7 @@ def main():
     ]
 
     for name, path in dirs_to_check:
-        print(f"{name"25"} {check_directory_exists(path)}")
+        print(f"{name:25} {check_directory_exists(path)}")
     print()
 
     # Test imports
@@ -91,7 +91,7 @@ def main():
 
     for module_name, filepath in import_tests:
         result = test_import(module_name, filepath)
-        print(f"{module_name"35"} {result}")
+        print(f"{module_name:35} {result}")
     print()
 
     # Test plugin loading
