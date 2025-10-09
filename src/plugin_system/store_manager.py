@@ -162,8 +162,9 @@ class PluginStoreManager:
                     self.logger.error(f"Version not found: {version}")
                     return False
             
-            # Get repo URL
+            # Get repo URL and plugin path (for monorepo support)
             repo_url = plugin_info['repo']
+            plugin_subpath = plugin_info.get('plugin_path')  # e.g., "plugins/hello-world"
             
             # Check if plugin already exists
             plugin_path = self.plugins_dir / plugin_id
@@ -171,25 +172,39 @@ class PluginStoreManager:
                 self.logger.warning(f"Plugin directory already exists: {plugin_id}. Removing old version.")
                 shutil.rmtree(plugin_path)
             
-            # Try to install via git clone first (preferred method)
-            if self._install_via_git(repo_url, version_info['version'], plugin_path):
-                self.logger.info(f"Installed {plugin_id} via git clone")
-            else:
-                # Fall back to download zip
-                self.logger.info("Git not available or failed, trying download...")
+            # For monorepo plugins, we need to download and extract from subdirectory
+            if plugin_subpath:
+                self.logger.info(f"Installing from monorepo subdirectory: {plugin_subpath}")
                 download_url = version_info.get('download_url')
                 if not download_url:
-                    # Construct GitHub download URL if not provided
-                    download_url = f"{repo_url}/archive/refs/tags/v{version_info['version']}.zip"
+                    # Construct GitHub download URL
+                    download_url = f"{repo_url}/archive/refs/heads/{plugin_info.get('branch', 'main')}.zip"
                 
-                if not self._install_via_download(download_url, plugin_path):
-                    self.logger.error(f"Failed to download plugin: {plugin_id}")
+                if not self._install_from_monorepo(download_url, plugin_subpath, plugin_path):
+                    self.logger.error(f"Failed to install plugin from monorepo: {plugin_id}")
                     return False
+            else:
+                # Standard installation (plugin at repo root)
+                # Try to install via git clone first (preferred method)
+                if self._install_via_git(repo_url, version_info['version'], plugin_path):
+                    self.logger.info(f"Installed {plugin_id} via git clone")
+                else:
+                    # Fall back to download zip
+                    self.logger.info("Git not available or failed, trying download...")
+                    download_url = version_info.get('download_url')
+                    if not download_url:
+                        # Construct GitHub download URL if not provided
+                        download_url = f"{repo_url}/archive/refs/tags/v{version_info['version']}.zip"
+                    
+                    if not self._install_via_download(download_url, plugin_path):
+                        self.logger.error(f"Failed to download plugin: {plugin_id}")
+                        return False
             
             # Validate manifest exists
             manifest_path = plugin_path / "manifest.json"
             if not manifest_path.exists():
                 self.logger.error(f"No manifest.json found in plugin: {plugin_id}")
+                self.logger.error(f"Expected at: {manifest_path}")
                 shutil.rmtree(plugin_path)
                 return False
             
@@ -353,6 +368,75 @@ class PluginStoreManager:
             
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError) as e:
             self.logger.debug(f"Git clone failed: {e}")
+            return False
+    
+    def _install_from_monorepo(self, download_url: str, plugin_subpath: str, target_path: Path) -> bool:
+        """
+        Install a plugin from a monorepo by downloading and extracting a subdirectory.
+        
+        Args:
+            download_url: URL to download zip from
+            plugin_subpath: Path within repo (e.g., "plugins/hello-world")
+            target_path: Target directory for plugin
+            
+        Returns:
+            True if successful
+        """
+        try:
+            self.logger.info(f"Downloading monorepo from: {download_url}")
+            response = requests.get(download_url, timeout=60, stream=True)
+            response.raise_for_status()
+            
+            # Download to temporary file
+            with tempfile.NamedTemporaryFile(suffix='.zip', delete=False) as tmp_file:
+                for chunk in response.iter_content(chunk_size=8192):
+                    tmp_file.write(chunk)
+                tmp_zip_path = tmp_file.name
+            
+            try:
+                # Extract zip
+                with zipfile.ZipFile(tmp_zip_path, 'r') as zip_ref:
+                    zip_contents = zip_ref.namelist()
+                    if not zip_contents:
+                        return False
+                    
+                    # GitHub zips have a root directory like "repo-main/"
+                    root_dir = zip_contents[0].split('/')[0]
+                    
+                    # Build path to plugin within extracted archive
+                    # e.g., "ledmatrix-plugins-main/plugins/hello-world/"
+                    plugin_path_in_zip = f"{root_dir}/{plugin_subpath}/"
+                    
+                    # Extract to temp location
+                    temp_extract = Path(tempfile.mkdtemp())
+                    zip_ref.extractall(temp_extract)
+                    
+                    # Find the plugin directory
+                    source_plugin_dir = temp_extract / root_dir / plugin_subpath
+                    
+                    if not source_plugin_dir.exists():
+                        self.logger.error(f"Plugin path not found in archive: {plugin_subpath}")
+                        self.logger.error(f"Expected at: {source_plugin_dir}")
+                        shutil.rmtree(temp_extract, ignore_errors=True)
+                        return False
+                    
+                    # Move plugin contents to target
+                    target_path.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.move(str(source_plugin_dir), str(target_path))
+                    
+                    # Cleanup temp extract dir
+                    if temp_extract.exists():
+                        shutil.rmtree(temp_extract, ignore_errors=True)
+                
+                return True
+                
+            finally:
+                # Remove temporary zip file
+                if os.path.exists(tmp_zip_path):
+                    os.remove(tmp_zip_path)
+            
+        except Exception as e:
+            self.logger.error(f"Monorepo download failed: {e}", exc_info=True)
             return False
     
     def _install_via_download(self, download_url: str, target_path: Path) -> bool:
