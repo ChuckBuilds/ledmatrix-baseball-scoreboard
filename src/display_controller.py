@@ -385,6 +385,47 @@ class DisplayController:
         # Add live modes to rotation if live_priority is False and there are live games
         self._update_live_modes_in_rotation()
         
+        # Initialize Plugin System (Phase 1: Foundation)
+        plugin_time = time.time()
+        self.plugin_manager = None
+        try:
+            from src.plugin_system import PluginManager
+            self.plugin_manager = PluginManager(
+                plugins_dir="plugins",
+                config_manager=self.config_manager,
+                display_manager=self.display_manager,
+                cache_manager=self.cache_manager
+            )
+            
+            # Discover plugins
+            discovered_plugins = self.plugin_manager.discover_plugins()
+            logger.info(f"Discovered {len(discovered_plugins)} plugin(s)")
+            
+            # Load enabled plugins
+            for plugin_id in discovered_plugins:
+                plugin_config = self.config.get(plugin_id, {})
+                if plugin_config.get('enabled', False):
+                    if self.plugin_manager.load_plugin(plugin_id):
+                        logger.info(f"Loaded plugin: {plugin_id}")
+                        
+                        # Add plugin display modes to available_modes
+                        manifest = self.plugin_manager.plugin_manifests.get(plugin_id, {})
+                        display_modes = manifest.get('display_modes', [plugin_id])
+                        for mode in display_modes:
+                            if mode not in self.available_modes:
+                                self.available_modes.append(mode)
+                                logger.info(f"Added plugin mode to rotation: {mode}")
+                    else:
+                        logger.error(f"Failed to load plugin: {plugin_id}")
+            
+            logger.info(f"Plugin system initialized in {time.time() - plugin_time:.3f} seconds")
+        except ImportError as e:
+            logger.warning(f"Plugin system not available: {e}")
+            self.plugin_manager = None
+        except Exception as e:
+            logger.error(f"Error initializing plugin system: {e}", exc_info=True)
+            self.plugin_manager = None
+        
         # Set initial display to first available mode (clock)
         self.current_mode_index = 0
         self.current_display_mode = "none"
@@ -833,6 +874,15 @@ class DisplayController:
             if self.ncaaw_hockey_live: self.ncaaw_hockey_live.update()
             if self.ncaaw_hockey_recent: self.ncaaw_hockey_recent.update()
             if self.ncaaw_hockey_upcoming: self.ncaaw_hockey_upcoming.update()
+        
+        # Update plugin managers if plugin system is available
+        if self.plugin_manager:
+            for plugin_id, plugin in self.plugin_manager.get_all_plugins().items():
+                if plugin.enabled:
+                    try:
+                        plugin.update()
+                    except Exception as e:
+                        logger.error(f"Error updating plugin {plugin_id}: {e}", exc_info=True)
 
     def _check_live_games(self) -> tuple:
         """
@@ -1363,6 +1413,17 @@ class DisplayController:
                                 manager_to_display = self.milb_live
                             elif self.current_display_mode == 'soccer_live' and self.soccer_live:
                                 manager_to_display = self.soccer_live
+                            # Check if this is a plugin mode
+                            elif self.plugin_manager:
+                                # Try to find a plugin that handles this display mode
+                                for plugin_id, plugin in self.plugin_manager.get_all_plugins().items():
+                                    if not plugin.enabled:
+                                        continue
+                                    manifest = self.plugin_manager.plugin_manifests.get(plugin_id, {})
+                                    plugin_modes = manifest.get('display_modes', [plugin_id])
+                                    if self.current_display_mode in plugin_modes:
+                                        manager_to_display = plugin
+                                        break
 
                 # --- Perform Display Update ---
                 try:

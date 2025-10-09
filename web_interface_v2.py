@@ -1649,6 +1649,239 @@ def get_custom_layouts():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
+# ===== Plugin System API Endpoints (Phase 1: Foundation) =====
+
+@app.route('/api/plugins/store/list', methods=['GET'])
+def api_plugin_store_list():
+    """Get list of available plugins from store registry."""
+    try:
+        from src.plugin_system import PluginStoreManager
+        store_manager = PluginStoreManager()
+        registry = store_manager.fetch_registry()
+        return jsonify({
+            'status': 'success',
+            'plugins': registry.get('plugins', [])
+        })
+    except Exception as e:
+        logger.error(f"Error fetching plugin store list: {e}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+@app.route('/api/plugins/installed', methods=['GET'])
+def api_plugins_installed():
+    """Get list of installed and discovered plugins."""
+    try:
+        from src.plugin_system import PluginManager
+        plugin_manager = PluginManager(
+            plugins_dir="plugins",
+            config_manager=config_manager,
+            display_manager=display_manager,
+            cache_manager=cache_manager
+        )
+        
+        # Discover all plugins
+        discovered = plugin_manager.discover_plugins()
+        
+        plugins = []
+        for plugin_id in discovered:
+            info = plugin_manager.get_plugin_info(plugin_id)
+            if info:
+                # Add configuration from config.json
+                plugin_config = config_manager.load_config().get(plugin_id, {})
+                info['config'] = plugin_config
+                info['enabled'] = plugin_config.get('enabled', False)
+                plugins.append(info)
+        
+        return jsonify({
+            'status': 'success',
+            'plugins': plugins
+        })
+    except Exception as e:
+        logger.error(f"Error fetching installed plugins: {e}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+@app.route('/api/plugins/install', methods=['POST'])
+def api_plugin_install():
+    """Install a plugin from the store registry."""
+    try:
+        data = request.get_json()
+        plugin_id = data.get('plugin_id')
+        version = data.get('version', 'latest')
+        
+        if not plugin_id:
+            return jsonify({
+                'status': 'error',
+                'message': 'plugin_id is required'
+            }), 400
+        
+        from src.plugin_system import PluginStoreManager
+        store_manager = PluginStoreManager()
+        success = store_manager.install_plugin(plugin_id, version)
+        
+        if success:
+            return jsonify({
+                'status': 'success',
+                'message': f'Plugin {plugin_id} installed successfully. Restart display to activate.'
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': f'Failed to install plugin {plugin_id}'
+            }), 500
+    except Exception as e:
+        logger.error(f"Error installing plugin: {e}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+@app.route('/api/plugins/uninstall', methods=['POST'])
+def api_plugin_uninstall():
+    """Uninstall a plugin."""
+    try:
+        data = request.get_json()
+        plugin_id = data.get('plugin_id')
+        
+        if not plugin_id:
+            return jsonify({
+                'status': 'error',
+                'message': 'plugin_id is required'
+            }), 400
+        
+        from src.plugin_system import PluginStoreManager
+        store_manager = PluginStoreManager()
+        success = store_manager.uninstall_plugin(plugin_id)
+        
+        if success:
+            # Also remove from config
+            config = config_manager.load_config()
+            if plugin_id in config:
+                del config[plugin_id]
+                config_manager.save_config(config)
+            
+            return jsonify({
+                'status': 'success',
+                'message': f'Plugin {plugin_id} uninstalled successfully. Restart display to apply changes.'
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': f'Failed to uninstall plugin {plugin_id}'
+            }), 500
+    except Exception as e:
+        logger.error(f"Error uninstalling plugin: {e}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+@app.route('/api/plugins/toggle', methods=['POST'])
+def api_plugin_toggle():
+    """Enable or disable a plugin."""
+    try:
+        data = request.get_json()
+        plugin_id = data.get('plugin_id')
+        enabled = data.get('enabled', True)
+        
+        if not plugin_id:
+            return jsonify({
+                'status': 'error',
+                'message': 'plugin_id is required'
+            }), 400
+        
+        # Update config
+        config = config_manager.load_config()
+        if plugin_id not in config:
+            config[plugin_id] = {}
+        config[plugin_id]['enabled'] = enabled
+        config_manager.save_config(config)
+        
+        return jsonify({
+            'status': 'success',
+            'message': f'Plugin {plugin_id} {"enabled" if enabled else "disabled"}. Restart display to apply changes.'
+        })
+    except Exception as e:
+        logger.error(f"Error toggling plugin: {e}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+@app.route('/api/plugins/update', methods=['POST'])
+def api_plugin_update():
+    """Update a plugin to the latest version."""
+    try:
+        data = request.get_json()
+        plugin_id = data.get('plugin_id')
+        
+        if not plugin_id:
+            return jsonify({
+                'status': 'error',
+                'message': 'plugin_id is required'
+            }), 400
+        
+        from src.plugin_system import PluginStoreManager
+        store_manager = PluginStoreManager()
+        success = store_manager.update_plugin(plugin_id)
+        
+        if success:
+            return jsonify({
+                'status': 'success',
+                'message': f'Plugin {plugin_id} updated successfully. Restart display to apply changes.'
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': f'Failed to update plugin {plugin_id}'
+            }), 500
+    except Exception as e:
+        logger.error(f"Error updating plugin: {e}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+@app.route('/api/plugins/install-from-url', methods=['POST'])
+def api_plugin_install_from_url():
+    """Install a plugin directly from a GitHub URL."""
+    try:
+        data = request.get_json()
+        repo_url = data.get('repo_url')
+        
+        if not repo_url:
+            return jsonify({
+                'status': 'error',
+                'message': 'repo_url is required'
+            }), 400
+        
+        from src.plugin_system import PluginStoreManager
+        store_manager = PluginStoreManager()
+        success = store_manager.install_from_url(repo_url)
+        
+        if success:
+            return jsonify({
+                'status': 'success',
+                'message': 'Plugin installed from URL successfully. Restart display to activate.'
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': 'Failed to install plugin from URL'
+            }), 500
+    except Exception as e:
+        logger.error(f"Error installing plugin from URL: {e}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+# ===== End Plugin System API Endpoints =====
+
 @socketio.on('connect')
 def handle_connect():
     """Handle client connection."""
