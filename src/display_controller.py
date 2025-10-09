@@ -1,6 +1,7 @@
 import time
 import logging
 import sys
+import os
 from typing import Dict, Any, List
 from datetime import datetime, time as time_obj
 
@@ -394,7 +395,7 @@ class DisplayController:
             from src.plugin_system import PluginManager
             logger.info("Plugin system imported successfully")
             self.plugin_manager = PluginManager(
-                plugins_dir="plugins",
+                plugins_dir=os.path.join(os.getcwd(), "plugins"),
                 config_manager=self.config_manager,
                 display_manager=self.display_manager,
                 cache_manager=self.cache_manager
