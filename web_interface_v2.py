@@ -1819,18 +1819,20 @@ def api_plugin_uninstall():
 def api_plugin_toggle():
     """Enable or disable a plugin."""
     try:
-        # Check if request contains JSON data
-        if not request.is_json:
-            return jsonify({
-                'status': 'error',
-                'message': 'Request must be JSON'
-            }), 400
-
-        data = request.get_json()
-        if data is None:
+        # Try to parse JSON data
+        try:
+            data = request.get_json()
+        except Exception as json_error:
+            logger.error(f"JSON parsing failed: {json_error}")
             return jsonify({
                 'status': 'error',
                 'message': 'Invalid JSON data'
+            }), 400
+
+        if data is None:
+            return jsonify({
+                'status': 'error',
+                'message': 'No data provided'
             }), 400
 
         plugin_id = data.get('plugin_id')
@@ -1905,18 +1907,20 @@ def api_plugin_update():
 def api_plugin_config():
     """Update plugin configuration."""
     try:
-        # Check if request contains JSON data
-        if not request.is_json:
-            return jsonify({
-                'status': 'error',
-                'message': 'Request must be JSON'
-            }), 400
-
-        data = request.get_json()
-        if data is None:
+        # Try to parse JSON data
+        try:
+            data = request.get_json()
+        except Exception as json_error:
+            logger.error(f"JSON parsing failed: {json_error}")
             return jsonify({
                 'status': 'error',
                 'message': 'Invalid JSON data'
+            }), 400
+
+        if data is None:
+            return jsonify({
+                'status': 'error',
+                'message': 'No data provided'
             }), 400
 
         plugin_id = data.get('plugin_id')
