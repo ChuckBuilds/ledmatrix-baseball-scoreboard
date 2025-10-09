@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file, Response
+from werkzeug.exceptions import BadRequest
 from flask_socketio import SocketIO, emit
 import json
 import os
@@ -1839,6 +1840,12 @@ def api_plugin_toggle():
             'status': 'success',
             'message': f'Plugin {plugin_id} {"enabled" if enabled else "disabled"}. Restart display to apply changes.'
         })
+    except BadRequest as e:
+        logger.error(f"Bad request in plugin toggle: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': 'Invalid request format'
+        }), 400
     except Exception as e:
         logger.error(f"Error toggling plugin: {e}", exc_info=True)
         return jsonify({
@@ -1920,6 +1927,12 @@ def api_plugin_config():
             'message': f'Plugin {plugin_id} configuration updated successfully'
         })
 
+    except BadRequest as e:
+        logger.error(f"Bad request in plugin config: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': 'Invalid request format'
+        }), 400
     except Exception as e:
         logger.error(f"Error updating plugin config: {e}", exc_info=True)
         return jsonify({
