@@ -75,13 +75,17 @@ class HelloWorldPlugin(BasePlugin):
             
             if self.show_time:
                 now = datetime.now()
-                self.current_time_str = now.strftime("%I:%M %p")
-                self.logger.debug(f"Updated time: {self.current_time_str}")
-            
-            # Log update occasionally to avoid spam
-            if not hasattr(self, '_last_log_time') or time.time() - self._last_log_time > 60:
-                self.logger.info(f"Plugin updated successfully")
-                self._last_log_time = time.time()
+                new_time_str = now.strftime("%I:%M %p")
+                
+                # Only log if the time actually changed (reduces spam from sub-minute updates)
+                if new_time_str != self.current_time_str:
+                    self.current_time_str = new_time_str
+                    # Only log time changes occasionally
+                    if not hasattr(self, '_last_time_log') or time.time() - self._last_time_log > 60:
+                        self.logger.info(f"Time updated: {self.current_time_str}")
+                        self._last_time_log = time.time()
+                else:
+                    self.current_time_str = new_time_str
                 
         except Exception as e:
             self.logger.error(f"Error during update: {e}", exc_info=True)
@@ -137,11 +141,6 @@ class HelloWorldPlugin(BasePlugin):
             
             # Update the physical display
             self.display_manager.update_display()
-            
-            # Log display occasionally to reduce spam
-            if not hasattr(self, '_last_display_log') or time.time() - self._last_display_log > 30:
-                self.logger.debug(f"Display rendered: '{self.message}'")
-                self._last_display_log = time.time()
                 
         except Exception as e:
             self.logger.error(f"Error during display: {e}", exc_info=True)

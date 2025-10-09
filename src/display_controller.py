@@ -1463,7 +1463,10 @@ class DisplayController:
                         if self.force_clear:
                             self.force_clear = False
                     elif manager_to_display:
-                        logger.debug(f"Attempting to display mode: {self.current_display_mode} using manager {type(manager_to_display).__name__} with force_clear={self.force_clear}")
+                        # Only log display attempts occasionally to reduce log spam
+                        if not hasattr(self, '_last_display_log') or time.time() - self._last_display_log > 30:
+                            logger.debug(f"Displaying mode: {self.current_display_mode} using {type(manager_to_display).__name__}")
+                            self._last_display_log = time.time()
 
                         # Check if this is a plugin manager
                         if hasattr(manager_to_display, 'display') and hasattr(manager_to_display, 'plugin_id'):

@@ -142,15 +142,26 @@ class SimpleClock(BasePlugin):
                 local_time = datetime.now()
 
             if self.time_format == "12h":
-                self.current_time, self.current_ampm = self._format_time_12h(local_time)
+                new_time, new_ampm = self._format_time_12h(local_time)
+                # Only log if the time actually changed
+                if not hasattr(self, 'current_time') or new_time != self.current_time:
+                    if not hasattr(self, '_last_time_log') or time.time() - getattr(self, '_last_time_log', 0) > 60:
+                        self.logger.info(f"Clock updated: {new_time} {new_ampm}")
+                        self._last_time_log = time.time()
+                self.current_time = new_time
+                self.current_ampm = new_ampm
             else:
-                self.current_time = self._format_time_24h(local_time)
+                new_time = self._format_time_24h(local_time)
+                if not hasattr(self, 'current_time') or new_time != self.current_time:
+                    if not hasattr(self, '_last_time_log') or time.time() - getattr(self, '_last_time_log', 0) > 60:
+                        self.logger.info(f"Clock updated: {new_time}")
+                        self._last_time_log = time.time()
+                self.current_time = new_time
 
             if self.show_date:
                 self.current_date = self._format_date(local_time)
 
             self.last_update = time.time()
-            self.logger.debug(f"Updated clock: {self.current_time} {self.current_ampm if self.time_format == '12h' else ''}")
 
         except Exception as e:
             self.logger.error(f"Error updating clock: {e}")
@@ -205,8 +216,6 @@ class SimpleClock(BasePlugin):
 
             # Update the physical display
             self.display_manager.update_display()
-
-            self.logger.debug(f"Displayed clock: {self.current_time}")
 
         except Exception as e:
             self.logger.error(f"Error displaying clock: {e}")

@@ -1911,13 +1911,15 @@ def api_plugin_config():
         try:
             data = request.get_json()
         except Exception as json_error:
-            logger.error(f"JSON parsing failed: {json_error}")
+            error_msg = f"JSON parsing failed: {json_error}"
+            logger.error(error_msg)
             return jsonify({
                 'status': 'error',
-                'message': 'Invalid JSON data'
+                'message': f'Invalid JSON data: {str(json_error)}'
             }), 400
 
         if data is None:
+            logger.error("No data provided in plugin config request")
             return jsonify({
                 'status': 'error',
                 'message': 'No data provided'
@@ -1927,18 +1929,30 @@ def api_plugin_config():
         config_key = data.get('key')
         config_value = data.get('value')
 
+        logger.info(f"Plugin config update request: plugin_id={plugin_id}, key={config_key}, value={config_value}, value_type={type(config_value).__name__}")
+
         if not plugin_id or not config_key:
+            logger.error(f"Missing required fields: plugin_id={plugin_id}, key={config_key}")
             return jsonify({
                 'status': 'error',
                 'message': 'plugin_id and key are required'
             }), 400
 
         # Load current config
-        config = config_manager.load_config()
+        try:
+            config = config_manager.load_config()
+            logger.info(f"Loaded config successfully, plugin {plugin_id} exists: {plugin_id in config}")
+        except Exception as load_error:
+            logger.error(f"Failed to load config: {load_error}", exc_info=True)
+            return jsonify({
+                'status': 'error',
+                'message': f'Failed to load configuration: {str(load_error)}'
+            }), 500
 
         # Ensure plugin config section exists
         if plugin_id not in config:
             config[plugin_id] = {}
+            logger.info(f"Created new config section for plugin {plugin_id}")
 
         # Update the specific configuration value
         # config_value is already the correct Python type from JSON parsing
@@ -1948,15 +1962,26 @@ def api_plugin_config():
                 # Try to parse as JSON for arrays/objects entered as strings
                 parsed_value = json.loads(config_value)
                 config[plugin_id][config_key] = parsed_value
-            except (json.JSONDecodeError, ValueError):
+                logger.info(f"Parsed JSON value for {plugin_id}.{config_key}: {parsed_value}")
+            except (json.JSONDecodeError, ValueError) as parse_error:
                 # If parsing fails, store as string
                 config[plugin_id][config_key] = config_value
+                logger.info(f"Stored as string for {plugin_id}.{config_key} (parse failed): {config_value}")
         else:
             # Use the value directly (already correct type)
             config[plugin_id][config_key] = config_value
+            logger.info(f"Stored value directly for {plugin_id}.{config_key}: {config_value} (type: {type(config_value).__name__})")
 
         # Save the updated config
-        config_manager.save_config(config)
+        try:
+            config_manager.save_config(config)
+            logger.info(f"Successfully saved config for {plugin_id}.{config_key}")
+        except Exception as save_error:
+            logger.error(f"Failed to save config: {save_error}", exc_info=True)
+            return jsonify({
+                'status': 'error',
+                'message': f'Failed to save configuration: {str(save_error)}'
+            }), 500
 
         return jsonify({
             'status': 'success',
@@ -1964,10 +1989,10 @@ def api_plugin_config():
         })
 
     except BadRequest as e:
-        logger.error(f"Bad request in plugin config: {e}")
+        logger.error(f"Bad request in plugin config: {e}", exc_info=True)
         return jsonify({
             'status': 'error',
-            'message': 'Invalid request format'
+            'message': f'Invalid request format: {str(e)}'
         }), 400
     except Exception as e:
         logger.error(f"Error updating plugin config: {e}", exc_info=True)
