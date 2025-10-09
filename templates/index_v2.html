@@ -897,14 +897,6 @@
             <div style="margin-top:12px; color:#666; font-size:12px;">Service actions may require sudo privileges on the Pi. Migrate Config adds new options with defaults while preserving your settings.</div>
         </div>
 
-        <!-- Editor Mode Banner -->
-        {% if editor_mode %}
-        <div class="editor-mode">
-            <h2><i class="fas fa-edit"></i> Display Editor Mode Active</h2>
-            <p>Normal display operation is paused. Use the tools below to customize your display layout.</p>
-        </div>
-        {% endif %}
-
         <!-- Main Grid -->
         <div class="main-grid">
             <!-- Display Panel -->
@@ -923,10 +915,6 @@
                     </div>
                 </div>
                 <div class="display-controls">
-                    <button class="btn btn-warning" onclick="toggleEditorMode()">
-                        <i class="fas fa-edit"></i> 
-                        {{ 'Exit Editor' if editor_mode else 'Enter Editor' }}
-                    </button>
                     <button class="btn btn-primary" onclick="takeScreenshot()">
                         <i class="fas fa-camera"></i> Screenshot
                     </button>
@@ -998,9 +986,6 @@
                     <button class="tab-btn" onclick="showTab('static_image')">
                         <i class="fas fa-image"></i> Static Image
                     </button>
-                    <button class="tab-btn" onclick="showTab('features')">
-                        <i class="fas fa-star"></i> Features
-                    </button>
                     <button class="tab-btn" onclick="showTab('of_the_day')">
                         <i class="fas fa-calendar-day"></i> Of The Day
                     </button>
@@ -1018,9 +1003,6 @@
                     </button>
                     <button class="tab-btn" onclick="showTab('secrets')">
                         <i class="fas fa-key"></i> API Keys
-                    </button>
-                    <button class="tab-btn" onclick="showTab('editor')">
-                        <i class="fas fa-paint-brush"></i> Editor
                     </button>
                     <button class="tab-btn" onclick="showTab('actions')">
                         <i class="fas fa-tools"></i> Actions
@@ -1797,18 +1779,6 @@
                     </div>
                 </div>
 
-                <!-- Features Tab -->
-                <div id="features" class="tab-content">
-                    <div class="config-section">
-                        <h3>Additional Features</h3>
-                        <p>Configure additional features like clock, text display, and more.</p>
-                        <!-- Features configuration will be populated by JavaScript -->
-                        <div id="features-config">
-                            Loading features configuration...
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Of The Day Tab -->
                 <div id="of_the_day" class="tab-content">
                     <div class="config-section">
@@ -2097,46 +2067,6 @@
                     </div>
                 </div>
 
-                <!-- Editor Tab -->
-                <div id="editor" class="tab-content">
-                    <h3>Display Editor</h3>
-                    
-                    <div class="element-palette">
-                        <h4>Elements</h4>
-                        <div class="palette-item" draggable="true" data-type="text">
-                            <i class="fas fa-font"></i> Text
-                        </div>
-                        <div class="palette-item" draggable="true" data-type="weather_icon">
-                            <i class="fas fa-cloud-sun"></i> Weather Icon
-                        </div>
-                        <div class="palette-item" draggable="true" data-type="rectangle">
-                            <i class="fas fa-square"></i> Rectangle
-                        </div>
-                        <div class="palette-item" draggable="true" data-type="line">
-                            <i class="fas fa-minus"></i> Line
-                        </div>
-                    </div>
-
-                    <div class="editor-toolbar">
-                        <button class="btn btn-primary" onclick="clearEditor()">
-                            <i class="fas fa-trash"></i> Clear
-                        </button>
-                        <button class="btn btn-success" onclick="saveLayout()">
-                            <i class="fas fa-save"></i> Save Layout
-                        </button>
-                        <button class="btn btn-warning" onclick="loadLayout()">
-                            <i class="fas fa-folder-open"></i> Load Layout
-                        </button>
-                    </div>
-
-                    <div class="properties-panel">
-                        <h4>Element Properties</h4>
-                        <div id="elementProperties">
-                            <p>Select an element to edit its properties</p>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Actions Tab -->
                 <div id="actions" class="tab-content">
                     <div class="config-section">
@@ -2307,9 +2237,6 @@
         const __serverDataEl = document.getElementById('serverData');
         const __serverData = __serverDataEl ? JSON.parse(__serverDataEl.textContent) : { main_config: {}, editor_mode: false };
         let currentConfig = __serverData.main_config || {};
-        let editorMode = !!__serverData.editor_mode;
-        let currentElements = [];
-        let selectedElement = null;
 
         // Function to refresh the current config from the server
         async function refreshCurrentConfig() {
@@ -2369,7 +2296,6 @@
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
             initializeSocket();
-            initializeEditor();
             updateSystemStats();
             loadNewsManagerData();
             updateApiMetrics();
@@ -2738,23 +2664,6 @@
             await runAction('stop_display');
         }
 
-        async function toggleEditorMode() {
-            try {
-                const response = await fetch('/api/editor/toggle', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'}
-                });
-                const result = await response.json();
-                showNotification(result.message, result.status);
-                
-                if (result.status === 'success') {
-                    editorMode = result.editor_mode;
-                    location.reload(); // Reload to update UI
-                }
-            } catch (error) {
-                showNotification('Error toggling editor mode: ' + error.message, 'error');
-            }
-        }
 
         async function takeScreenshot() {
             try {
