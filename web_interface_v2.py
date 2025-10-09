@@ -1751,6 +1751,23 @@ def api_plugins_installed():
                 plugin_config = config_manager.load_config().get(plugin_id, {})
                 info['config'] = plugin_config
                 info['enabled'] = plugin_config.get('enabled', False)
+                
+                # Load config schema if available
+                schema_file = info.get('config_schema')
+                if schema_file:
+                    schema_path = Path('plugins') / plugin_id / schema_file
+                    if schema_path.exists():
+                        try:
+                            with open(schema_path, 'r', encoding='utf-8') as f:
+                                info['config_schema_data'] = json.load(f)
+                        except Exception as schema_err:
+                            logger.warning(f"Could not load config schema for {plugin_id}: {schema_err}")
+                            info['config_schema_data'] = None
+                    else:
+                        info['config_schema_data'] = None
+                else:
+                    info['config_schema_data'] = None
+                
                 plugins.append(info)
         
         return jsonify({

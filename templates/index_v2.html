@@ -4024,6 +4024,9 @@
         }
         // ===== Plugin Management Functions =====
 
+        // Store plugins data globally for tab generation
+        let installedPluginsData = [];
+
         async function refreshPlugins() {
             try {
                 showNotification('Refreshing plugins...', 'info');
@@ -4031,16 +4034,288 @@
                 const data = await response.json();
 
                 if (response.ok && data.status === 'success') {
+                    installedPluginsData = data.plugins;
                     renderInstalledPlugins(data.plugins);
+                    generatePluginTabs(data.plugins);
                     showNotification('Plugins refreshed successfully', 'success');
                 } else {
                     const errorMessage = data.message || 'Failed to refresh plugins';
                     showNotification(errorMessage, 'error');
+                    installedPluginsData = [];
                     renderInstalledPlugins([]); // Show empty state
+                    generatePluginTabs([]);
                 }
             } catch (error) {
                 showNotification('Error refreshing plugins: ' + error.message, 'error');
+                installedPluginsData = [];
                 renderInstalledPlugins([]); // Show empty state on error
+                generatePluginTabs([]);
+            }
+        }
+
+        function generatePluginTabs(plugins) {
+            // Remove existing plugin tabs and content
+            document.querySelectorAll('.plugin-tab-btn').forEach(el => el.remove());
+            document.querySelectorAll('.plugin-tab-content').forEach(el => el.remove());
+
+            if (!plugins || plugins.length === 0) {
+                return;
+            }
+
+            const tabsContainer = document.querySelector('.tabs');
+            const controlPanel = document.querySelector('.control-panel');
+
+            // Add tab buttons and content for each plugin
+            plugins.forEach(plugin => {
+                // Create tab button
+                const tabBtn = document.createElement('button');
+                tabBtn.className = 'tab-btn plugin-tab-btn';
+                tabBtn.setAttribute('onclick', `showTab('plugin-${plugin.id}')`);
+                tabBtn.innerHTML = `<i class="fas fa-puzzle-piece"></i> ${plugin.name}`;
+                
+                // Insert before the last tab (or at the end)
+                tabsContainer.appendChild(tabBtn);
+
+                // Create tab content
+                const tabContent = document.createElement('div');
+                tabContent.id = `plugin-${plugin.id}`;
+                tabContent.className = 'tab-content plugin-tab-content';
+                
+                // Generate form based on config schema
+                const formHTML = generatePluginConfigForm(plugin);
+                tabContent.innerHTML = formHTML;
+                
+                // Append to control panel
+                controlPanel.appendChild(tabContent);
+            });
+        }
+
+        function generatePluginConfigForm(plugin) {
+            if (!plugin.config_schema_data) {
+                return `
+                    <h3><i class="fas fa-puzzle-piece"></i> ${plugin.name} Configuration</h3>
+                    <p style="color: #666;">No configuration schema available for this plugin.</p>
+                    <div style="margin-top: 20px;">
+                        <button class="btn btn-secondary" onclick="showTab('plugins')">
+                            <i class="fas fa-arrow-left"></i> Back to Plugin Management
+                        </button>
+                    </div>
+                `;
+            }
+
+            const schema = plugin.config_schema_data;
+            const config = plugin.config || {};
+            const properties = schema.properties || {};
+            
+            let formHTML = `
+                <h3><i class="fas fa-puzzle-piece"></i> ${plugin.name} Configuration</h3>
+                <p style="color: #666; margin-bottom: 20px;">${schema.description || plugin.description || ''}</p>
+                
+                <form id="plugin-config-form-${plugin.id}" class="config-form" onsubmit="event.preventDefault(); savePluginConfiguration('${plugin.id}');">
+            `;
+
+            // Generate form fields from JSON schema
+            for (const [key, propSchema] of Object.entries(properties)) {
+                const value = config[key] !== undefined ? config[key] : propSchema.default;
+                const label = propSchema.title || key;
+                const description = propSchema.description || '';
+                const type = propSchema.type;
+
+                formHTML += `<div class="form-group" style="margin-bottom: 20px;">`;
+                formHTML += `<label style="font-weight: 600; display: block; margin-bottom: 5px;">${label}</label>`;
+                
+                if (description) {
+                    formHTML += `<p style="font-size: 0.85rem; color: #666; margin-bottom: 8px;">${description}</p>`;
+                }
+
+                // Generate appropriate input based on type
+                if (type === 'boolean') {
+                    formHTML += `
+                        <label class="toggle-switch">
+                            <input type="checkbox" 
+                                   name="${key}" 
+                                   ${value ? 'checked' : ''}>
+                            <span class="slider"></span>
+                        </label>
+                    `;
+                } else if (type === 'number' || type === 'integer') {
+                    const min = propSchema.minimum !== undefined ? propSchema.minimum : '';
+                    const max = propSchema.maximum !== undefined ? propSchema.maximum : '';
+                    const step = type === 'integer' ? '1' : 'any';
+                    formHTML += `
+                        <input type="number" 
+                               class="form-control" 
+                               name="${key}" 
+                               value="${value || ''}" 
+                               min="${min}" 
+                               max="${max}" 
+                               step="${step}"
+                               style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px;">
+                    `;
+                } else if (type === 'array') {
+                    // Handle arrays (e.g., RGB colors)
+                    const arrayValue = Array.isArray(value) ? value.join(', ') : '';
+                    formHTML += `
+                        <input type="text" 
+                               class="form-control" 
+                               name="${key}" 
+                               value="${arrayValue}" 
+                               placeholder="Enter values separated by commas"
+                               style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px;">
+                        <small style="color: #888; font-size: 0.8rem;">Enter values separated by commas</small>
+                    `;
+                } else if (propSchema.enum) {
+                    // Handle enums as select dropdowns
+                    formHTML += `<select class="form-control" name="${key}" style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px;">`;
+                    propSchema.enum.forEach(option => {
+                        const selected = value === option ? 'selected' : '';
+                        formHTML += `<option value="${option}" ${selected}>${option}</option>`;
+                    });
+                    formHTML += `</select>`;
+                } else {
+                    // Default to text input
+                    const maxLength = propSchema.maxLength || '';
+                    formHTML += `
+                        <input type="text" 
+                               class="form-control" 
+                               name="${key}" 
+                               value="${value || ''}" 
+                               maxlength="${maxLength}"
+                               style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px;">
+                    `;
+                }
+
+                formHTML += `</div>`;
+            }
+
+            formHTML += `
+                    <div class="form-group" style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border-color); display: flex; gap: 10px;">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save"></i> Save Configuration
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="showTab('plugins')">
+                            <i class="fas fa-arrow-left"></i> Back to Plugin Management
+                        </button>
+                        <button type="button" class="btn btn-warning" onclick="resetPluginConfig('${plugin.id}')">
+                            <i class="fas fa-undo"></i> Reset to Defaults
+                        </button>
+                    </div>
+                </form>
+            `;
+
+            return formHTML;
+        }
+
+        async function savePluginConfiguration(pluginId) {
+            try {
+                const form = document.getElementById(`plugin-config-form-${pluginId}`);
+                const formData = new FormData(form);
+                const plugin = installedPluginsData.find(p => p.id === pluginId);
+                
+                if (!plugin || !plugin.config_schema_data) {
+                    showNotification('Plugin schema not found', 'error');
+                    return;
+                }
+
+                const schema = plugin.config_schema_data.properties || {};
+                
+                // Process form data according to schema
+                for (const [key, propSchema] of Object.entries(schema)) {
+                    let value;
+                    
+                    if (propSchema.type === 'boolean') {
+                        const checkbox = form.querySelector(`[name="${key}"]`);
+                        value = checkbox ? checkbox.checked : false;
+                    } else if (propSchema.type === 'number' || propSchema.type === 'integer') {
+                        const inputValue = formData.get(key);
+                        value = propSchema.type === 'integer' ? parseInt(inputValue) : parseFloat(inputValue);
+                    } else if (propSchema.type === 'array') {
+                        const inputValue = formData.get(key);
+                        if (inputValue && inputValue.trim()) {
+                            value = inputValue.split(',').map(v => {
+                                const trimmed = v.trim();
+                                // If items schema specifies integer, parse as int
+                                if (propSchema.items && propSchema.items.type === 'integer') {
+                                    return parseInt(trimmed);
+                                }
+                                return trimmed;
+                            });
+                        } else {
+                            value = [];
+                        }
+                    } else {
+                        value = formData.get(key);
+                    }
+
+                    // Save each config value
+                    const response = await fetch('/api/plugins/config', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            plugin_id: pluginId,
+                            key: key,
+                            value: value
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const data = await response.json();
+                        throw new Error(data.message || 'Failed to save configuration');
+                    }
+                }
+
+                showNotification(`Configuration saved for ${pluginId}. Restart display to apply changes.`, 'success');
+                // Refresh plugins to update display
+                refreshPlugins();
+                
+            } catch (error) {
+                showNotification('Error saving plugin configuration: ' + error.message, 'error');
+            }
+        }
+
+        async function resetPluginConfig(pluginId) {
+            if (!confirm('Reset all settings to default values?')) {
+                return;
+            }
+
+            try {
+                const plugin = installedPluginsData.find(p => p.id === pluginId);
+                if (!plugin || !plugin.config_schema_data) {
+                    showNotification('Plugin schema not found', 'error');
+                    return;
+                }
+
+                const schema = plugin.config_schema_data.properties || {};
+                
+                // Reset each config value to default
+                for (const [key, propSchema] of Object.entries(schema)) {
+                    const defaultValue = propSchema.default;
+                    
+                    if (defaultValue !== undefined) {
+                        const response = await fetch('/api/plugins/config', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                plugin_id: pluginId,
+                                key: key,
+                                value: defaultValue
+                            })
+                        });
+
+                        if (!response.ok) {
+                            const data = await response.json();
+                            throw new Error(data.message || 'Failed to reset configuration');
+                        }
+                    }
+                }
+
+                showNotification(`Configuration reset to defaults for ${pluginId}`, 'success');
+                // Refresh plugins and re-render form
+                refreshPlugins();
+                setTimeout(() => showTab(`plugin-${pluginId}`), 500);
+                
+            } catch (error) {
+                showNotification('Error resetting plugin configuration: ' + error.message, 'error');
             }
         }
 
@@ -4085,17 +4360,6 @@
                             <i class="fas fa-trash"></i> Uninstall
                         </button>
                     </div>
-                    ${plugin.config ? `
-                    <div class="plugin-config-section">
-                        <h5>Configuration</h5>
-                        ${Object.entries(plugin.config).map(([key, value]) => `
-                            <div class="config-row">
-                                <label>${key}:</label>
-                                <input type="text" value="${typeof value === 'object' ? JSON.stringify(value) : value}" onchange="updatePluginConfig('${plugin.id}', '${key}', this.value)">
-                            </div>
-                        `).join('')}
-                    </div>
-                    ` : ''}
                 </div>
             `).join('');
         }
@@ -4120,9 +4384,8 @@
         }
 
         async function configurePlugin(pluginId) {
-            // For now, just show a placeholder. In a full implementation,
-            // this would open a modal or navigate to a configuration page
-            showNotification(`Configuration for ${pluginId} - Feature coming soon!`, 'info');
+            // Navigate to the plugin's configuration tab
+            showTab(`plugin-${pluginId}`);
         }
 
         async function updatePlugin(pluginId) {
@@ -4303,25 +4566,10 @@
             }
         }
 
-        // Initialize plugin management when tabs are shown
+        // Initialize plugin management on page load
         document.addEventListener('DOMContentLoaded', function() {
-            // Load plugins when the plugins tab is first shown
-            const observer = new MutationObserver(function(mutations) {
-                mutations.forEach(function(mutation) {
-                    if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                        const target = mutation.target;
-                        if (target.id === 'plugins' && target.classList.contains('active')) {
-                            refreshPlugins();
-                            observer.disconnect();
-                        }
-                    }
-                });
-            });
-
-            const pluginsTab = document.getElementById('plugins');
-            if (pluginsTab) {
-                observer.observe(pluginsTab, { attributes: true });
-            }
+            // Load plugins on page load to generate dynamic tabs
+            refreshPlugins();
 
             // Load plugin store when the store tab is first shown
             const storeObserver = new MutationObserver(function(mutations) {
