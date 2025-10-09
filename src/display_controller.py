@@ -1310,7 +1310,20 @@ class DisplayController:
                             self.force_clear = False
                         # Only set manager_to_display if it hasn't been set by live priority logic
                         if manager_to_display is None:
-                            if self.current_display_mode == 'clock' and self.clock:
+                            # Check if this is a plugin mode FIRST
+                            if self.plugin_manager:
+                                for plugin_id, plugin in self.plugin_manager.get_all_plugins().items():
+                                    if not plugin.enabled:
+                                        continue
+                                    manifest = self.plugin_manager.plugin_manifests.get(plugin_id, {})
+                                    plugin_modes = manifest.get('display_modes', [plugin_id])
+                                    if self.current_display_mode in plugin_modes:
+                                        manager_to_display = plugin
+                                        break
+
+                            # Fall back to hardcoded managers if no plugin handles this mode
+                            if manager_to_display is None:
+                                if self.current_display_mode == 'clock' and self.clock:
                                 manager_to_display = self.clock
                             elif self.current_display_mode == 'weather_current' and self.weather:
                                 manager_to_display = self.weather
@@ -1451,10 +1464,18 @@ class DisplayController:
                             self.force_clear = False
                     elif manager_to_display:
                         logger.debug(f"Attempting to display mode: {self.current_display_mode} using manager {type(manager_to_display).__name__} with force_clear={self.force_clear}")
-                        # Call the appropriate display method based on mode/manager type
-                        # Note: Some managers have different display methods or handle clearing internally
-                        if self.current_display_mode == 'clock':
-                            manager_to_display.display_time(force_clear=self.force_clear)
+
+                        # Check if this is a plugin manager
+                        if hasattr(manager_to_display, 'display') and hasattr(manager_to_display, 'plugin_id'):
+                            # This is a plugin - use the generic display method
+                            manager_to_display.display(force_clear=self.force_clear)
+                            # Reset force_clear if it was true for this mode
+                            if self.force_clear:
+                                self.force_clear = False
+                        else:
+                            # This is a legacy manager - use the specific display methods
+                            if self.current_display_mode == 'clock':
+                                manager_to_display.display_time(force_clear=self.force_clear)
                         elif self.current_display_mode == 'weather_current':
                             manager_to_display.display_weather(force_clear=self.force_clear)
                         elif self.current_display_mode == 'weather_hourly':

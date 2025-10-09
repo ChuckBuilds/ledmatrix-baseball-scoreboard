@@ -41,7 +41,8 @@ class SimpleClock(BasePlugin):
         super().__init__(plugin_id, config, display_manager, cache_manager, plugin_manager)
 
         # Clock-specific configuration
-        self.timezone_str = config.get('timezone', 'UTC')
+        # Use plugin-specific timezone, or fall back to global timezone, or default to UTC
+        self.timezone_str = config.get('timezone') or self._get_global_timezone() or 'UTC'
         self.time_format = config.get('time_format', '12h')
         self.show_seconds = config.get('show_seconds', False)
         self.show_date = config.get('show_date', True)
@@ -65,6 +66,17 @@ class SimpleClock(BasePlugin):
         self.last_date_str = None
 
         self.logger.info(f"Clock plugin initialized for timezone: {self.timezone_str}")
+
+    def _get_global_timezone(self) -> str:
+        """Get the global timezone from the main config."""
+        try:
+            # Access the main config through the plugin manager's config_manager
+            if hasattr(self.plugin_manager, 'config_manager') and self.plugin_manager.config_manager:
+                main_config = self.plugin_manager.config_manager.load_config()
+                return main_config.get('timezone', 'UTC')
+        except Exception as e:
+            self.logger.warning(f"Error getting global timezone: {e}")
+        return 'UTC'
 
     def _get_timezone(self):
         """Get timezone from configuration."""
