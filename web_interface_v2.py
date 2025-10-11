@@ -34,6 +34,7 @@ from src.ncaa_fb_managers import NCAAFBLiveManager, NCAAFBRecentManager, NCAAFBU
 from src.ncaa_baseball_managers import NCAABaseballLiveManager, NCAABaseballRecentManager, NCAABaseballUpcomingManager
 from src.ncaam_basketball_managers import NCAAMBasketballLiveManager, NCAAMBasketballRecentManager, NCAAMBasketballUpcomingManager
 from src.ncaam_hockey_managers import NCAAMHockeyLiveManager, NCAAMHockeyRecentManager, NCAAMHockeyUpcomingManager
+from src.font_manager import FontManager
 from PIL import Image
 import io
 import signal
@@ -2089,6 +2090,173 @@ def api_plugin_install_from_url():
         }), 500
 
 # ===== End Plugin System API Endpoints =====
+
+# ===== Font Management API Endpoints =====
+
+@app.route('/api/fonts/catalog', methods=['GET'])
+def api_fonts_catalog():
+    """Get available font catalog."""
+    try:
+        font_manager = FontManager({})
+        catalog = font_manager.get_catalog()
+        return jsonify({'catalog': catalog})
+    except Exception as e:
+        logger.error(f"Error getting font catalog: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/fonts/tokens', methods=['GET'])
+def api_fonts_tokens():
+    """Get available font size tokens."""
+    try:
+        font_manager = FontManager({})
+        tokens = font_manager.get_tokens()
+        return jsonify({'tokens': tokens})
+    except Exception as e:
+        logger.error(f"Error getting font tokens: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/fonts/data', methods=['GET'])
+def api_fonts_data():
+    """Get all font management data."""
+    try:
+        font_manager = FontManager({})
+        return jsonify({
+            'fonts': font_manager.get_available_fonts(),
+            'tokens': font_manager.get_size_tokens(),
+            'detected_fonts': font_manager.get_detected_fonts(),
+            'manager_fonts': font_manager.get_manager_fonts(),
+            'performance_stats': font_manager.get_performance_stats()
+        })
+    except Exception as e:
+        logger.error(f"Error getting font data: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/fonts/overrides', methods=['GET'])
+def api_fonts_overrides():
+    """Get current font overrides."""
+    try:
+        font_manager = FontManager({})
+        overrides = font_manager.get_overrides()
+        return jsonify({'overrides': overrides})
+    except Exception as e:
+        logger.error(f"Error getting font overrides: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/fonts/overrides', methods=['POST'])
+def api_fonts_set_override():
+    """Set font override for an element."""
+    try:
+        data = request.get_json()
+        element_key = list(data.keys())[0] if data else None
+        override_data = data.get(element_key) if element_key else {}
+
+        if not element_key:
+            return jsonify({'status': 'error', 'message': 'Element key is required'}), 400
+
+        family = override_data.get('family')
+        size_px = override_data.get('size_px')
+
+        font_manager = FontManager({})
+        font_manager.set_override(element_key, family=family, size_px=size_px)
+
+        return jsonify({'status': 'success', 'message': 'Font override set'})
+    except Exception as e:
+        logger.error(f"Error setting font override: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/fonts/overrides/<element_key>', methods=['DELETE'])
+def api_fonts_remove_override(element_key):
+    """Remove font override for an element."""
+    try:
+        font_manager = FontManager({})
+        font_manager.remove_override(element_key)
+
+        return jsonify({'status': 'success', 'message': 'Font override removed'})
+    except Exception as e:
+        logger.error(f"Error removing font override: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/fonts/upload', methods=['POST'])
+def api_fonts_upload():
+    """Upload a font file."""
+    try:
+        if 'font_file' not in request.files:
+            return jsonify({'status': 'error', 'message': 'No font file provided'}), 400
+
+        font_file = request.files['font_file']
+        font_family = request.form.get('font_family')
+
+        if not font_family:
+            return jsonify({'status': 'error', 'message': 'Font family name is required'}), 400
+
+        # Save uploaded file temporarily
+        upload_dir = "temp"
+        os.makedirs(upload_dir, exist_ok=True)
+
+        filename = secure_filename(font_file.filename)
+        temp_path = os.path.join(upload_dir, filename)
+        font_file.save(temp_path)
+
+        # Add font to catalog
+        font_manager = FontManager({})
+        success = font_manager.add_font(temp_path, font_family)
+
+        # Clean up temp file
+        try:
+            os.remove(temp_path)
+        except:
+            pass
+
+        if success:
+            return jsonify({
+                'status': 'success',
+                'message': f'Font "{font_family}" uploaded successfully',
+                'font_family': font_family
+            })
+        else:
+            return jsonify({'status': 'error', 'message': 'Failed to add font'}), 500
+
+    except Exception as e:
+        logger.error(f"Error uploading font: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/fonts/delete/<font_family>', methods=['DELETE'])
+def api_fonts_delete(font_family):
+    """Delete a font from the catalog."""
+    try:
+        font_manager = FontManager({})
+        success = font_manager.remove_font(font_family)
+
+        if success:
+            return jsonify({
+                'status': 'success',
+                'message': f'Font "{font_family}" deleted successfully'
+            })
+        else:
+            return jsonify({'status': 'error', 'message': 'Failed to delete font'}), 500
+
+    except Exception as e:
+        logger.error(f"Error deleting font: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/fonts/validate', methods=['POST'])
+def api_fonts_validate():
+    """Validate a font file."""
+    try:
+        data = request.get_json()
+        font_path = data.get('font_path')
+
+        if not font_path:
+            return jsonify({'status': 'error', 'message': 'Font path is required'}), 400
+
+        font_manager = FontManager({})
+        result = font_manager.validate_font(font_path)
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"Error validating font: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @socketio.on('connect')
 def handle_connect():

@@ -850,6 +850,232 @@
             border-radius: var(--border-radius);
             border: 2px dashed #bdc3c7;
         }
+
+        /* Font Management Styles */
+        .config-subsection {
+            background: #f0f0f0;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: var(--border-radius);
+            border-left: 3px solid var(--accent-color);
+        }
+
+        .config-subsection h4 {
+            color: var(--accent-color);
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .config-subsection h5 {
+            color: var(--primary-color);
+            margin-bottom: 8px;
+            font-size: 1rem;
+        }
+
+        .overrides-list {
+            margin-top: 15px;
+        }
+
+        .override-item {
+            background: #ffffff;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .override-item .override-info {
+            flex: 1;
+        }
+
+        .override-item .override-label {
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .override-item .override-settings {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .override-item .btn-delete {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .override-item .btn-delete:hover {
+            background: #c0392b;
+        }
+
+        .font-preview {
+            margin-top: 15px;
+        }
+
+        .preview-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .preview-controls .form-control {
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .empty-overrides {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 5px;
+            border: 2px dashed var(--border-color);
+        }
+
+        .font-upload-area {
+            margin: 15px 0;
+        }
+
+        .upload-dropzone {
+            border: 3px dashed var(--border-color);
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            background: #fafafa;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-dropzone:hover {
+            border-color: var(--secondary-color);
+            background: #f0f8ff;
+        }
+
+        .upload-dropzone.drag-over {
+            border-color: var(--secondary-color);
+            background: #e6f3ff;
+            transform: scale(1.02);
+        }
+
+        .upload-dropzone i {
+            font-size: 3rem;
+            color: var(--secondary-color);
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .upload-dropzone p {
+            margin: 5px 0;
+            font-size: 1.1rem;
+            color: var(--primary-color);
+        }
+
+        .upload-hint {
+            font-size: 0.9rem !important;
+            color: #666 !important;
+            font-style: italic;
+        }
+
+        .upload-form {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .current-fonts {
+            margin-top: 20px;
+        }
+
+        .font-item {
+            background: #ffffff;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 5px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .font-item .font-info {
+            flex: 1;
+        }
+
+        .font-item .font-name {
+            font-weight: bold;
+            color: var(--primary-color);
+            font-size: 1rem;
+        }
+
+        .font-item .font-details {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        .font-item .font-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-delete-font {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .btn-delete-font:hover {
+            background: #c0392b;
+        }
+
+        .btn-preview-font {
+            background: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .btn-preview-font:hover {
+            background: #2980b9;
+        }
+
+        .upload-progress {
+            margin-top: 10px;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--success-color);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
     </style>
 </head>
 <body>
@@ -982,6 +1208,9 @@
                     </button>
                     <button class="tab-btn" onclick="showTab('text')">
                         <i class="fas fa-font"></i> Text
+                    </button>
+                    <button class="tab-btn" onclick="showTab('fonts')">
+                        <i class="fas fa-font"></i> Fonts
                     </button>
                     <button class="tab-btn" onclick="showTab('static_image')">
                         <i class="fas fa-image"></i> Static Image
@@ -2186,6 +2415,239 @@
                     </div>
                 </div>
 
+                <!-- Fonts Tab -->
+                <div id="fonts" class="tab-content">
+                    <div class="config-section">
+                        <h3>Font Configuration</h3>
+                        <p class="description">Configure global font defaults and per-element overrides for your LED matrix display.</p>
+
+                        <!-- Font System Overview -->
+                        <div class="config-subsection">
+                            <h4>Font System Overview</h4>
+                            <p class="description">View detected fonts used by managers and system statistics.</p>
+                            
+                            <!-- Detected Fonts from Managers -->
+                            <div class="form-group">
+                                <label>Detected Manager Fonts:</label>
+                                <div id="detected-fonts" class="form-control" style="height: 150px; overflow-y: auto; font-family: monospace; font-size: 0.9em;">
+                                    Loading...
+                                </div>
+                                <div class="description">Fonts currently in use by managers (auto-detected)</div>
+                            </div>
+
+                            <!-- Available Fonts -->
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Available Font Families:</label>
+                                    <div id="available-fonts" class="form-control" style="height: 100px; overflow-y: auto; font-family: monospace; font-size: 0.9em;">
+                                        Loading...
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Available Font Sizes:</label>
+                                    <div id="available-sizes" class="form-control" style="height: 100px; overflow-y: auto; font-family: monospace; font-size: 0.9em;">
+                                        Loading...
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Performance Stats -->
+                            <div class="form-group">
+                                <label>Font System Performance:</label>
+                                <div id="performance-stats" class="form-control" style="height: 80px; overflow-y: auto; font-family: monospace; font-size: 0.9em;">
+                                    Loading...
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Font Upload -->
+                        <div class="config-subsection">
+                            <h4>Upload Custom Fonts</h4>
+                            <p class="description">Upload your own TTF or BDF font files to use in your LED matrix display.</p>
+
+                            <div class="font-upload-area" id="font-upload-area">
+                                <div class="upload-dropzone" id="upload-dropzone">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <p>Drag and drop font files here, or click to select</p>
+                                    <p class="upload-hint">Supports .ttf and .bdf files</p>
+                                    <input type="file" id="font-file-input" accept=".ttf,.bdf" style="display: none;" multiple>
+                                </div>
+                            </div>
+
+                            <div class="upload-form" id="upload-form" style="display: none;">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="upload-font-family">Font Family Name:</label>
+                                        <input type="text" class="form-control" id="upload-font-family" placeholder="e.g., my_custom_font">
+                                        <div class="description">Custom name for this font (letters, numbers, underscores only)</div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>&nbsp;</label>
+                                        <button type="button" class="btn btn-success" onclick="uploadSelectedFonts()">
+                                            <i class="fas fa-upload"></i> Upload Font
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" onclick="cancelFontUpload()">
+                                            <i class="fas fa-times"></i> Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Current Fonts List -->
+                            <div class="current-fonts">
+                                <h5>Current Fonts</h5>
+                                <div id="fonts-list-container">
+                                    <!-- Fonts list will be populated by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Font Overrides -->
+                        <div class="config-subsection">
+                            <h4>Element Overrides</h4>
+                            <p class="description">Override fonts for specific display elements. Changes take effect immediately.</p>
+
+                            <!-- Add New Override -->
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="override-element">Element:</label>
+                                    <select class="form-control" id="override-element">
+                                        <option value="">Select an element...</option>
+                                        <optgroup label="NFL">
+                                            <option value="nfl.live.score">NFL Live Score</option>
+                                            <option value="nfl.live.time">NFL Live Time</option>
+                                            <option value="nfl.live.team">NFL Live Team</option>
+                                            <option value="nfl.live.status">NFL Live Status</option>
+                                            <option value="nfl.recent.score">NFL Recent Score</option>
+                                            <option value="nfl.recent.record">NFL Recent Record</option>
+                                        </optgroup>
+                                        <optgroup label="NHL">
+                                            <option value="nhl.live.score">NHL Live Score</option>
+                                            <option value="nhl.live.time">NHL Live Time</option>
+                                            <option value="nhl.live.team">NHL Live Team</option>
+                                            <option value="nhl.live.status">NHL Live Status</option>
+                                            <option value="nhl.recent.score">NHL Recent Score</option>
+                                            <option value="nhl.recent.record">NHL Recent Record</option>
+                                            <option value="nhl.recent.shots">NHL Recent Shots</option>
+                                        </optgroup>
+                                        <optgroup label="NBA">
+                                            <option value="nba.live.score">NBA Live Score</option>
+                                            <option value="nba.live.time">NBA Live Time</option>
+                                            <option value="nba.live.team">NBA Live Team</option>
+                                            <option value="nba.live.status">NBA Live Status</option>
+                                            <option value="nba.recent.score">NBA Recent Score</option>
+                                            <option value="nba.recent.record">NBA Recent Record</option>
+                                        </optgroup>
+                                        <optgroup label="NCAA Men's Basketball">
+                                            <option value="ncaam.live.score">NCAAM Live Score</option>
+                                            <option value="ncaam.live.time">NCAAM Live Time</option>
+                                            <option value="ncaam.live.team">NCAAM Live Team</option>
+                                            <option value="ncaam.live.status">NCAAM Live Status</option>
+                                            <option value="ncaam.recent.score">NCAAM Recent Score</option>
+                                            <option value="ncaam.recent.record">NCAAM Recent Record</option>
+                                        </optgroup>
+                                        <optgroup label="Clock">
+                                            <option value="clock.time">Clock Time</option>
+                                            <option value="clock.ampm">Clock AM/PM</option>
+                                            <option value="clock.weekday">Clock Weekday</option>
+                                            <option value="clock.date">Clock Date</option>
+                                        </optgroup>
+                                        <optgroup label="Calendar">
+                                            <option value="calendar.datetime">Calendar DateTime</option>
+                                            <option value="calendar.title">Calendar Title</option>
+                                        </optgroup>
+                                        <optgroup label="Leaderboard">
+                                            <option value="leaderboard.title">Leaderboard Title</option>
+                                            <option value="leaderboard.rank">Leaderboard Rank</option>
+                                            <option value="leaderboard.team">Leaderboard Team</option>
+                                            <option value="leaderboard.record">Leaderboard Record</option>
+                                        </optgroup>
+                                        <optgroup label="Soccer">
+                                            <option value="soccer.live.score">Soccer Live Score</option>
+                                            <option value="soccer.live.time">Soccer Live Time</option>
+                                            <option value="soccer.live.team">Soccer Live Team</option>
+                                            <option value="soccer.live.status">Soccer Live Status</option>
+                                            <option value="soccer.recent.score">Soccer Recent Score</option>
+                                            <option value="soccer.recent.record">Soccer Recent Record</option>
+                                        </optgroup>
+                                        <optgroup label="Generic">
+                                            <option value="generic.title">Generic Title</option>
+                                            <option value="generic.body">Generic Body</option>
+                                        </optgroup>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="override-family">Font Family:</label>
+                                    <select class="form-control" id="override-family">
+                                        <option value="">Use default</option>
+                                        <option value="press_start">Press Start 2P</option>
+                                        <option value="four_by_six">4x6 Font</option>
+                                        <option value="cozette_bdf">Cozette BDF</option>
+                                        <option value="matrix_light_6">Matrix Light 6</option>
+                                        <option value="matrix_chunky_8">Matrix Chunky 8</option>
+                                        <option value="five_by_seven">5x7 Font</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="override-size">Font Size:</label>
+                                    <select class="form-control" id="override-size">
+                                        <option value="">Use default</option>
+                                        <option value="xs">Extra Small (6px)</option>
+                                        <option value="sm">Small (8px)</option>
+                                        <option value="md">Medium (10px)</option>
+                                        <option value="lg">Large (12px)</option>
+                                        <option value="xl">Extra Large (14px)</option>
+                                        <option value="xxl">XX Large (16px)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <button type="button" class="btn btn-secondary" onclick="addFontOverride()">
+                                        <i class="fas fa-plus"></i> Add Override
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Current Overrides List -->
+                            <div class="overrides-list">
+                                <h5>Current Overrides</h5>
+                                <div id="overrides-container">
+                                    <!-- Overrides will be populated by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Font Preview -->
+                        <div class="config-subsection">
+                            <h4>Font Preview</h4>
+                            <div class="font-preview">
+                                <canvas id="font-preview-canvas" width="400" height="100" style="border: 1px solid #ccc; background: #000;"></canvas>
+                                <div class="preview-controls">
+                                    <input type="text" id="preview-text" class="form-control" placeholder="Preview text..." value="Sample Text">
+                                    <select id="preview-family" class="form-control">
+                                        <option value="press_start">Press Start 2P</option>
+                                        <option value="four_by_six">4x6 Font</option>
+                                        <option value="cozette_bdf">Cozette BDF</option>
+                                        <option value="matrix_light_6">Matrix Light 6</option>
+                                        <option value="matrix_chunky_8">Matrix Chunky 8</option>
+                                        <option value="five_by_seven">5x7 Font</option>
+                                    </select>
+                                    <select id="preview-size" class="form-control">
+                                        <option value="xs">Extra Small (6px)</option>
+                                        <option value="sm">Small (8px)</option>
+                                        <option value="md">Medium (10px)</option>
+                                        <option value="lg">Large (12px)</option>
+                                        <option value="xl">Extra Large (14px)</option>
+                                        <option value="xxl">XX Large (16px)</option>
+                                    </select>
+                                    <button type="button" class="btn btn-secondary" onclick="updateFontPreview()">
+                                        <i class="fas fa-eye"></i> Preview
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Plugin Store Tab -->
                 <div id="plugin-store" class="tab-content">
                     <div class="config-section">
@@ -2643,6 +3105,8 @@
                 loadNewsManagerData();
             } else if (tabName === 'sports') {
                 refreshSportsConfig();
+            } else if (tabName === 'fonts') {
+                initializeFontManagement();
             } else if (tabName === 'logs') {
                 fetchLogs();
             } else if (tabName === 'raw-json') {
@@ -4527,7 +4991,544 @@
             if (storeTab) {
                 storeObserver.observe(storeTab, { attributes: true });
             }
+
+            // Initialize font management on page load
+            loadFontData();
+            populateFontSelects();
         });
+
+        // Font Management Functions
+        let fontCatalog = {};
+        let fontTokens = {};
+        let fontDefaults = {};
+        let fontOverrides = {};
+
+        // Initialize font management
+        async function initializeFontManagement() {
+            try {
+                await loadFontData();
+                populateFontSelects();
+                displayCurrentOverrides();
+                displayCurrentFonts();
+                updateFontPreview();
+                initializeFontUpload();
+            } catch (error) {
+                console.error('Error initializing font management:', error);
+                showNotification('Error loading font configuration', 'error');
+            }
+        }
+
+        // Load font data from server
+        async function loadFontData() {
+            try {
+                const [catalogRes, tokensRes, defaultsRes, overridesRes] = await Promise.all([
+                    fetch('/api/fonts/catalog'),
+                    fetch('/api/fonts/tokens'),
+                    fetch('/api/fonts/defaults'),
+                    fetch('/api/fonts/overrides')
+                ]);
+
+                fontCatalog = (await catalogRes.json()).catalog || {};
+                fontTokens = (await tokensRes.json()).tokens || {};
+                fontDefaults = (await defaultsRes.json()).defaults || {};
+                fontOverrides = (await overridesRes.json()).overrides || {};
+            } catch (error) {
+                console.error('Error loading font data:', error);
+                throw error;
+            }
+        }
+
+        // Populate font select options
+        function populateFontSelects() {
+            // Update available fonts display
+            const fontsContainer = document.getElementById('available-fonts');
+            const sizesContainer = document.getElementById('available-sizes');
+
+            if (fontsContainer) {
+                const fontList = Object.entries(fontCatalog).map(([name, path]) => `${name}: ${path}`).join('\n');
+                fontsContainer.textContent = fontList || 'No fonts available';
+            }
+
+            if (sizesContainer) {
+                const sizeList = Object.entries(fontTokens).map(([token, size]) => `${token}: ${size}px`).join('\n');
+                sizesContainer.textContent = sizeList || 'No sizes available';
+            }
+        }
+
+        // Load font data from server
+        async function loadFontData() {
+            try {
+                const [dataRes, overridesRes] = await Promise.all([
+                    fetch('/api/fonts/data'),  // Returns fonts, tokens, detected, manager fonts, stats
+                    fetch('/api/fonts/overrides')
+                ]);
+
+                const fontData = await dataRes.json();
+                fontCatalog = fontData.fonts || {};
+                fontTokens = fontData.tokens || {};
+                const detectedFonts = fontData.detected_fonts || {};
+                const managerFonts = fontData.manager_fonts || {};
+                const performanceStats = fontData.performance_stats || {};
+                fontOverrides = (await overridesRes.json()).overrides || {};
+
+                // Update detected fonts display
+                updateDetectedFontsDisplay(detectedFonts);
+                
+                // Update performance stats display
+                updatePerformanceStatsDisplay(performanceStats);
+            } catch (error) {
+                console.error('Error loading font data:', error);
+                throw error;
+            }
+        }
+
+        // Update detected fonts display
+        function updateDetectedFontsDisplay(detectedFonts) {
+            const container = document.getElementById('detected-fonts');
+            if (!container) return;
+
+            if (Object.keys(detectedFonts).length === 0) {
+                container.textContent = 'No fonts detected yet (managers will register fonts when they render)';
+                return;
+            }
+
+            const lines = [];
+            for (const [elementKey, fontInfo] of Object.entries(detectedFonts)) {
+                const colorStr = fontInfo.color ? ` [RGB: ${fontInfo.color.join(',')}]` : '';
+                lines.push(`${elementKey}: ${fontInfo.family}@${fontInfo.size_px}px${colorStr} (used ${fontInfo.usage_count}x)`);
+            }
+            container.textContent = lines.join('\n');
+        }
+
+        // Update performance stats display
+        function updatePerformanceStatsDisplay(stats) {
+            const container = document.getElementById('performance-stats');
+            if (!container) return;
+
+            const lines = [
+                `Cache Hit Rate: ${(stats.cache_hit_rate * 100).toFixed(1)}% (${stats.cache_hits} hits, ${stats.cache_misses} misses)`,
+                `Cached: ${stats.total_fonts_cached} fonts, ${stats.total_metrics_cached} metrics`,
+                `Available: ${stats.total_fonts_available} fonts, ${stats.plugin_fonts} plugins, ${stats.manager_fonts} managers`,
+                `Failed Loads: ${stats.failed_loads}, Uptime: ${Math.floor(stats.uptime_seconds)}s`
+            ];
+            container.textContent = lines.join('\n');
+        }
+
+        // Add font override
+        async function addFontOverride() {
+            const element = document.getElementById('override-element').value;
+            const family = document.getElementById('override-family').value;
+            const sizeToken = document.getElementById('override-size').value;
+
+            if (!element) {
+                showNotification('Please select an element', 'warning');
+                return;
+            }
+
+            if (!family && !sizeToken) {
+                showNotification('Please specify at least a font family or size', 'warning');
+                return;
+            }
+
+            try {
+                const overrideData = {};
+                if (family) overrideData.family = family;
+                if (sizeToken) {
+                    const sizePx = fontTokens[sizeToken];
+                    if (sizePx) overrideData.size_px = sizePx;
+                }
+
+                const response = await fetch('/api/fonts/overrides', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        [element]: overrideData
+                    })
+                });
+
+                const data = await response.json();
+                if (data.status === 'success') {
+                    showNotification('Font override added successfully', 'success');
+                    await loadFontData();
+                    displayCurrentOverrides();
+                    // Clear form
+                    document.getElementById('override-element').value = '';
+                    document.getElementById('override-family').value = '';
+                    document.getElementById('override-size').value = '';
+                } else {
+                    showNotification('Error adding font override: ' + data.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error adding font override:', error);
+                showNotification('Error adding font override: ' + error, 'error');
+            }
+        }
+
+        // Delete font override
+        async function deleteFontOverride(elementKey) {
+            if (!confirm(`Are you sure you want to remove the font override for "${elementKey}"?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/fonts/overrides/${elementKey}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+                if (data.status === 'success') {
+                    showNotification('Font override removed successfully', 'success');
+                    await loadFontData();
+                    displayCurrentOverrides();
+                } else {
+                    showNotification('Error removing font override: ' + data.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting font override:', error);
+                showNotification('Error removing font override: ' + error, 'error');
+            }
+        }
+
+        // Display current overrides
+        function displayCurrentOverrides() {
+            const container = document.getElementById('overrides-container');
+            if (!container) return;
+
+            if (Object.keys(fontOverrides).length === 0) {
+                container.innerHTML = '<div class="empty-overrides">No font overrides configured</div>';
+                return;
+            }
+
+            container.innerHTML = Object.entries(fontOverrides).map(([elementKey, override]) => {
+                const elementName = getElementDisplayName(elementKey);
+                const settings = [];
+
+                if (override.family) {
+                    const familyName = getFontDisplayName(override.family);
+                    settings.push(`Family: ${familyName}`);
+                }
+
+                if (override.size_px) {
+                    settings.push(`Size: ${override.size_px}px`);
+                }
+
+                return `
+                    <div class="override-item">
+                        <div class="override-info">
+                            <div class="override-label">${elementName}</div>
+                            <div class="override-settings">${settings.join(', ')}</div>
+                        </div>
+                        <button class="btn-delete" onclick="deleteFontOverride('${elementKey}')">
+                            <i class="fas fa-trash"></i> Remove
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Helper functions
+        function getElementDisplayName(elementKey) {
+            const names = {
+                'nfl.live.score': 'NFL Live Score',
+                'nfl.live.time': 'NFL Live Time',
+                'nfl.live.team': 'NFL Live Team',
+                'nfl.live.status': 'NFL Live Status',
+                'nfl.recent.score': 'NFL Recent Score',
+                'nfl.recent.record': 'NFL Recent Record',
+                'nhl.live.score': 'NHL Live Score',
+                'nhl.live.time': 'NHL Live Time',
+                'nhl.live.team': 'NHL Live Team',
+                'nhl.live.status': 'NHL Live Status',
+                'nhl.recent.score': 'NHL Recent Score',
+                'nhl.recent.record': 'NHL Recent Record',
+                'nhl.recent.shots': 'NHL Recent Shots',
+                'nba.live.score': 'NBA Live Score',
+                'nba.live.time': 'NBA Live Time',
+                'nba.live.team': 'NBA Live Team',
+                'nba.live.status': 'NBA Live Status',
+                'nba.recent.score': 'NBA Recent Score',
+                'nba.recent.record': 'NBA Recent Record',
+                'ncaam.live.score': 'NCAAM Live Score',
+                'ncaam.live.time': 'NCAAM Live Time',
+                'ncaam.live.team': 'NCAAM Live Team',
+                'ncaam.live.status': 'NCAAM Live Status',
+                'ncaam.recent.score': 'NCAAM Recent Score',
+                'ncaam.recent.record': 'NCAAM Recent Record',
+                'generic.title': 'Generic Title',
+                'generic.body': 'Generic Body',
+                'clock.time': 'Clock Time',
+                'clock.ampm': 'Clock AM/PM',
+                'clock.weekday': 'Clock Weekday',
+                'clock.date': 'Clock Date',
+                'calendar.datetime': 'Calendar DateTime',
+                'calendar.title': 'Calendar Title',
+                'leaderboard.title': 'Leaderboard Title',
+                'leaderboard.rank': 'Leaderboard Rank',
+                'leaderboard.team': 'Leaderboard Team',
+                'leaderboard.record': 'Leaderboard Record',
+                'soccer.live.score': 'Soccer Live Score',
+                'soccer.live.time': 'Soccer Live Time',
+                'soccer.live.team': 'Soccer Live Team',
+                'soccer.live.status': 'Soccer Live Status',
+                'soccer.recent.score': 'Soccer Recent Score',
+                'soccer.recent.record': 'Soccer Recent Record'
+            };
+            return names[elementKey] || elementKey;
+        }
+
+        function getFontDisplayName(fontKey) {
+            const names = {
+                'press_start': 'Press Start 2P',
+                'four_by_six': '4x6 Font',
+                'cozette_bdf': 'Cozette BDF',
+                'matrix_light_6': 'Matrix Light 6',
+                'matrix_chunky_8': 'Matrix Chunky 8',
+                'five_by_seven': '5x7 Font'
+            };
+            return names[fontKey] || fontKey;
+        }
+
+        function getSizeDisplayName(sizeKey) {
+            const names = {
+                'xs': 'Extra Small (6px)',
+                'sm': 'Small (8px)',
+                'md': 'Medium (10px)',
+                'lg': 'Large (12px)',
+                'xl': 'Extra Large (14px)',
+                'xxl': 'XX Large (16px)'
+            };
+            return names[sizeKey] || sizeKey;
+        }
+
+        // Font preview functionality
+        function updateFontPreview() {
+            const canvas = document.getElementById('font-preview-canvas');
+            const text = document.getElementById('preview-text').value || 'Sample Text';
+            const family = document.getElementById('preview-family').value;
+            const size = document.getElementById('preview-size').value;
+
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Set background
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Set font properties
+            const fontSize = fontTokens[size] || 8;
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `${fontSize}px monospace`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            // Draw text in center
+            ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+        }
+
+        // Font Upload Functions
+        let selectedFontFiles = [];
+
+        function initializeFontUpload() {
+            const dropzone = document.getElementById('upload-dropzone');
+            const fileInput = document.getElementById('font-file-input');
+
+            // Click to select files
+            dropzone.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            // File input change
+            fileInput.addEventListener('change', handleFileSelection);
+
+            // Drag and drop events
+            dropzone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropzone.classList.add('drag-over');
+            });
+
+            dropzone.addEventListener('dragleave', () => {
+                dropzone.classList.remove('drag-over');
+            });
+
+            dropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('drag-over');
+                handleFileSelection({ target: { files: e.dataTransfer.files } });
+            });
+        }
+
+        function handleFileSelection(event) {
+            const files = Array.from(event.target.files);
+            const validFiles = files.filter(file => {
+                const extension = file.name.toLowerCase().split('.').pop();
+                return extension === 'ttf' || extension === 'bdf';
+            });
+
+            if (validFiles.length === 0) {
+                showNotification('Please select valid .ttf or .bdf font files', 'warning');
+                return;
+            }
+
+            if (validFiles.length !== files.length) {
+                showNotification(`${files.length - validFiles.length} invalid files were ignored`, 'warning');
+            }
+
+            selectedFontFiles = validFiles;
+            showUploadForm();
+        }
+
+        function showUploadForm() {
+            if (selectedFontFiles.length === 0) return;
+
+            const uploadForm = document.getElementById('upload-form');
+            const fontFamilyInput = document.getElementById('upload-font-family');
+
+            // Auto-generate font family name from first file
+            if (selectedFontFiles.length === 1) {
+                const filename = selectedFontFiles[0].name;
+                const nameWithoutExt = filename.substring(0, filename.lastIndexOf('.'));
+                fontFamilyInput.value = nameWithoutExt.toLowerCase().replace(/[^a-z0-9]/g, '_');
+            }
+
+            uploadForm.style.display = 'block';
+            uploadForm.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function cancelFontUpload() {
+            selectedFontFiles = [];
+            document.getElementById('upload-form').style.display = 'none';
+            document.getElementById('font-file-input').value = '';
+        }
+
+        async function uploadSelectedFonts() {
+            if (selectedFontFiles.length === 0) {
+                showNotification('No files selected', 'warning');
+                return;
+            }
+
+            const fontFamilyInput = document.getElementById('upload-font-family');
+            const fontFamily = fontFamilyInput.value.trim();
+
+            if (!fontFamily) {
+                showNotification('Please enter a font family name', 'warning');
+                return;
+            }
+
+            // Validate font family name
+            if (!/^[a-z0-9_]+$/i.test(fontFamily)) {
+                showNotification('Font family name can only contain letters, numbers, and underscores', 'warning');
+                return;
+            }
+
+            try {
+                showNotification('Uploading font...', 'info');
+
+                for (let i = 0; i < selectedFontFiles.length; i++) {
+                    const file = selectedFontFiles[i];
+                    const formData = new FormData();
+                    formData.append('font_file', file);
+                    formData.append('font_family', i === 0 ? fontFamily : `${fontFamily}_${i + 1}`);
+
+                    const response = await fetch('/api/fonts/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await response.json();
+
+                    if (data.status === 'success') {
+                        showNotification(`Font "${data.font_family}" uploaded successfully`, 'success');
+                    } else {
+                        showNotification(`Error uploading "${file.name}": ${data.message}`, 'error');
+                    }
+                }
+
+                // Refresh font data and UI
+                await loadFontData();
+                populateFontSelects();
+                displayCurrentFonts();
+                cancelFontUpload();
+
+            } catch (error) {
+                console.error('Error uploading fonts:', error);
+                showNotification('Error uploading fonts: ' + error, 'error');
+            }
+        }
+
+        function displayCurrentFonts() {
+            const container = document.getElementById('fonts-list-container');
+            if (!container) return;
+
+            if (Object.keys(fontCatalog).length === 0) {
+                container.innerHTML = '<div class="empty-overrides">No fonts available</div>';
+                return;
+            }
+
+            container.innerHTML = Object.entries(fontCatalog).map(([fontFamily, fontPath]) => {
+                const isDefault = fontDefaults.family === fontFamily;
+                const isUsed = Object.values(fontOverrides).some(override => override.family === fontFamily);
+                const canDelete = !isDefault && !isUsed;
+
+                return `
+                    <div class="font-item">
+                        <div class="font-info">
+                            <div class="font-name">${getFontDisplayName(fontFamily)} ${isDefault ? '(Default)' : ''}</div>
+                            <div class="font-details">
+                                Family: ${fontFamily} | Path: ${fontPath}
+                                ${isUsed ? '| In use' : ''}
+                            </div>
+                        </div>
+                        <div class="font-actions">
+                            <button class="btn-preview-font" onclick="previewFont('${fontFamily}')">
+                                <i class="fas fa-eye"></i> Preview
+                            </button>
+                            ${canDelete ? `
+                                <button class="btn-delete-font" onclick="deleteFont('${fontFamily}')">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function deleteFont(fontFamily) {
+            if (!confirm(`Are you sure you want to delete the font "${fontFamily}"? This action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/fonts/delete/${fontFamily}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+                if (data.status === 'success') {
+                    showNotification(`Font "${fontFamily}" deleted successfully`, 'success');
+                    await loadFontData();
+                    populateFontSelects();
+                    displayCurrentFonts();
+                } else {
+                    showNotification('Error deleting font: ' + data.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting font:', error);
+                showNotification('Error deleting font: ' + error, 'error');
+            }
+        }
+
+        function previewFont(fontFamily) {
+            // Set preview controls to use this font
+            const previewFamilySelect = document.getElementById('preview-family');
+            if (previewFamilySelect) {
+                previewFamilySelect.value = fontFamily;
+                updateFontPreview();
+                showNotification(`Preview updated to use "${getFontDisplayName(fontFamily)}"`, 'info');
+            }
+        }
     </script>
 </body>
 </html>
