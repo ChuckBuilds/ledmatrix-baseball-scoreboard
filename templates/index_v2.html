@@ -2670,6 +2670,9 @@
                                 <button class="btn btn-primary" onclick="searchPlugins()">
                                     <i class="fas fa-search"></i> Search
                                 </button>
+                                <button class="btn btn-secondary" onclick="refreshPluginRepository()" title="Refresh plugin repository from GitHub">
+                                    <i class="fas fa-sync-alt"></i> Refresh Repository
+                                </button>
                             </div>
                         </div>
 
@@ -4889,6 +4892,41 @@
             } catch (error) {
                 showNotification('Error searching plugins: ' + error.message, 'error');
                 renderPluginStore([]); // Show empty state on error
+            }
+        }
+
+        async function refreshPluginRepository() {
+            try {
+                const refreshBtn = event.target.closest('button');
+                const icon = refreshBtn.querySelector('i');
+                
+                // Add spinning animation
+                icon.classList.add('fa-spin');
+                refreshBtn.disabled = true;
+                
+                showNotification('Refreshing plugin repository...', 'info');
+
+                const response = await fetch('/api/plugins/store/refresh', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+
+                if (response.ok && data.status === 'success') {
+                    showNotification(`Repository refreshed! Found ${data.plugin_count} plugins`, 'success');
+                    // Automatically refresh the displayed list
+                    await searchPlugins();
+                } else {
+                    const errorMessage = data.message || 'Failed to refresh repository';
+                    showNotification(errorMessage, 'error');
+                }
+            } catch (error) {
+                showNotification('Error refreshing repository: ' + error.message, 'error');
+            } finally {
+                // Remove spinning animation and re-enable button
+                const refreshBtn = event.target.closest('button');
+                const icon = refreshBtn.querySelector('i');
+                icon.classList.remove('fa-spin');
+                refreshBtn.disabled = false;
             }
         }
 

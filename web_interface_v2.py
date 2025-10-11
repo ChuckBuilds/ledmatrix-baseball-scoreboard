@@ -1695,6 +1695,40 @@ def api_plugin_store_list():
             'plugins': []
         }), 500
 
+@app.route('/api/plugins/store/refresh', methods=['POST'])
+def api_plugin_store_refresh():
+    """Refresh the plugin store registry from GitHub."""
+    try:
+        from src.plugin_system import get_store_manager
+        PluginStoreManager = get_store_manager()
+        store_manager = PluginStoreManager()
+        
+        # Force refresh the registry from GitHub
+        registry = store_manager.fetch_registry(force_refresh=True)
+        plugin_count = len(registry.get('plugins', []))
+        
+        logger.info(f"Plugin repository refreshed: {plugin_count} plugins available")
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Repository refreshed successfully',
+            'plugin_count': plugin_count
+        })
+    except ImportError as e:
+        logger.error(f"Import error in plugin store: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': f'Plugin store not available: {e}',
+            'plugin_count': 0
+        }), 503
+    except Exception as e:
+        logger.error(f"Error refreshing plugin repository: {e}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': f'Failed to refresh repository: {str(e)}',
+            'plugin_count': 0
+        }), 500
+
 @app.route('/api/plugins/store/search', methods=['GET'])
 def api_plugin_store_search():
     """Search for plugins in the store registry."""
