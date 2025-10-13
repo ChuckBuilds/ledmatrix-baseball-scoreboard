@@ -4,6 +4,8 @@ from pathlib import Path
 
 # Will be initialized when blueprint is registered
 config_manager = None
+plugin_manager = None
+plugin_store_manager = None
 
 pages_v3 = Blueprint('pages_v3', __name__)
 

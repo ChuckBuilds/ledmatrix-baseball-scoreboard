@@ -7,6 +7,8 @@ from pathlib import Path
 
 # Will be initialized when blueprint is registered
 config_manager = None
+plugin_manager = None
+plugin_store_manager = None
 
 api_v3 = Blueprint('api_v3', __name__)
 
@@ -225,189 +227,279 @@ def get_display_current():
 def get_installed_plugins():
     """Get installed plugins"""
     try:
-        # This would integrate with the actual plugin system
-        # For now, return sample plugins
-        plugins = [
-            {
-                'id': 'nfl-scoreboard',
-                'name': 'NFL Scoreboard',
-                'author': 'Sports Data Inc',
-                'version': '1.2.0',
-                'category': 'sports',
-                'description': 'Display NFL game scores and statistics',
-                'tags': ['sports', 'football', 'scores'],
-                'enabled': True,
-                'verified': True
-            },
-            {
-                'id': 'weather-widget',
-                'name': 'Weather Widget',
-                'author': 'Weather Corp',
-                'version': '2.1.0',
-                'category': 'weather',
-                'description': 'Show current weather conditions',
-                'tags': ['weather', 'utility'],
-                'enabled': False,
-                'verified': False
-            },
-            {
-                'id': 'stocks-ticker',
-                'name': 'Stocks Ticker',
-                'author': 'Finance Tools',
-                'version': '1.0.5',
-                'category': 'finance',
-                'description': 'Display stock prices and charts',
-                'tags': ['finance', 'stocks', 'charts'],
-                'enabled': True,
-                'verified': True
-            }
-        ]
+        if not api_v3.plugin_manager or not api_v3.plugin_store_manager:
+            return jsonify({'status': 'error', 'message': 'Plugin managers not initialized'}), 500
+        
+        # Get all installed plugin info from the plugin manager
+        all_plugin_info = api_v3.plugin_manager.get_all_plugin_info()
+        
+        # Format for the web interface
+        plugins = []
+        for plugin_info in all_plugin_info:
+            plugin_id = plugin_info.get('id')
+            
+            # Get enabled status from loaded plugin or config
+            plugin_instance = api_v3.plugin_manager.get_plugin(plugin_id)
+            enabled = plugin_instance.enabled if plugin_instance else False
+            
+            # Get verified status from store registry (if available)
+            store_info = api_v3.plugin_store_manager.get_plugin_info(plugin_id)
+            verified = store_info.get('verified', False) if store_info else False
+            
+            plugins.append({
+                'id': plugin_id,
+                'name': plugin_info.get('name', plugin_id),
+                'author': plugin_info.get('author', 'Unknown'),
+                'version': plugin_info.get('version', '1.0.0'),
+                'category': plugin_info.get('category', 'General'),
+                'description': plugin_info.get('description', 'No description available'),
+                'tags': plugin_info.get('tags', []),
+                'enabled': enabled,
+                'verified': verified,
+                'loaded': plugin_info.get('loaded', False)
+            })
+        
         return jsonify({'status': 'success', 'data': {'plugins': plugins}})
     except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Error in get_installed_plugins: {str(e)}")
+        print(error_details)
+        return jsonify({'status': 'error', 'message': str(e), 'details': error_details}), 500
 
 @api_v3.route('/plugins/toggle', methods=['POST'])
 def toggle_plugin():
     """Toggle plugin enabled/disabled"""
     try:
+        if not api_v3.plugin_manager or not api_v3.config_manager:
+            return jsonify({'status': 'error', 'message': 'Plugin or config manager not initialized'}), 500
+        
         data = request.get_json()
         if not data or 'plugin_id' not in data or 'enabled' not in data:
             return jsonify({'status': 'error', 'message': 'plugin_id and enabled required'}), 400
 
         plugin_id = data['plugin_id']
         enabled = data['enabled']
-
-        # This would integrate with the actual plugin system
-        # For now, return success
+        
+        # Get plugin instance
+        plugin = api_v3.plugin_manager.get_plugin(plugin_id)
+        
+        if not plugin:
+            return jsonify({'status': 'error', 'message': f'Plugin {plugin_id} not loaded'}), 404
+        
+        # Update plugin enabled state
+        if enabled:
+            plugin.on_enable()
+        else:
+            plugin.on_disable()
+        
+        # Update config
+        config = api_v3.config_manager.load_config()
+        if plugin_id not in config:
+            config[plugin_id] = {}
+        config[plugin_id]['enabled'] = enabled
+        api_v3.config_manager.save_config(config)
+        
         return jsonify({'status': 'success', 'message': f'Plugin {plugin_id} {"enabled" if enabled else "disabled"}'})
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Error in toggle_plugin: {str(e)}")
+        print(error_details)
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @api_v3.route('/plugins/config', methods=['GET'])
 def get_plugin_config():
     """Get plugin configuration"""
     try:
+        if not api_v3.config_manager:
+            return jsonify({'status': 'error', 'message': 'Config manager not initialized'}), 500
+        
         plugin_id = request.args.get('plugin_id')
         if not plugin_id:
             return jsonify({'status': 'error', 'message': 'plugin_id required'}), 400
 
-        # This would integrate with the actual plugin system
-        # For now, return sample config
-        config = {
-            'enabled': True,
-            'update_interval': 3600,
-            'display_duration': 30
-        }
+        # Get plugin configuration from config manager
+        main_config = api_v3.config_manager.load_config()
+        plugin_config = main_config.get(plugin_id, {})
+        
+        # If no config exists, return defaults
+        if not plugin_config:
+            plugin_config = {
+                'enabled': True,
+                'display_duration': 30
+            }
 
-        return jsonify({'status': 'success', 'data': config})
+        return jsonify({'status': 'success', 'data': plugin_config})
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Error in get_plugin_config: {str(e)}")
+        print(error_details)
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @api_v3.route('/plugins/update', methods=['POST'])
 def update_plugin():
     """Update plugin"""
     try:
+        if not api_v3.plugin_store_manager:
+            return jsonify({'status': 'error', 'message': 'Plugin store manager not initialized'}), 500
+        
         data = request.get_json()
         if not data or 'plugin_id' not in data:
             return jsonify({'status': 'error', 'message': 'plugin_id required'}), 400
 
         plugin_id = data['plugin_id']
-
-        # This would integrate with the actual plugin system
-        return jsonify({'status': 'success', 'message': f'Plugin {plugin_id} updated successfully'})
+        
+        # Update the plugin
+        success = api_v3.plugin_store_manager.update_plugin(plugin_id)
+        
+        if success:
+            # Reload the plugin if it was loaded
+            if api_v3.plugin_manager and plugin_id in api_v3.plugin_manager.plugins:
+                api_v3.plugin_manager.reload_plugin(plugin_id)
+            
+            return jsonify({'status': 'success', 'message': f'Plugin {plugin_id} updated successfully'})
+        else:
+            return jsonify({'status': 'error', 'message': f'Failed to update plugin {plugin_id}'}), 500
+            
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Error in update_plugin: {str(e)}")
+        print(error_details)
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @api_v3.route('/plugins/uninstall', methods=['POST'])
 def uninstall_plugin():
     """Uninstall plugin"""
     try:
+        if not api_v3.plugin_store_manager:
+            return jsonify({'status': 'error', 'message': 'Plugin store manager not initialized'}), 500
+        
         data = request.get_json()
         if not data or 'plugin_id' not in data:
             return jsonify({'status': 'error', 'message': 'plugin_id required'}), 400
 
         plugin_id = data['plugin_id']
-
-        # This would integrate with the actual plugin system
-        return jsonify({'status': 'success', 'message': f'Plugin {plugin_id} uninstalled successfully'})
+        
+        # Unload the plugin first if it's loaded
+        if api_v3.plugin_manager and plugin_id in api_v3.plugin_manager.plugins:
+            api_v3.plugin_manager.unload_plugin(plugin_id)
+        
+        # Uninstall the plugin
+        success = api_v3.plugin_store_manager.uninstall_plugin(plugin_id)
+        
+        if success:
+            return jsonify({'status': 'success', 'message': f'Plugin {plugin_id} uninstalled successfully'})
+        else:
+            return jsonify({'status': 'error', 'message': f'Failed to uninstall plugin {plugin_id}'}), 500
+            
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Error in uninstall_plugin: {str(e)}")
+        print(error_details)
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @api_v3.route('/plugins/install', methods=['POST'])
 def install_plugin():
     """Install plugin from store"""
     try:
+        if not api_v3.plugin_store_manager:
+            return jsonify({'status': 'error', 'message': 'Plugin store manager not initialized'}), 500
+        
         data = request.get_json()
         if not data or 'plugin_id' not in data:
             return jsonify({'status': 'error', 'message': 'plugin_id required'}), 400
 
         plugin_id = data['plugin_id']
-
-        # This would integrate with the actual plugin system
-        return jsonify({'status': 'success', 'message': f'Plugin {plugin_id} installed successfully'})
+        
+        # Install the plugin
+        success = api_v3.plugin_store_manager.install_plugin(plugin_id)
+        
+        if success:
+            # Discover and load the new plugin
+            if api_v3.plugin_manager:
+                api_v3.plugin_manager.discover_plugins()
+                api_v3.plugin_manager.load_plugin(plugin_id)
+            
+            return jsonify({'status': 'success', 'message': f'Plugin {plugin_id} installed successfully'})
+        else:
+            return jsonify({'status': 'error', 'message': f'Failed to install plugin {plugin_id}'}), 500
+            
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Error in install_plugin: {str(e)}")
+        print(error_details)
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @api_v3.route('/plugins/store/list', methods=['GET'])
 def list_plugin_store():
     """Search plugin store"""
     try:
+        if not api_v3.plugin_store_manager:
+            return jsonify({'status': 'error', 'message': 'Plugin store manager not initialized'}), 500
+        
         query = request.args.get('query', '')
         category = request.args.get('category', '')
+        tags = request.args.getlist('tags')
 
-        # This would integrate with the actual plugin store
-        # For now, return sample plugins
-        plugins = [
-            {
-                'id': 'sample-plugin-1',
-                'name': 'Sample Sports Plugin',
-                'author': 'LED Matrix Team',
-                'version': '1.0.0',
-                'category': 'sports',
-                'description': 'A sample plugin for sports data',
-                'tags': ['sports', 'data'],
-                'stars': 42,
-                'downloads': 1337,
-                'verified': True,
-                'repo': 'https://github.com/example/sample-plugin'
-            },
-            {
-                'id': 'sample-plugin-2',
-                'name': 'Weather Widget',
-                'author': 'Weather Corp',
-                'version': '2.1.0',
-                'category': 'weather',
-                'description': 'Display weather information',
-                'tags': ['weather', 'utility'],
-                'stars': 89,
-                'downloads': 567,
-                'verified': False,
-                'repo': 'https://github.com/example/weather-plugin'
-            }
-        ]
+        # Search plugins from the registry
+        plugins = api_v3.plugin_store_manager.search_plugins(query=query, category=category, tags=tags)
+        
+        # Format plugins for the web interface
+        formatted_plugins = []
+        for plugin in plugins:
+            # Get the latest version
+            versions = plugin.get('versions', [])
+            latest_version = versions[0] if versions else {}
+            
+            formatted_plugins.append({
+                'id': plugin.get('id'),
+                'name': plugin.get('name'),
+                'author': plugin.get('author'),
+                'version': latest_version.get('version', '1.0.0'),
+                'category': plugin.get('category'),
+                'description': plugin.get('description'),
+                'tags': plugin.get('tags', []),
+                'stars': plugin.get('stars', 0),
+                'downloads': plugin.get('downloads', 0),
+                'verified': plugin.get('verified', False),
+                'repo': plugin.get('repo', ''),
+                'last_updated': plugin.get('last_updated', '')
+            })
 
-        # Filter by query and category if provided
-        filtered_plugins = plugins
-        if query:
-            query_lower = query.lower()
-            filtered_plugins = [p for p in filtered_plugins if 
-                query_lower in p['name'].lower() or 
-                query_lower in p['description'].lower()
-            ]
-        if category:
-            filtered_plugins = [p for p in filtered_plugins if p['category'] == category]
-
-        return jsonify({'status': 'success', 'data': {'plugins': filtered_plugins}})
+        return jsonify({'status': 'success', 'data': {'plugins': formatted_plugins}})
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Error in list_plugin_store: {str(e)}")
+        print(error_details)
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @api_v3.route('/plugins/store/refresh', methods=['POST'])
 def refresh_plugin_store():
     """Refresh plugin store repository"""
     try:
-        # This would integrate with the actual plugin store refresh logic
-        return jsonify({'status': 'success', 'message': 'Plugin store refreshed', 'plugin_count': 50})
+        if not api_v3.plugin_store_manager:
+            return jsonify({'status': 'error', 'message': 'Plugin store manager not initialized'}), 500
+        
+        # Force refresh the registry
+        registry = api_v3.plugin_store_manager.fetch_registry(force_refresh=True)
+        plugin_count = len(registry.get('plugins', []))
+        
+        return jsonify({
+            'status': 'success', 
+            'message': 'Plugin store refreshed', 
+            'plugin_count': plugin_count
+        })
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Error in refresh_plugin_store: {str(e)}")
+        print(error_details)
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @api_v3.route('/plugins/schema', methods=['GET'])
@@ -418,8 +510,19 @@ def get_plugin_schema():
         if not plugin_id:
             return jsonify({'status': 'error', 'message': 'plugin_id required'}), 400
 
-        # This would integrate with the actual plugin system to read config_schema.json
-        # For now, return a sample schema
+        # Try to read the config_schema.json file from the plugin directory
+        plugins_dir = Path('plugins')
+        schema_path = plugins_dir / plugin_id / 'config_schema.json'
+        
+        if schema_path.exists():
+            try:
+                with open(schema_path, 'r', encoding='utf-8') as f:
+                    schema = json.load(f)
+                return jsonify({'status': 'success', 'data': {'schema': schema}})
+            except Exception as e:
+                print(f"Error reading schema file for {plugin_id}: {e}")
+        
+        # Return a simple default schema if file not found
         schema = {
             'type': 'object',
             'properties': {
@@ -429,14 +532,6 @@ def get_plugin_schema():
                     'description': 'Enable or disable this plugin',
                     'default': True
                 },
-                'update_interval': {
-                    'type': 'integer',
-                    'title': 'Update Interval',
-                    'description': 'How often to update data (seconds)',
-                    'minimum': 60,
-                    'maximum': 3600,
-                    'default': 300
-                },
                 'display_duration': {
                     'type': 'integer',
                     'title': 'Display Duration',
@@ -444,26 +539,16 @@ def get_plugin_schema():
                     'minimum': 5,
                     'maximum': 300,
                     'default': 30
-                },
-                'favorite_teams': {
-                    'type': 'array',
-                    'title': 'Favorite Teams',
-                    'description': 'List of favorite team abbreviations',
-                    'items': {'type': 'string'},
-                    'default': []
-                },
-                'data_source': {
-                    'type': 'string',
-                    'title': 'Data Source',
-                    'description': 'Where to get data from',
-                    'enum': ['api', 'file', 'database'],
-                    'default': 'api'
                 }
             }
         }
 
         return jsonify({'status': 'success', 'data': {'schema': schema}})
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Error in get_plugin_schema: {str(e)}")
+        print(error_details)
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @api_v3.route('/fonts/catalog', methods=['GET'])

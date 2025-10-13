@@ -5,19 +5,40 @@ import subprocess
 import time
 from pathlib import Path
 from src.config_manager import ConfigManager
+from src.plugin_system.plugin_manager import PluginManager
+from src.plugin_system.store_manager import PluginStoreManager
 
 # Create Flask app
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 config_manager = ConfigManager()
 
+# Initialize plugin managers
+plugins_dir = Path('plugins')
+plugin_manager = PluginManager(
+    plugins_dir=str(plugins_dir),
+    config_manager=config_manager,
+    display_manager=None,  # Not needed for web interface
+    cache_manager=None     # Not needed for web interface
+)
+plugin_store_manager = PluginStoreManager(plugins_dir=str(plugins_dir))
+
+# Discover and load plugins
+plugin_manager.discover_plugins()
+# Note: We don't auto-load plugins here since we only need metadata for the web interface
+
 # Register blueprints
 from blueprints.pages_v3 import pages_v3
 from blueprints.api_v3 import api_v3
 
-# Initialize config_manager in blueprints
+# Initialize managers in blueprints
 pages_v3.config_manager = config_manager
+pages_v3.plugin_manager = plugin_manager
+pages_v3.plugin_store_manager = plugin_store_manager
+
 api_v3.config_manager = config_manager
+api_v3.plugin_manager = plugin_manager
+api_v3.plugin_store_manager = plugin_store_manager
 
 app.register_blueprint(pages_v3, url_prefix='/v3')
 app.register_blueprint(api_v3, url_prefix='/api/v3')
