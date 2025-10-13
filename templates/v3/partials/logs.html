@@ -55,27 +55,28 @@
 
     <!-- Log Display -->
     <div class="relative">
-        <div id="logs-container" class="bg-gray-900 text-gray-100 font-mono text-sm rounded-lg p-4 h-96 overflow-y-auto border">
+        <div id="logs-container" class="bg-gray-900 text-gray-100 font-mono text-sm rounded-lg p-3 h-[32rem] overflow-y-auto border border-gray-700 shadow-inner">
             <div id="logs-loading" class="flex items-center justify-center h-full text-gray-400">
                 <div class="text-center">
                     <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
                     <p>Loading logs...</p>
                 </div>
             </div>
-            <div id="logs-content" class="hidden">
+            <div id="logs-content" class="hidden space-y-0.5">
                 <!-- Logs will be inserted here -->
             </div>
             <div id="logs-empty" class="hidden flex items-center justify-center h-full text-gray-400">
                 <div class="text-center">
                     <i class="fas fa-file-alt text-4xl mb-2"></i>
                     <p>No logs available</p>
-                    <p class="text-sm">Logs will appear here when the service runs</p>
+                    <p class="text-sm mt-2">Logs will appear here when the service runs</p>
                 </div>
             </div>
         </div>
 
         <!-- Log stats -->
-        <div id="log-stats" class="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded hidden">
+        <div id="log-stats" class="absolute top-2 right-2 bg-black bg-opacity-70 text-white text-xs px-3 py-1.5 rounded-md backdrop-blur-sm hidden">
+            <i class="fas fa-list-ul mr-1"></i>
             <span id="log-count">0</span> entries
         </div>
     </div>
@@ -95,6 +96,7 @@ let filteredLogs = [];
 let logContainer = null;
 let logsContent = null;
 let isRealtime = true;
+const MAX_LOGS = 500; // Maximum number of logs to keep in memory
 
 // Initialize immediately (this script runs when the partial is loaded)
 (function() {
@@ -166,7 +168,8 @@ function setupRealtimeLogs() {
             processLogs(data.logs, true);
             updateLogStats();
 
-            if (document.getElementById('log-autoscroll').checked) {
+            const autoscrollEl = document.getElementById('log-autoscroll');
+            if (autoscrollEl && autoscrollEl.checked) {
                 scrollToBottom();
             }
         }
@@ -189,20 +192,74 @@ function processLogs(logsText, append = false) {
         logsContent.innerHTML = '';
     }
 
-    // Simple log processing - just split by lines for now
+    // Parse journalctl output
     const lines = logsText.split('\n').filter(line => line.trim());
 
     lines.forEach(line => {
-        // For now, treat each line as a simple log entry
+        // Skip empty lines
+        if (!line.trim()) return;
+
+        // Try to parse journalctl format: "MMM DD HH:MM:SS hostname service[pid]: message"
+        // Example: "Oct 13 14:23:45 raspberrypi ledmatrix[1234]: INFO: Starting display"
+        
+        let timestamp = '';
+        let level = 'INFO';
+        let message = line;
+        
+        // Extract timestamp (first part before hostname)
+        const timestampMatch = line.match(/^([A-Z][a-z]{2}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})/);
+        if (timestampMatch) {
+            timestamp = timestampMatch[1];
+            
+            // Find the message part (after service name and pid)
+            const messageMatch = line.match(/:\s*(.+)$/);
+            if (messageMatch) {
+                message = messageMatch[1];
+                
+                // Detect log level from message
+                if (message.match(/\b(ERROR|CRITICAL|FATAL)\b/i)) {
+                    level = 'ERROR';
+                } else if (message.match(/\b(WARNING|WARN)\b/i)) {
+                    level = 'WARNING';
+                } else if (message.match(/\bDEBUG\b/i)) {
+                    level = 'DEBUG';
+                } else if (message.match(/\bINFO\b/i)) {
+                    level = 'INFO';
+                }
+                
+                // Clean up level prefix from message if it exists
+                message = message.replace(/^(ERROR|WARNING|WARN|INFO|DEBUG):\s*/i, '');
+            }
+        } else {
+            // If no timestamp, use current time
+            timestamp = new Date().toLocaleString('en-US', {
+                month: 'short',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+        }
+
         const logEntry = {
-            timestamp: new Date().toLocaleTimeString(),
-            level: 'INFO',
-            message: line,
+            timestamp: timestamp,
+            level: level,
+            message: message,
             raw: line,
             id: Date.now() + Math.random()
         };
-        allLogs.push(logEntry);
+        
+        // Don't add duplicate entries when appending
+        if (!append || !allLogs.find(log => log.raw === line)) {
+            allLogs.push(logEntry);
+        }
     });
+
+    // Trim logs if we exceed the maximum
+    if (allLogs.length > MAX_LOGS) {
+        allLogs = allLogs.slice(-MAX_LOGS);
+    }
 
     renderLogs();
 }
@@ -222,36 +279,51 @@ function renderLogs() {
 
     filteredLogs.forEach(log => {
         const logElement = document.createElement('div');
-        logElement.className = `log-entry mb-1 ${getLogLevelClass(log.level)}`;
+        logElement.className = `log-entry py-1 px-2 hover:bg-gray-800 rounded transition-colors duration-150 ${getLogLevelClass(log.level)}`;
         logElement.innerHTML = `
-            <span class="log-timestamp text-gray-400">${log.timestamp}</span>
-            <span class="log-level ${getLogLevelBadgeClass(log.level)}">${log.level}</span>
-            <span class="log-message">${escapeHtml(log.message)}</span>
+            <div class="flex items-start gap-3 text-xs font-mono">
+                <span class="log-timestamp text-gray-500 flex-shrink-0 w-32">${escapeHtml(log.timestamp)}</span>
+                <span class="log-level flex-shrink-0 px-2 py-0.5 rounded text-xs font-semibold ${getLogLevelBadgeClass(log.level)}">${log.level}</span>
+                <span class="log-message flex-1 ${getLogLevelTextClass(log.level)} break-words">${escapeHtml(log.message)}</span>
+            </div>
         `;
         logsContent.appendChild(logElement);
     });
 
     logsContent.classList.remove('hidden');
+    document.getElementById('logs-loading').classList.add('hidden');
+    document.getElementById('logs-empty').classList.add('hidden');
 }
 
 function getLogLevelClass(level) {
+    // Background color for the entire log entry row
     const classes = {
-        'ERROR': 'text-red-400',
-        'WARNING': 'text-yellow-400',
-        'INFO': 'text-blue-400',
-        'DEBUG': 'text-gray-400'
+        'ERROR': 'bg-red-900 bg-opacity-10',
+        'WARNING': 'bg-yellow-900 bg-opacity-10',
+        'INFO': '',
+        'DEBUG': 'bg-gray-800 bg-opacity-30'
     };
-    return classes[level] || 'text-gray-300';
+    return classes[level] || '';
 }
 
 function getLogLevelBadgeClass(level) {
     const classes = {
-        'ERROR': 'bg-red-900 text-red-100',
-        'WARNING': 'bg-yellow-900 text-yellow-100',
-        'INFO': 'bg-blue-900 text-blue-100',
-        'DEBUG': 'bg-gray-900 text-gray-100'
+        'ERROR': 'bg-red-600 text-white',
+        'WARNING': 'bg-yellow-600 text-white',
+        'INFO': 'bg-blue-600 text-white',
+        'DEBUG': 'bg-gray-600 text-white'
     };
-    return classes[level] || 'bg-gray-900 text-gray-100';
+    return classes[level] || 'bg-gray-600 text-white';
+}
+
+function getLogLevelTextClass(level) {
+    const classes = {
+        'ERROR': 'text-red-300',
+        'WARNING': 'text-yellow-300',
+        'INFO': 'text-gray-200',
+        'DEBUG': 'text-gray-400'
+    };
+    return classes[level] || 'text-gray-300';
 }
 
 function filterLogs() {
@@ -344,14 +416,16 @@ function setupAutoscroll() {
 }
 
 function scrollToBottom() {
-    if (document.getElementById('log-autoscroll').checked) {
+    const autoscrollEl = document.getElementById('log-autoscroll');
+    if (autoscrollEl && autoscrollEl.checked) {
         logContainer.scrollTop = logContainer.scrollHeight;
     }
 }
 
 function toggleAutoscroll() {
-    if (!document.getElementById('log-autoscroll').checked) {
-        // Don't auto-scroll if unchecked
+    const autoscrollEl = document.getElementById('log-autoscroll');
+    if (!autoscrollEl || !autoscrollEl.checked) {
+        // Don't auto-scroll if unchecked or element doesn't exist
         return;
     }
 
