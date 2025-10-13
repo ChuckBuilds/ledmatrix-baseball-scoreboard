@@ -196,36 +196,96 @@ let fontTokens = {};
 let fontOverrides = {};
 let selectedFontFiles = [];
 
-// Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
-    initializeFontManagement();
+// Initialize when DOM is ready or after HTMX load
+function initializeFontsTab() {
+    if (document.getElementById('detected-fonts') && document.getElementById('available-fonts')) {
+        // Ensure showNotification function is available
+        if (typeof window.showNotification !== 'function') {
+            window.showNotification = function(message, type = 'info') {
+                // Create notification element like in base template
+                const notifications = document.getElementById('notifications');
+                if (notifications) {
+                    const notification = document.createElement('div');
 
-    // Event listeners
-    document.getElementById('upload-dropzone').addEventListener('click', () => {
-        document.getElementById('font-file-input').click();
-    });
+                    const colors = {
+                        success: 'bg-green-500',
+                        error: 'bg-red-500',
+                        warning: 'bg-yellow-500',
+                        info: 'bg-blue-500'
+                    };
 
-    document.getElementById('font-file-input').addEventListener('change', handleFileSelection);
-    document.getElementById('upload-fonts-btn').addEventListener('click', uploadSelectedFonts);
-    document.getElementById('cancel-upload-btn').addEventListener('click', cancelFontUpload);
-    document.getElementById('add-override-btn').addEventListener('click', addFontOverride);
-    document.getElementById('update-preview-btn').addEventListener('click', updateFontPreview);
+                    notification.className = `px-4 py-3 rounded-md text-white text-sm ${colors[type] || colors.info}`;
+                    notification.textContent = message;
 
-    // Drag and drop for upload area
-    const dropzone = document.getElementById('upload-dropzone');
-    dropzone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        dropzone.classList.add('drag-over');
-    });
+                    notifications.appendChild(notification);
 
-    dropzone.addEventListener('dragleave', () => {
-        dropzone.classList.remove('drag-over');
-    });
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 5000);
+                } else {
+                    console.log(`${type}: ${message}`);
+                }
+            };
+        }
 
-    dropzone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        dropzone.classList.remove('drag-over');
-        handleFileSelection({ target: { files: e.dataTransfer.files } });
+        initializeFontManagement();
+
+        // Event listeners
+        document.getElementById('upload-dropzone').addEventListener('click', () => {
+            document.getElementById('font-file-input').click();
+        });
+
+        document.getElementById('font-file-input').addEventListener('change', handleFileSelection);
+        document.getElementById('upload-fonts-btn').addEventListener('click', uploadSelectedFonts);
+        document.getElementById('cancel-upload-btn').addEventListener('click', cancelFontUpload);
+        document.getElementById('add-override-btn').addEventListener('click', addFontOverride);
+        document.getElementById('update-preview-btn').addEventListener('click', updateFontPreview);
+
+        // Drag and drop for upload area
+        const dropzone = document.getElementById('upload-dropzone');
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.classList.add('drag-over');
+        });
+
+        dropzone.addEventListener('dragleave', () => {
+            dropzone.classList.remove('drag-over');
+        });
+
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('drag-over');
+            handleFileSelection({ target: { files: e.dataTransfer.files } });
+        });
+
+        console.log('Fonts tab initialized successfully');
+    } else {
+        console.log('Fonts tab elements not found, retrying...');
+        setTimeout(initializeFontsTab, 100);
+    }
+}
+
+// Initialize when DOM is ready or after HTMX load
+document.addEventListener('DOMContentLoaded', initializeFontsTab);
+
+// Also initialize after HTMX content swap for dynamic loading
+document.body.addEventListener('htmx:afterSettle', function(event) {
+    if (event.target.id === 'fonts-content') {
+        console.log('HTMX loaded fonts content, initializing...', event.target.id);
+        initializeFontsTab();
+    }
+});
+
+// Also listen for when fonts tab becomes visible (Alpine.js)
+document.addEventListener('alpine:init', () => {
+    document.addEventListener('alpine:initialized', () => {
+        // Check if we're already on the fonts tab
+        setTimeout(() => {
+            if (window.app && window.app.activeTab === 'fonts') {
+                console.log('Already on fonts tab, initializing...');
+                initializeFontsTab();
+            }
+        }, 100);
     });
 });
 
@@ -255,10 +315,12 @@ async function loadFontData() {
     }
 
     try {
+        // Use absolute URLs to ensure they work when loaded via HTMX
+        const baseUrl = window.location.origin;
         const [catalogRes, tokensRes, overridesRes] = await Promise.all([
-            fetch('/api/v3/fonts/catalog'),
-            fetch('/api/v3/fonts/tokens'),
-            fetch('/api/v3/fonts/overrides')
+            fetch(`${baseUrl}/api/v3/fonts/catalog`),
+            fetch(`${baseUrl}/api/v3/fonts/tokens`),
+            fetch(`${baseUrl}/api/v3/fonts/overrides`)
         ]);
 
         // Check if all responses are successful
@@ -382,7 +444,7 @@ async function addFontOverride() {
             if (sizePx) overrideData.size_px = sizePx;
         }
 
-        const response = await fetch('/api/v3/fonts/overrides', {
+        const response = await fetch(`${baseUrl}/api/v3/fonts/overrides`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -414,7 +476,7 @@ async function deleteFontOverride(elementKey) {
     }
 
     try {
-        const response = await fetch(`/api/v3/fonts/overrides/${elementKey}`, {
+        const response = await fetch(`${baseUrl}/api/v3/fonts/overrides/${elementKey}`, {
             method: 'DELETE'
         });
 
@@ -605,7 +667,7 @@ async function uploadSelectedFonts() {
             formData.append('font_file', file);
             formData.append('font_family', i === 0 ? fontFamily : `${fontFamily}_${i + 1}`);
 
-            const response = await fetch('/api/v3/fonts/upload', {
+            const response = await fetch(`${baseUrl}/api/v3/fonts/upload`, {
                 method: 'POST',
                 body: formData
             });
