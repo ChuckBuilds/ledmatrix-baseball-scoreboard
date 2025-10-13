@@ -80,21 +80,67 @@ def system_status_generator():
 
 # Display preview generator for SSE
 def display_preview_generator():
-    """Generate display preview updates"""
+    """Generate display preview updates from snapshot file"""
+    import base64
+    from PIL import Image
+    import io
+    
+    snapshot_path = "/tmp/led_matrix_preview.png"
+    last_modified = None
+    
+    # Get display dimensions from config
+    try:
+        main_config = config_manager.load_config()
+        cols = main_config.get('display', {}).get('hardware', {}).get('cols', 64)
+        chain_length = main_config.get('display', {}).get('hardware', {}).get('chain_length', 2)
+        rows = main_config.get('display', {}).get('hardware', {}).get('rows', 32)
+        parallel = main_config.get('display', {}).get('hardware', {}).get('parallel', 1)
+        width = cols * chain_length
+        height = rows * parallel
+    except:
+        width = 128
+        height = 64
+    
     while True:
         try:
-            # This would integrate with the actual display controller
-            # For now, return a placeholder
-            preview_data = {
-                'timestamp': time.time(),
-                'width': 128,
-                'height': 64,
-                'image': None  # Base64 encoded image data
-            }
-            yield preview_data
+            # Check if snapshot file exists and has been modified
+            if os.path.exists(snapshot_path):
+                current_modified = os.path.getmtime(snapshot_path)
+                
+                # Only read if file is new or has been updated
+                if last_modified is None or current_modified > last_modified:
+                    try:
+                        # Read and encode the image
+                        with Image.open(snapshot_path) as img:
+                            # Convert to PNG and encode as base64
+                            buffer = io.BytesIO()
+                            img.save(buffer, format='PNG')
+                            img_str = base64.b64encode(buffer.getvalue()).decode('utf-8')
+                            
+                            preview_data = {
+                                'timestamp': time.time(),
+                                'width': width,
+                                'height': height,
+                                'image': img_str
+                            }
+                            last_modified = current_modified
+                            yield preview_data
+                    except Exception as read_err:
+                        # File might be being written, skip this update
+                        pass
+            else:
+                # No snapshot available
+                yield {
+                    'timestamp': time.time(),
+                    'width': width,
+                    'height': height,
+                    'image': None
+                }
+                
         except Exception as e:
             yield {'error': str(e)}
-        time.sleep(1)  # Update every second
+        
+        time.sleep(0.1)  # Check 10 times per second
 
 # Logs generator for SSE
 def logs_generator():
