@@ -465,7 +465,6 @@ def list_plugin_store():
                 'description': plugin.get('description'),
                 'tags': plugin.get('tags', []),
                 'stars': plugin.get('stars', 0),
-                'downloads': plugin.get('downloads', 0),
                 'verified': plugin.get('verified', False),
                 'repo': plugin.get('repo', ''),
                 'last_updated': plugin.get('last_updated', '')

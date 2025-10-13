@@ -183,6 +183,7 @@ function renderInstalledPlugins(plugins) {
                         <p><i class="fas fa-user mr-1"></i>${escapeHtml(plugin.author || 'Unknown')}</p>
                         <p><i class="fas fa-tag mr-1"></i>v${plugin.version || '1.0.0'}</p>
                         <p><i class="fas fa-folder mr-1"></i>${escapeHtml(plugin.category || 'General')}</p>
+                        <p><i class="fas fa-star mr-1"></i>${plugin.stars || 0} stars</p>
                     </div>
                     <p class="text-sm text-gray-700 mt-2">${escapeHtml(plugin.description || 'No description available')}</p>
                 </div>
@@ -547,7 +548,6 @@ function renderPluginStore(plugins) {
                         <p><i class="fas fa-user mr-1"></i>${escapeHtml(plugin.author || 'Unknown')}</p>
                         <p><i class="fas fa-tag mr-1"></i>${escapeHtml(plugin.category || 'General')}</p>
                         <p><i class="fas fa-star mr-1"></i>${plugin.stars || 0} stars</p>
-                        <p><i class="fas fa-download mr-1"></i>${plugin.downloads || 0} downloads</p>
                     </div>
                     <p class="text-sm text-gray-700 mt-2">${escapeHtml(plugin.description || 'No description available')}</p>
                 </div>

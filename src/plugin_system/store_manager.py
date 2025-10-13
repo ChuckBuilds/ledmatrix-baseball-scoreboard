@@ -41,31 +41,9 @@ class PluginStoreManager:
         self.registry_cache = None
         self.github_cache = {}  # Cache for GitHub API responses
         self.cache_timeout = 3600  # 1 hour cache timeout
-        self.download_counts_file = self.plugins_dir / "download_counts.json"
 
         # Ensure plugins directory exists
         self.plugins_dir.mkdir(exist_ok=True)
-
-        # Load download counts
-        self.download_counts = self._load_download_counts()
-
-    def _load_download_counts(self) -> Dict[str, int]:
-        """Load download counts from file"""
-        try:
-            if self.download_counts_file.exists():
-                with open(self.download_counts_file, 'r') as f:
-                    return json.load(f)
-        except Exception as e:
-            self.logger.warning(f"Could not load download counts: {e}")
-        return {}
-
-    def _save_download_counts(self) -> None:
-        """Save download counts to file"""
-        try:
-            with open(self.download_counts_file, 'w') as f:
-                json.dump(self.download_counts, f, indent=2)
-        except Exception as e:
-            self.logger.error(f"Could not save download counts: {e}")
 
     def _get_github_repo_info(self, repo_url: str) -> Dict[str, Any]:
         """Fetch GitHub repository information (stars, etc.)"""
@@ -118,18 +96,6 @@ class PluginStoreManager:
         except Exception as e:
             self.logger.error(f"Error fetching GitHub repo info for {repo_url}: {e}")
             return {'stars': 0, 'forks': 0, 'open_issues': 0, 'updated_at': '', 'language': '', 'license': ''}
-
-    def record_plugin_download(self, plugin_id: str) -> None:
-        """Record a plugin download/installation"""
-        if plugin_id not in self.download_counts:
-            self.download_counts[plugin_id] = 0
-        self.download_counts[plugin_id] += 1
-        self._save_download_counts()
-        self.logger.info(f"Recorded download for plugin: {plugin_id}")
-
-    def get_plugin_download_count(self, plugin_id: str) -> int:
-        """Get the download count for a plugin"""
-        return self.download_counts.get(plugin_id, 0)
 
     def fetch_registry(self, force_refresh: bool = False) -> Dict:
         """
@@ -199,7 +165,7 @@ class PluginStoreManager:
                 if query_lower not in searchable_text:
                     continue
 
-            # Enhance plugin data with real metrics
+            # Enhance plugin data with real GitHub stars
             enhanced_plugin = plugin.copy()
 
             # Get real GitHub stars
@@ -207,11 +173,6 @@ class PluginStoreManager:
             if repo_url:
                 github_info = self._get_github_repo_info(repo_url)
                 enhanced_plugin['stars'] = github_info.get('stars', plugin.get('stars', 0))
-
-            # Get real download count (local tracking)
-            plugin_id = plugin.get('id', '')
-            if plugin_id:
-                enhanced_plugin['downloads'] = self.get_plugin_download_count(plugin_id)
 
             results.append(enhanced_plugin)
 
@@ -314,9 +275,6 @@ class PluginStoreManager:
             # Install Python dependencies
             if not self._install_dependencies(plugin_path):
                 self.logger.warning(f"Some dependencies may not have installed correctly for {plugin_id}")
-
-            # Record the download/installation
-            self.record_plugin_download(plugin_id)
 
             self.logger.info(f"Successfully installed plugin: {plugin_id} v{version_info['version']}")
             return True
