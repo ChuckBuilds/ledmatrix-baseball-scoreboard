@@ -545,3 +545,40 @@ def delete_font(font_family):
         return jsonify({'status': 'success', 'message': f'Font {font_family} deleted'})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@api_v3.route('/logs', methods=['GET'])
+def get_logs():
+    """Get system logs from journalctl"""
+    try:
+        # Get recent logs from journalctl
+        result = subprocess.run(
+            ['sudo', 'journalctl', '-u', 'ledmatrix.service', '-n', '100', '--no-pager'],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        
+        if result.returncode == 0:
+            logs_text = result.stdout.strip()
+            return jsonify({
+                'status': 'success',
+                'data': {
+                    'logs': logs_text if logs_text else 'No logs available from ledmatrix service'
+                }
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': f'Failed to get logs: {result.stderr}'
+            }), 500
+            
+    except subprocess.TimeoutExpired:
+        return jsonify({
+            'status': 'error',
+            'message': 'Timeout while fetching logs'
+        }), 500
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'Error fetching logs: {str(e)}'
+        }), 500
