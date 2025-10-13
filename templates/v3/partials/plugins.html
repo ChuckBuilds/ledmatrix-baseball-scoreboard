@@ -14,14 +14,6 @@
                 <i class="fas fa-redo mr-2"></i>Restart Display
             </button>
         </div>
-
-        <div class="flex items-center space-x-2">
-            <span class="text-sm text-gray-600">View:</span>
-            <select id="plugin-view-mode" class="form-control text-sm">
-                <option value="installed">Installed</option>
-                <option value="store">Plugin Store</option>
-            </select>
-        </div>
     </div>
 
     <!-- Plugin Content Area -->
@@ -33,31 +25,38 @@
         </div>
     </div>
 
-    <div id="plugins-content" class="hidden">
-        <!-- Installed Plugins -->
+    <div id="plugins-content" class="hidden space-y-8">
+        <!-- Installed Plugins Section (Always visible at top) -->
         <div id="installed-plugins-section">
-            <h3 class="text-md font-medium text-gray-900 mb-4">Installed Plugins</h3>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-md font-medium text-gray-900">Installed Plugins</h3>
+                <span id="installed-count" class="text-sm text-gray-500">0 installed</span>
+            </div>
             <div id="installed-plugins-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <!-- Plugins will be loaded here -->
             </div>
         </div>
 
-        <!-- Plugin Store -->
-        <div id="plugin-store-section" class="hidden">
-            <h3 class="text-md font-medium text-gray-900 mb-4">Plugin Store</h3>
+        <!-- Plugin Store Section (Always visible at bottom) -->
+        <div id="plugin-store-section" class="border-t border-gray-200 pt-8">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-md font-medium text-gray-900">Plugin Store</h3>
+                <span id="store-count" class="text-sm text-gray-500">Loading...</span>
+            </div>
             <div class="mb-4">
                 <div class="flex space-x-4">
-                    <input type="text" id="plugin-search" placeholder="Search plugins..." class="form-control text-sm flex-1">
-                    <select id="plugin-category" class="form-control text-sm w-48">
+                    <input type="text" id="plugin-search" placeholder="Search plugins..." class="form-control text-sm flex-1 px-3 py-2 border border-gray-300 rounded-md">
+                    <select id="plugin-category" class="form-control text-sm w-48 px-3 py-2 border border-gray-300 rounded-md">
                         <option value="">All Categories</option>
                         <option value="sports">Sports</option>
-                        <option value="news">News</option>
+                        <option value="content">Content</option>
+                        <option value="time">Time</option>
                         <option value="weather">Weather</option>
-                        <option value="finance">Finance</option>
-                        <option value="entertainment">Entertainment</option>
-                        <option value="utility">Utility</option>
+                        <option value="financial">Financial</option>
+                        <option value="media">Media</option>
+                        <option value="demo">Demo</option>
                     </select>
-                    <button id="search-plugins-btn" class="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2">
+                    <button id="search-plugins-btn" class="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">
                         <i class="fas fa-search mr-2"></i>Search
                     </button>
                 </div>
@@ -96,14 +95,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // Event listeners
     document.getElementById('refresh-plugins-btn').addEventListener('click', refreshPlugins);
     document.getElementById('restart-display-btn').addEventListener('click', restartDisplay);
-    document.getElementById('plugin-view-mode').addEventListener('change', toggleViewMode);
     document.getElementById('search-plugins-btn').addEventListener('click', searchPluginStore);
     document.getElementById('close-plugin-config').addEventListener('click', closePluginConfigModal);
 });
 
 function initializePlugins() {
-    // Load installed plugins
+    // Load both installed plugins and plugin store
     loadInstalledPlugins();
+    searchPluginStore(); // Load plugin store with no filters
 
     // Setup search functionality
     document.getElementById('plugin-search').addEventListener('input', debounce(searchPluginStore, 300));
@@ -121,6 +120,12 @@ function loadInstalledPlugins() {
             if (data.status === 'success') {
                 installedPlugins = data.data.plugins || [];
                 renderInstalledPlugins(installedPlugins);
+                
+                // Update count
+                const countEl = document.getElementById('installed-count');
+                if (countEl) {
+                    countEl.textContent = installedPlugins.length + ' installed';
+                }
             } else {
                 showError('Failed to load installed plugins: ' + data.message);
             }
@@ -425,6 +430,7 @@ function uninstallPlugin(pluginId) {
 
 function refreshPlugins() {
     loadInstalledPlugins();
+    searchPluginStore();
     showNotification('Plugins refreshed', 'success');
 }
 
@@ -443,26 +449,9 @@ function restartDisplay() {
     });
 }
 
-function toggleViewMode() {
-    const viewMode = document.getElementById('plugin-view-mode').value;
-    const installedSection = document.getElementById('installed-plugins-section');
-    const storeSection = document.getElementById('plugin-store-section');
-
-    if (viewMode === 'store') {
-        installedSection.classList.add('hidden');
-        storeSection.classList.remove('hidden');
-        searchPluginStore();
-    } else {
-        installedSection.classList.remove('hidden');
-        storeSection.classList.add('hidden');
-    }
-}
-
 function searchPluginStore() {
     const query = document.getElementById('plugin-search').value;
     const category = document.getElementById('plugin-category').value;
-
-    showNotification('Searching plugin store...', 'info');
 
     let url = '/api/v3/plugins/store/list';
     const params = new URLSearchParams();
@@ -477,14 +466,28 @@ function searchPluginStore() {
         .then(response => response.json())
         .then(data => {
             if (data.status === 'success') {
-                renderPluginStore(data.data.plugins || []);
-                showNotification(`Found ${data.data.plugins.length} plugins`, 'success');
+                const plugins = data.data.plugins || [];
+                renderPluginStore(plugins);
+                
+                // Update count
+                const countEl = document.getElementById('store-count');
+                if (countEl) {
+                    countEl.textContent = plugins.length + ' available';
+                }
             } else {
                 showError('Failed to search plugin store: ' + data.message);
+                const countEl = document.getElementById('store-count');
+                if (countEl) {
+                    countEl.textContent = 'Error loading';
+                }
             }
         })
         .catch(error => {
             showError('Error searching plugin store: ' + error.message);
+            const countEl = document.getElementById('store-count');
+            if (countEl) {
+                countEl.textContent = 'Error loading';
+            }
         });
 }
 
@@ -554,9 +557,9 @@ function installPlugin(pluginId) {
     .then(data => {
         showNotification(data.message, data.status);
         if (data.status === 'success') {
-            // Switch back to installed view and refresh
-            document.getElementById('plugin-view-mode').value = 'installed';
-            toggleViewMode();
+            // Refresh both installed plugins and store
+            loadInstalledPlugins();
+            searchPluginStore();
         }
     })
     .catch(error => {
