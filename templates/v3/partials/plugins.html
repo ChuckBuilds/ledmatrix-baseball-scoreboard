@@ -17,7 +17,7 @@
     </div>
 
     <!-- Plugin Content Area -->
-    <div id="plugins-loading" class="animate-pulse">
+    <div id="plugins-loading" class="hidden animate-pulse">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
             <div class="bg-gray-200 rounded-lg p-4 h-24"></div>
             <div class="bg-gray-200 rounded-lg p-4 h-24"></div>
@@ -27,7 +27,7 @@
         </div>
     </div>
 
-    <div id="plugins-content" class="hidden space-y-8">
+    <div id="plugins-content" class="space-y-8">
         <!-- Installed Plugins Section (Always visible at top) -->
         <div id="installed-plugins-section">
             <div class="flex items-center justify-between mb-4">
@@ -149,6 +149,7 @@ function loadInstalledPlugins() {
                     countEl.textContent = installedPlugins.length + ' installed';
                 }
             } else {
+                hideLoading();
                 showError('Failed to load installed plugins: ' + data.message);
             }
         })
@@ -616,13 +617,21 @@ function installPlugin(pluginId) {
 }
 
 function showLoading() {
-    document.getElementById('plugins-loading').classList.remove('hidden');
-    document.getElementById('plugins-content').classList.add('hidden');
+    const loadingEl = document.getElementById('plugins-loading');
+    const contentEl = document.getElementById('plugins-content');
+    if (loadingEl && contentEl) {
+        loadingEl.classList.remove('hidden');
+        contentEl.classList.add('hidden');
+    }
 }
 
 function hideLoading() {
-    document.getElementById('plugins-loading').classList.add('hidden');
-    document.getElementById('plugins-content').classList.remove('hidden');
+    const loadingEl = document.getElementById('plugins-loading');
+    const contentEl = document.getElementById('plugins-content');
+    if (loadingEl && contentEl) {
+        loadingEl.classList.add('hidden');
+        contentEl.classList.remove('hidden');
+    }
 }
 
 function showError(message) {
