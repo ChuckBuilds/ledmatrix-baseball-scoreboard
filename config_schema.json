@@ -26,12 +26,89 @@
       "default": false,
       "description": "Show team rankings (when available)"
     },
+    "live_priority": {
+      "type": "boolean",
+      "default": false,
+      "description": "Prioritize live games over scheduled games"
+    },
+    "live_game_duration": {
+      "type": "number",
+      "default": 30,
+      "minimum": 10,
+      "maximum": 120,
+      "description": "Duration in seconds to display live games"
+    },
+    "show_odds": {
+      "type": "boolean",
+      "default": true,
+      "description": "Show betting odds for games"
+    },
+    "test_mode": {
+      "type": "boolean",
+      "default": false,
+      "description": "Enable test mode for development"
+    },
     "update_interval_seconds": {
       "type": "integer",
-      "default": 60,
+      "default": 3600,
       "minimum": 30,
-      "maximum": 300,
+      "maximum": 86400,
       "description": "How often to fetch new data (seconds)"
+    },
+    "live_update_interval": {
+      "type": "integer",
+      "default": 30,
+      "minimum": 10,
+      "maximum": 300,
+      "description": "Update interval for live games (seconds)"
+    },
+    "live_odds_update_interval": {
+      "type": "integer",
+      "default": 3600,
+      "minimum": 60,
+      "maximum": 86400,
+      "description": "Update interval for live odds (seconds)"
+    },
+    "odds_update_interval": {
+      "type": "integer",
+      "default": 3600,
+      "minimum": 60,
+      "maximum": 86400,
+      "description": "Update interval for odds data (seconds)"
+    },
+    "recent_update_interval": {
+      "type": "integer",
+      "default": 3600,
+      "minimum": 60,
+      "maximum": 86400,
+      "description": "Update interval for recent games (seconds)"
+    },
+    "upcoming_update_interval": {
+      "type": "integer",
+      "default": 3600,
+      "minimum": 60,
+      "maximum": 86400,
+      "description": "Update interval for upcoming games (seconds)"
+    },
+    "show_favorite_teams_only": {
+      "type": "boolean",
+      "default": true,
+      "description": "Only show games from favorite teams"
+    },
+    "logo_dir": {
+      "type": "string",
+      "default": "assets/sports/mlb_logos",
+      "description": "Directory path for team logos"
+    },
+    "show_all_live": {
+      "type": "boolean",
+      "default": false,
+      "description": "Show all live games, not just favorites"
+    },
+    "show_series_summary": {
+      "type": "boolean",
+      "default": false,
+      "description": "Show series summary information"
     },
     "mlb": {
       "type": "object",
@@ -82,10 +159,49 @@
         },
         "upcoming_games_to_show": {
           "type": "integer",
-          "default": 10,
+          "default": 1,
           "minimum": 1,
           "maximum": 20,
           "description": "Maximum number of upcoming MLB games to display"
+        },
+        "background_service": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable background service for data fetching"
+            },
+            "max_workers": {
+              "type": "integer",
+              "default": 3,
+              "minimum": 1,
+              "maximum": 10,
+              "description": "Maximum number of worker threads"
+            },
+            "request_timeout": {
+              "type": "integer",
+              "default": 30,
+              "minimum": 5,
+              "maximum": 120,
+              "description": "Request timeout in seconds"
+            },
+            "max_retries": {
+              "type": "integer",
+              "default": 3,
+              "minimum": 1,
+              "maximum": 10,
+              "description": "Maximum number of retries for failed requests"
+            },
+            "priority": {
+              "type": "integer",
+              "default": 2,
+              "minimum": 1,
+              "maximum": 5,
+              "description": "Background service priority"
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false
@@ -95,8 +211,67 @@
       "properties": {
         "enabled": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "description": "Enable MiLB games"
+        },
+        "live_priority": {
+          "type": "boolean",
+          "default": false,
+          "description": "Prioritize live games over scheduled games"
+        },
+        "live_game_duration": {
+          "type": "number",
+          "default": 30,
+          "minimum": 10,
+          "maximum": 120,
+          "description": "Duration in seconds to display live games"
+        },
+        "test_mode": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable test mode for development"
+        },
+        "update_interval_seconds": {
+          "type": "integer",
+          "default": 3600,
+          "minimum": 30,
+          "maximum": 86400,
+          "description": "How often to fetch new data (seconds)"
+        },
+        "live_update_interval": {
+          "type": "integer",
+          "default": 30,
+          "minimum": 10,
+          "maximum": 300,
+          "description": "Update interval for live games (seconds)"
+        },
+        "recent_update_interval": {
+          "type": "integer",
+          "default": 3600,
+          "minimum": 60,
+          "maximum": 86400,
+          "description": "Update interval for recent games (seconds)"
+        },
+        "upcoming_update_interval": {
+          "type": "integer",
+          "default": 3600,
+          "minimum": 60,
+          "maximum": 86400,
+          "description": "Update interval for upcoming games (seconds)"
+        },
+        "recent_games_to_show": {
+          "type": "integer",
+          "default": 1,
+          "minimum": 1,
+          "maximum": 20,
+          "description": "Maximum number of recent MiLB games to display"
+        },
+        "upcoming_games_to_show": {
+          "type": "integer",
+          "default": 1,
+          "minimum": 1,
+          "maximum": 20,
+          "description": "Maximum number of upcoming MiLB games to display"
         },
         "favorite_teams": {
           "type": "array",
@@ -139,10 +314,66 @@
         },
         "upcoming_games_to_show": {
           "type": "integer",
-          "default": 10,
+          "default": 1,
           "minimum": 1,
           "maximum": 20,
           "description": "Maximum number of upcoming MiLB games to display"
+        },
+        "logo_dir": {
+          "type": "string",
+          "default": "assets/sports/milb_logos",
+          "description": "Directory path for team logos"
+        },
+        "show_records": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show team records (wins-losses)"
+        },
+        "upcoming_fetch_days": {
+          "type": "integer",
+          "default": 7,
+          "minimum": 1,
+          "maximum": 30,
+          "description": "Number of days to fetch upcoming games"
+        },
+        "background_service": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable background service for data fetching"
+            },
+            "max_workers": {
+              "type": "integer",
+              "default": 3,
+              "minimum": 1,
+              "maximum": 10,
+              "description": "Maximum number of worker threads"
+            },
+            "request_timeout": {
+              "type": "integer",
+              "default": 30,
+              "minimum": 5,
+              "maximum": 120,
+              "description": "Request timeout in seconds"
+            },
+            "max_retries": {
+              "type": "integer",
+              "default": 3,
+              "minimum": 1,
+              "maximum": 10,
+              "description": "Maximum number of retries for failed requests"
+            },
+            "priority": {
+              "type": "integer",
+              "default": 2,
+              "minimum": 1,
+              "maximum": 5,
+              "description": "Background service priority"
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false
@@ -152,8 +383,63 @@
       "properties": {
         "enabled": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "description": "Enable NCAA Baseball games"
+        },
+        "live_priority": {
+          "type": "boolean",
+          "default": true,
+          "description": "Prioritize live games over scheduled games"
+        },
+        "live_game_duration": {
+          "type": "number",
+          "default": 30,
+          "minimum": 10,
+          "maximum": 120,
+          "description": "Duration in seconds to display live games"
+        },
+        "show_odds": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show betting odds for games"
+        },
+        "test_mode": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable test mode for development"
+        },
+        "update_interval_seconds": {
+          "type": "integer",
+          "default": 3600,
+          "minimum": 30,
+          "maximum": 86400,
+          "description": "How often to fetch new data (seconds)"
+        },
+        "live_update_interval": {
+          "type": "integer",
+          "default": 30,
+          "minimum": 10,
+          "maximum": 300,
+          "description": "Update interval for live games (seconds)"
+        },
+        "recent_games_to_show": {
+          "type": "integer",
+          "default": 1,
+          "minimum": 1,
+          "maximum": 20,
+          "description": "Maximum number of recent NCAA Baseball games to display"
+        },
+        "upcoming_games_to_show": {
+          "type": "integer",
+          "default": 1,
+          "minimum": 1,
+          "maximum": 20,
+          "description": "Maximum number of upcoming NCAA Baseball games to display"
+        },
+        "show_favorite_teams_only": {
+          "type": "boolean",
+          "default": true,
+          "description": "Only show games from favorite teams"
         },
         "favorite_teams": {
           "type": "array",
@@ -196,10 +482,46 @@
         },
         "upcoming_games_to_show": {
           "type": "integer",
-          "default": 10,
+          "default": 1,
           "minimum": 1,
           "maximum": 20,
           "description": "Maximum number of upcoming NCAA Baseball games to display"
+        },
+        "logo_dir": {
+          "type": "string",
+          "default": "assets/sports/ncaa_logos",
+          "description": "Directory path for team logos"
+        },
+        "show_records": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show team records (wins-losses)"
+        },
+        "display_modes": {
+          "type": "object",
+          "properties": {
+            "live": {
+              "type": "boolean",
+              "default": true,
+              "description": "Show live NCAA Baseball games"
+            },
+            "recent": {
+              "type": "boolean",
+              "default": true,
+              "description": "Show recently completed NCAA Baseball games"
+            },
+            "upcoming": {
+              "type": "boolean",
+              "default": true,
+              "description": "Show upcoming NCAA Baseball games"
+            }
+          },
+          "additionalProperties": false
+        },
+        "show_all_live": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show all live games, not just favorites"
         }
       },
       "additionalProperties": false
