@@ -74,7 +74,7 @@
                 <h3 class="text-md font-medium text-gray-900">Plugin Store</h3>
                 <span id="store-count" class="text-sm text-gray-500">Loading...</span>
             </div>
-            <div class="mb-4">
+            <div class="mb-4 space-y-3">
                 <div class="flex space-x-4">
                     <input type="text" id="plugin-search" placeholder="Search plugins..." class="form-control text-sm flex-1 px-3 py-2 border border-gray-300 rounded-md">
                     <select id="plugin-category" class="form-control text-sm w-48 px-3 py-2 border border-gray-300 rounded-md">
@@ -90,6 +90,31 @@
                     <button id="search-plugins-btn" class="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">
                         <i class="fas fa-search mr-2"></i>Search
                     </button>
+                </div>
+
+                <!-- Tags Filter -->
+                <div class="flex items-center space-x-2">
+                    <label class="text-sm font-medium text-gray-700">Filter by tags:</label>
+                    <div id="tags-filter" class="flex flex-wrap gap-2">
+                        <!-- Popular tags will be populated here -->
+                        <button type="button" class="tag-filter-btn bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs px-2 py-1 rounded transition-colors"
+                                data-tag="sports">sports</button>
+                        <button type="button" class="tag-filter-btn bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs px-2 py-1 rounded transition-colors"
+                                data-tag="scoreboard">scoreboard</button>
+                        <button type="button" class="tag-filter-btn bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs px-2 py-1 rounded transition-colors"
+                                data-tag="ticker">ticker</button>
+                        <button type="button" class="tag-filter-btn bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs px-2 py-1 rounded transition-colors"
+                                data-tag="clock">clock</button>
+                        <button type="button" class="tag-filter-btn bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs px-2 py-1 rounded transition-colors"
+                                data-tag="weather">weather</button>
+                        <button type="button" class="tag-filter-btn bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs px-2 py-1 rounded transition-colors"
+                                data-tag="news">news</button>
+                        <button type="button" class="tag-filter-btn bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs px-2 py-1 rounded transition-colors"
+                                data-tag="financial">financial</button>
+                        <button type="button" class="tag-filter-btn bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs px-2 py-1 rounded transition-colors"
+                                data-tag="demo">demo</button>
+                    </div>
+                    <button id="clear-tags-btn" class="text-xs text-blue-600 hover:text-blue-800 underline">Clear</button>
                 </div>
             </div>
             <div id="plugin-store-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
@@ -118,6 +143,7 @@
 // Global variables
 let installedPlugins = [];
 let currentPluginConfig = null;
+let selectedTags = new Set();
 
 // Initialize when DOM is ready or when HTMX loads content
 function initPluginsPage() {
@@ -153,6 +179,9 @@ function initializePlugins() {
     // Setup search functionality
     document.getElementById('plugin-search').addEventListener('input', debounce(searchPluginStore, 300));
     document.getElementById('plugin-category').addEventListener('change', searchPluginStore);
+
+    // Setup tags filter
+    setupTagFilters();
 
     console.log('Plugins initialized');
 }
@@ -528,6 +557,13 @@ function searchPluginStore() {
     if (query) params.append('query', query);
     if (category) params.append('category', category);
 
+    // Add selected tags to the search
+    if (selectedTags.size > 0) {
+        selectedTags.forEach(tag => {
+            params.append('tags', tag);
+        });
+    }
+
     if (params.toString()) {
         url += '?' + params.toString();
     }
@@ -842,5 +878,52 @@ function showGithubTokenInstructions() {
 function closeInstructionsModal() {
     const modal = document.getElementById('plugin-config-modal');
     modal.classList.add('hidden');
+}
+
+function setupTagFilters() {
+    // Add event listeners to tag filter buttons
+    document.querySelectorAll('.tag-filter-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const tag = this.getAttribute('data-tag');
+            toggleTagFilter(tag, this);
+        });
+    });
+
+    // Add event listener to clear tags button
+    document.getElementById('clear-tags-btn').addEventListener('click', function() {
+        selectedTags.clear();
+        updateTagFilterButtons();
+        searchPluginStore(); // Refresh search with cleared tags
+    });
+
+    console.log('Tag filters initialized');
+}
+
+function toggleTagFilter(tag, button) {
+    if (selectedTags.has(tag)) {
+        selectedTags.delete(tag);
+        button.classList.remove('bg-blue-500', 'text-white');
+        button.classList.add('bg-gray-100', 'text-gray-800');
+    } else {
+        selectedTags.add(tag);
+        button.classList.remove('bg-gray-100', 'text-gray-800');
+        button.classList.add('bg-blue-500', 'text-white');
+    }
+
+    console.log('Selected tags:', Array.from(selectedTags));
+    searchPluginStore(); // Refresh search with new tag selection
+}
+
+function updateTagFilterButtons() {
+    document.querySelectorAll('.tag-filter-btn').forEach(button => {
+        const tag = button.getAttribute('data-tag');
+        if (selectedTags.has(tag)) {
+            button.classList.remove('bg-gray-100', 'text-gray-800');
+            button.classList.add('bg-blue-500', 'text-white');
+        } else {
+            button.classList.remove('bg-blue-500', 'text-white');
+            button.classList.add('bg-gray-100', 'text-gray-800');
+        }
+    });
 }
 </script>
