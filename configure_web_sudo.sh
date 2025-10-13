@@ -27,6 +27,7 @@ SYSTEMCTL_PATH=$(which systemctl)
 REBOOT_PATH=$(which reboot)
 POWEROFF_PATH=$(which poweroff)
 BASH_PATH=$(which bash)
+JOURNALCTL_PATH=$(which journalctl)
 
 echo "Command paths:"
 echo "  Python: $PYTHON_PATH"
@@ -34,6 +35,7 @@ echo "  Systemctl: $SYSTEMCTL_PATH"
 echo "  Reboot: $REBOOT_PATH"
 echo "  Poweroff: $POWEROFF_PATH"
 echo "  Bash: $BASH_PATH"
+echo "  Journalctl: $JOURNALCTL_PATH"
 
 # Create a temporary sudoers file
 TEMP_SUDOERS="/tmp/ledmatrix_web_sudoers_$$"
@@ -51,6 +53,14 @@ $WEB_USER ALL=(ALL) NOPASSWD: $SYSTEMCTL_PATH restart ledmatrix.service
 $WEB_USER ALL=(ALL) NOPASSWD: $SYSTEMCTL_PATH enable ledmatrix.service
 $WEB_USER ALL=(ALL) NOPASSWD: $SYSTEMCTL_PATH disable ledmatrix.service
 $WEB_USER ALL=(ALL) NOPASSWD: $SYSTEMCTL_PATH status ledmatrix.service
+$WEB_USER ALL=(ALL) NOPASSWD: $SYSTEMCTL_PATH is-active ledmatrix
+$WEB_USER ALL=(ALL) NOPASSWD: $SYSTEMCTL_PATH is-active ledmatrix.service
+$WEB_USER ALL=(ALL) NOPASSWD: $SYSTEMCTL_PATH start ledmatrix-web
+$WEB_USER ALL=(ALL) NOPASSWD: $SYSTEMCTL_PATH stop ledmatrix-web
+$WEB_USER ALL=(ALL) NOPASSWD: $SYSTEMCTL_PATH restart ledmatrix-web
+$WEB_USER ALL=(ALL) NOPASSWD: $JOURNALCTL_PATH -u ledmatrix.service *
+$WEB_USER ALL=(ALL) NOPASSWD: $JOURNALCTL_PATH -u ledmatrix *
+$WEB_USER ALL=(ALL) NOPASSWD: $JOURNALCTL_PATH -t ledmatrix *
 $WEB_USER ALL=(ALL) NOPASSWD: $PYTHON_PATH $PROJECT_DIR/display_controller.py
 $WEB_USER ALL=(ALL) NOPASSWD: $BASH_PATH $PROJECT_DIR/start_display.sh
 $WEB_USER ALL=(ALL) NOPASSWD: $BASH_PATH $PROJECT_DIR/stop_display.sh
@@ -67,6 +77,7 @@ echo "This configuration will allow the web interface to:"
 echo "- Start/stop/restart the ledmatrix service"
 echo "- Enable/disable the ledmatrix service"
 echo "- Check service status"
+echo "- View system logs via journalctl"
 echo "- Run display_controller.py directly"
 echo "- Execute start_display.sh and stop_display.sh"
 echo "- Reboot and shutdown the system"

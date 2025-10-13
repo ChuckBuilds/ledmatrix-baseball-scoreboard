@@ -96,8 +96,8 @@ let logContainer = null;
 let logsContent = null;
 let isRealtime = true;
 
-// Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
+// Initialize immediately (this script runs when the partial is loaded)
+(function() {
     logContainer = document.getElementById('logs-container');
     logsContent = document.getElementById('logs-content');
 
@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('log-autoscroll').addEventListener('change', toggleAutoscroll);
     document.getElementById('clear-logs-btn').addEventListener('click', clearLogs);
     document.getElementById('download-logs-btn').addEventListener('click', downloadLogs);
-});
+})();
 
 function initializeLogs() {
     // Load initial logs
