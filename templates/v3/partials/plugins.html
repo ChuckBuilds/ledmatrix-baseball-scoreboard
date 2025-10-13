@@ -1,0 +1,607 @@
+<div class="bg-white rounded-lg shadow p-6">
+    <div class="border-b border-gray-200 pb-4 mb-6">
+        <h2 class="text-lg font-semibold text-gray-900">Plugin Management</h2>
+        <p class="mt-1 text-sm text-gray-600">Manage installed plugins, configure settings, and browse the plugin store.</p>
+    </div>
+
+    <!-- Plugin Controls -->
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <div class="flex items-center space-x-4">
+            <button id="refresh-plugins-btn" class="btn bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md">
+                <i class="fas fa-sync-alt mr-2"></i>Refresh Plugins
+            </button>
+            <button id="restart-display-btn" class="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">
+                <i class="fas fa-redo mr-2"></i>Restart Display
+            </button>
+        </div>
+
+        <div class="flex items-center space-x-2">
+            <span class="text-sm text-gray-600">View:</span>
+            <select id="plugin-view-mode" class="form-control text-sm">
+                <option value="installed">Installed</option>
+                <option value="store">Plugin Store</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Plugin Content Area -->
+    <div id="plugins-loading" class="animate-pulse">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div class="bg-gray-200 rounded-lg p-4 h-24"></div>
+            <div class="bg-gray-200 rounded-lg p-4 h-24"></div>
+            <div class="bg-gray-200 rounded-lg p-4 h-24"></div>
+        </div>
+    </div>
+
+    <div id="plugins-content" class="hidden">
+        <!-- Installed Plugins -->
+        <div id="installed-plugins-section">
+            <h3 class="text-md font-medium text-gray-900 mb-4">Installed Plugins</h3>
+            <div id="installed-plugins-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Plugins will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Plugin Store -->
+        <div id="plugin-store-section" class="hidden">
+            <h3 class="text-md font-medium text-gray-900 mb-4">Plugin Store</h3>
+            <div class="mb-4">
+                <div class="flex space-x-4">
+                    <input type="text" id="plugin-search" placeholder="Search plugins..." class="form-control text-sm flex-1">
+                    <select id="plugin-category" class="form-control text-sm w-48">
+                        <option value="">All Categories</option>
+                        <option value="sports">Sports</option>
+                        <option value="news">News</option>
+                        <option value="weather">Weather</option>
+                        <option value="finance">Finance</option>
+                        <option value="entertainment">Entertainment</option>
+                        <option value="utility">Utility</option>
+                    </select>
+                    <button id="search-plugins-btn" class="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2">
+                        <i class="fas fa-search mr-2"></i>Search
+                    </button>
+                </div>
+            </div>
+            <div id="plugin-store-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Store plugins will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Plugin Configuration Modal -->
+    <div id="plugin-config-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="plugin-config-title" class="text-lg font-semibold">Plugin Configuration</h3>
+                <button id="close-plugin-config" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="plugin-config-content">
+                <!-- Plugin config form will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Global variables
+let installedPlugins = [];
+let currentPluginConfig = null;
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    initializePlugins();
+
+    // Event listeners
+    document.getElementById('refresh-plugins-btn').addEventListener('click', refreshPlugins);
+    document.getElementById('restart-display-btn').addEventListener('click', restartDisplay);
+    document.getElementById('plugin-view-mode').addEventListener('change', toggleViewMode);
+    document.getElementById('search-plugins-btn').addEventListener('click', searchPluginStore);
+    document.getElementById('close-plugin-config').addEventListener('click', closePluginConfigModal);
+});
+
+function initializePlugins() {
+    // Load installed plugins
+    loadInstalledPlugins();
+
+    // Setup search functionality
+    document.getElementById('plugin-search').addEventListener('input', debounce(searchPluginStore, 300));
+    document.getElementById('plugin-category').addEventListener('change', searchPluginStore);
+}
+
+function loadInstalledPlugins() {
+    showLoading();
+
+    fetch('/api/v3/plugins/installed')
+        .then(response => response.json())
+        .then(data => {
+            hideLoading();
+
+            if (data.status === 'success') {
+                installedPlugins = data.data.plugins || [];
+                renderInstalledPlugins(installedPlugins);
+            } else {
+                showError('Failed to load installed plugins: ' + data.message);
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            showError('Error loading plugins: ' + error.message);
+        });
+}
+
+function renderInstalledPlugins(plugins) {
+    const container = document.getElementById('installed-plugins-grid');
+
+    if (plugins.length === 0) {
+        container.innerHTML = `
+            <div class="col-span-full text-center py-8">
+                <i class="fas fa-plug text-4xl text-gray-400 mb-2"></i>
+                <p class="text-gray-600">No plugins installed</p>
+                <p class="text-sm text-gray-500 mt-1">Install plugins from the store to get started</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = plugins.map(plugin => `
+        <div class="bg-gray-50 rounded-lg p-4 border">
+            <div class="flex items-start justify-between mb-3">
+                <div class="flex-1">
+                    <div class="flex items-center space-x-2 mb-1">
+                        <h4 class="font-medium text-gray-900">${escapeHtml(plugin.name || plugin.id)}</h4>
+                        ${plugin.verified ? '<span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">✓ Verified</span>' : ''}
+                    </div>
+                    <div class="text-sm text-gray-600 space-y-1">
+                        <p><i class="fas fa-user mr-1"></i>${escapeHtml(plugin.author || 'Unknown')}</p>
+                        <p><i class="fas fa-tag mr-1"></i>v${plugin.version || '1.0.0'}</p>
+                        <p><i class="fas fa-folder mr-1"></i>${escapeHtml(plugin.category || 'General')}</p>
+                    </div>
+                    <p class="text-sm text-gray-700 mt-2">${escapeHtml(plugin.description || 'No description available')}</p>
+                </div>
+
+                <!-- Plugin Status -->
+                <div class="flex flex-col items-end space-y-2">
+                    <label class="flex items-center">
+                        <input type="checkbox"
+                               class="plugin-enabled"
+                               data-plugin-id="${plugin.id}"
+                               ${plugin.enabled ? 'checked' : ''}
+                               onchange="togglePlugin('${plugin.id}', this.checked)">
+                        <span class="ml-2 text-sm ${plugin.enabled ? 'text-green-600' : 'text-gray-500'}">
+                            ${plugin.enabled ? 'Enabled' : 'Disabled'}
+                        </span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Plugin Tags -->
+            ${plugin.tags ? `
+                <div class="flex flex-wrap gap-1 mb-3">
+                    ${plugin.tags.map(tag => `<span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">${escapeHtml(tag)}</span>`).join('')}
+                </div>
+            ` : ''}
+
+            <!-- Plugin Actions -->
+            <div class="flex space-x-2">
+                <button onclick="configurePlugin('${plugin.id}')"
+                        class="btn bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm flex-1">
+                    <i class="fas fa-cog mr-1"></i>Configure
+                </button>
+                <button onclick="updatePlugin('${plugin.id}')"
+                        class="btn bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-sm flex-1">
+                    <i class="fas fa-sync mr-1"></i>Update
+                </button>
+                <button onclick="uninstallPlugin('${plugin.id}')"
+                        class="btn bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm flex-1">
+                    <i class="fas fa-trash mr-1"></i>Uninstall
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function togglePlugin(pluginId, enabled) {
+    fetch('/api/v3/plugins/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plugin_id: pluginId, enabled })
+    })
+    .then(response => response.json())
+    .then(data => {
+        showNotification(data.message, data.status);
+
+        // Update visual state
+        const checkbox = document.querySelector(`.plugin-enabled[data-plugin-id="${pluginId}"]`);
+        if (checkbox) {
+            const statusText = checkbox.parentElement.querySelector('span:last-child');
+            statusText.textContent = enabled ? 'Enabled' : 'Disabled';
+            statusText.className = `ml-2 text-sm ${enabled ? 'text-green-600' : 'text-gray-500'}`;
+        }
+    })
+    .catch(error => {
+        showNotification('Error toggling plugin: ' + error.message, 'error');
+    });
+}
+
+function configurePlugin(pluginId) {
+    // Load plugin configuration
+    fetch(`/api/v3/plugins/config?plugin_id=${pluginId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                currentPluginConfig = data.data;
+                showPluginConfigModal(pluginId, data.data);
+            } else {
+                showNotification('Failed to load plugin configuration: ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            showNotification('Error loading plugin configuration: ' + error.message, 'error');
+        });
+}
+
+function showPluginConfigModal(pluginId, config) {
+    const modal = document.getElementById('plugin-config-modal');
+    const title = document.getElementById('plugin-config-title');
+    const content = document.getElementById('plugin-config-content');
+
+    title.textContent = `Configure ${pluginId}`;
+    content.innerHTML = generatePluginConfigForm(pluginId, config);
+
+    modal.classList.remove('hidden');
+}
+
+function generatePluginConfigForm(pluginId, config) {
+    // Load plugin schema for dynamic form generation
+    return fetch(`/api/v3/plugins/schema?plugin_id=${pluginId}`)
+        .then(response => response.json())
+        .then(schemaData => {
+            if (schemaData.status === 'success' && schemaData.data.schema) {
+                return generateFormFromSchema(schemaData.data.schema, config);
+            } else {
+                // Fallback to simple form if no schema
+                return generateSimpleConfigForm(config);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading schema:', error);
+            return generateSimpleConfigForm(config);
+        });
+}
+
+function generateFormFromSchema(schema, config) {
+    let formHtml = '<form id="plugin-config-form" class="space-y-4">';
+
+    if (schema.properties) {
+        Object.entries(schema.properties).forEach(([key, prop]) => {
+            const value = config[key] !== undefined ? config[key] : prop.default;
+            const label = prop.title || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            const description = prop.description || '';
+
+            formHtml += `
+                <div class="form-group">
+                    <label for="${key}" class="block text-sm font-medium text-gray-700 mb-1">
+                        ${label}
+                    </label>
+            `;
+
+            if (description) {
+                formHtml += `<p class="text-sm text-gray-600 mb-2">${description}</p>`;
+            }
+
+            // Generate appropriate input based on type
+            if (prop.type === 'boolean') {
+                formHtml += `
+                    <label class="flex items-center">
+                        <input type="checkbox" id="${key}" name="${key}" ${value ? 'checked' : ''} class="form-control h-4 w-4">
+                        <span class="ml-2 text-sm">Enabled</span>
+                    </label>
+                `;
+            } else if (prop.type === 'number' || prop.type === 'integer') {
+                const min = prop.minimum !== undefined ? `min="${prop.minimum}"` : '';
+                const max = prop.maximum !== undefined ? `max="${prop.maximum}"` : '';
+                const step = prop.type === 'integer' ? 'step="1"' : 'step="any"';
+                formHtml += `
+                    <input type="number" id="${key}" name="${key}" value="${value || ''}" ${min} ${max} ${step} class="form-control">
+                `;
+            } else if (prop.type === 'array') {
+                const arrayValue = Array.isArray(value) ? value.join(', ') : '';
+                formHtml += `
+                    <input type="text" id="${key}" name="${key}" value="${arrayValue}" placeholder="Enter values separated by commas" class="form-control">
+                    <p class="text-sm text-gray-600 mt-1">Enter values separated by commas</p>
+                `;
+            } else if (prop.enum) {
+                formHtml += `<select id="${key}" name="${key}" class="form-control">`;
+                prop.enum.forEach(option => {
+                    const selected = value === option ? 'selected' : '';
+                    formHtml += `<option value="${option}" ${selected}>${option}</option>`;
+                });
+                formHtml += `</select>`;
+            } else {
+                // Default to text input
+                const maxLength = prop.maxLength || '';
+                formHtml += `
+                    <input type="text" id="${key}" name="${key}" value="${value || ''}" ${maxLength ? `maxlength="${maxLength}"` : ''} class="form-control">
+                `;
+            }
+
+            formHtml += `</div>`;
+        });
+    }
+
+    formHtml += `
+        <div class="flex justify-end space-x-2">
+            <button type="button" onclick="closePluginConfigModal()" class="btn bg-gray-600 hover:bg-gray-700 text-white px-4 py-2">
+                Cancel
+            </button>
+            <button type="submit" class="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2">
+                Save Configuration
+            </button>
+        </div>
+    </form>
+    `;
+
+    return formHtml;
+}
+
+function generateSimpleConfigForm(config) {
+    return `
+        <form id="plugin-config-form" class="space-y-4">
+            <div class="form-group">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Plugin Status</label>
+                <label class="flex items-center">
+                    <input type="checkbox" name="enabled" ${config.enabled ? 'checked' : ''} class="form-control h-4 w-4">
+                    <span class="ml-2 text-sm">Enabled</span>
+                </label>
+            </div>
+
+            <div class="form-group">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Configuration</label>
+                <textarea name="config" class="form-control h-32" placeholder="Plugin configuration JSON">${JSON.stringify(config, null, 2)}</textarea>
+            </div>
+
+            <div class="flex justify-end space-x-2">
+                <button type="button" onclick="closePluginConfigModal()" class="btn bg-gray-600 hover:bg-gray-700 text-white px-4 py-2">
+                    Cancel
+                </button>
+                <button type="submit" class="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2">
+                    Save Configuration
+                </button>
+            </div>
+        </form>
+    `;
+}
+
+function closePluginConfigModal() {
+    document.getElementById('plugin-config-modal').classList.add('hidden');
+    currentPluginConfig = null;
+}
+
+function updatePlugin(pluginId) {
+    showNotification(`Updating ${pluginId}...`, 'info');
+
+    fetch('/api/v3/plugins/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plugin_id: pluginId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        showNotification(data.message, data.status);
+        if (data.status === 'success') {
+            loadInstalledPlugins(); // Refresh the list
+        }
+    })
+    .catch(error => {
+        showNotification('Error updating plugin: ' + error.message, 'error');
+    });
+}
+
+function uninstallPlugin(pluginId) {
+    if (!confirm(`Are you sure you want to uninstall ${pluginId}?`)) {
+        return;
+    }
+
+    showNotification(`Uninstalling ${pluginId}...`, 'info');
+
+    fetch('/api/v3/plugins/uninstall', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plugin_id: pluginId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        showNotification(data.message, data.status);
+        if (data.status === 'success') {
+            loadInstalledPlugins(); // Refresh the list
+        }
+    })
+    .catch(error => {
+        showNotification('Error uninstalling plugin: ' + error.message, 'error');
+    });
+}
+
+function refreshPlugins() {
+    loadInstalledPlugins();
+    showNotification('Plugins refreshed', 'success');
+}
+
+function restartDisplay() {
+    fetch('/api/v3/system/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'start_display' })
+    })
+    .then(response => response.json())
+    .then(data => {
+        showNotification(data.message, data.status);
+    })
+    .catch(error => {
+        showNotification('Error restarting display: ' + error.message, 'error');
+    });
+}
+
+function toggleViewMode() {
+    const viewMode = document.getElementById('plugin-view-mode').value;
+    const installedSection = document.getElementById('installed-plugins-section');
+    const storeSection = document.getElementById('plugin-store-section');
+
+    if (viewMode === 'store') {
+        installedSection.classList.add('hidden');
+        storeSection.classList.remove('hidden');
+        searchPluginStore();
+    } else {
+        installedSection.classList.remove('hidden');
+        storeSection.classList.add('hidden');
+    }
+}
+
+function searchPluginStore() {
+    const query = document.getElementById('plugin-search').value;
+    const category = document.getElementById('plugin-category').value;
+
+    showNotification('Searching plugin store...', 'info');
+
+    let url = '/api/v3/plugins/store/list';
+    const params = new URLSearchParams();
+    if (query) params.append('query', query);
+    if (category) params.append('category', category);
+
+    if (params.toString()) {
+        url += '?' + params.toString();
+    }
+
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                renderPluginStore(data.data.plugins || []);
+                showNotification(`Found ${data.data.plugins.length} plugins`, 'success');
+            } else {
+                showError('Failed to search plugin store: ' + data.message);
+            }
+        })
+        .catch(error => {
+            showError('Error searching plugin store: ' + error.message);
+        });
+}
+
+function renderPluginStore(plugins) {
+    const container = document.getElementById('plugin-store-grid');
+
+    if (plugins.length === 0) {
+        container.innerHTML = `
+            <div class="col-span-full text-center py-8">
+                <i class="fas fa-store text-4xl text-gray-400 mb-2"></i>
+                <p class="text-gray-600">No plugins found</p>
+                <p class="text-sm text-gray-500 mt-1">Try adjusting your search criteria</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = plugins.map(plugin => `
+        <div class="bg-gray-50 rounded-lg p-4 border">
+            <div class="flex items-start justify-between mb-3">
+                <div class="flex-1">
+                    <div class="flex items-center space-x-2 mb-1">
+                        <h4 class="font-medium text-gray-900">${escapeHtml(plugin.name || plugin.id)}</h4>
+                        ${plugin.verified ? '<span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">✓ Verified</span>' : ''}
+                    </div>
+                    <div class="text-sm text-gray-600 space-y-1">
+                        <p><i class="fas fa-user mr-1"></i>${escapeHtml(plugin.author || 'Unknown')}</p>
+                        <p><i class="fas fa-tag mr-1"></i>${escapeHtml(plugin.category || 'General')}</p>
+                        <p><i class="fas fa-star mr-1"></i>${plugin.stars || 0} stars</p>
+                        <p><i class="fas fa-download mr-1"></i>${plugin.downloads || 0} downloads</p>
+                    </div>
+                    <p class="text-sm text-gray-700 mt-2">${escapeHtml(plugin.description || 'No description available')}</p>
+                </div>
+            </div>
+
+            <!-- Plugin Tags -->
+            ${plugin.tags ? `
+                <div class="flex flex-wrap gap-1 mb-3">
+                    ${plugin.tags.map(tag => `<span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">${escapeHtml(tag)}</span>`).join('')}
+                </div>
+            ` : ''}
+
+            <!-- Store Actions -->
+            <div class="flex space-x-2">
+                <button onclick="installPlugin('${plugin.id}')"
+                        class="btn bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm flex-1">
+                    <i class="fas fa-download mr-1"></i>Install
+                </button>
+                <button onclick="window.open('${plugin.repo || '#'}', '_blank')"
+                        class="btn bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-sm flex-1">
+                    <i class="fas fa-external-link-alt mr-1"></i>View
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function installPlugin(pluginId) {
+    showNotification(`Installing ${pluginId}...`, 'info');
+
+    fetch('/api/v3/plugins/install', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plugin_id: pluginId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        showNotification(data.message, data.status);
+        if (data.status === 'success') {
+            // Switch back to installed view and refresh
+            document.getElementById('plugin-view-mode').value = 'installed';
+            toggleViewMode();
+        }
+    })
+    .catch(error => {
+        showNotification('Error installing plugin: ' + error.message, 'error');
+    });
+}
+
+function showLoading() {
+    document.getElementById('plugins-loading').classList.remove('hidden');
+    document.getElementById('plugins-content').classList.add('hidden');
+}
+
+function hideLoading() {
+    document.getElementById('plugins-loading').classList.add('hidden');
+    document.getElementById('plugins-content').classList.remove('hidden');
+}
+
+function showError(message) {
+    const content = document.getElementById('plugins-content');
+    content.innerHTML = `
+        <div class="text-center py-8">
+            <i class="fas fa-exclamation-triangle text-4xl text-red-400 mb-2"></i>
+            <p class="text-red-600">${escapeHtml(message)}</p>
+        </div>
+    `;
+    content.classList.remove('hidden');
+}
+
+// Utility function to escape HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Debounce utility
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+</script>

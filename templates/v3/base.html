@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LED Matrix Control Panel - v3</title>
+
+    <!-- HTMX for dynamic content loading -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://unpkg.com/htmx.org/dist/ext/sse.js"></script>
+
+    <!-- Alpine.js for reactive components -->
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <!-- Font Awesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <!-- Custom v3 styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='v3/app.css') }}">
+</head>
+<body x-data="app()" class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <h1 class="text-xl font-semibold text-gray-900">
+                        <i class="fas fa-tv text-blue-600"></i>
+                        LED Matrix Control - v3
+                    </h1>
+                </div>
+
+                <!-- Connection status -->
+                <div class="flex items-center space-x-4">
+                    <div id="connection-status" class="flex items-center space-x-2 text-sm">
+                        <div class="w-2 h-2 bg-red-500 rounded-full"></div>
+                        <span class="text-gray-600">Disconnected</span>
+                    </div>
+
+                    <!-- System stats (populated via SSE) -->
+                    <div class="hidden md:flex items-center space-x-4 text-sm text-gray-600">
+                        <span id="cpu-stat" class="flex items-center space-x-1">
+                            <i class="fas fa-microchip"></i>
+                            <span>--%</span>
+                        </span>
+                        <span id="memory-stat" class="flex items-center space-x-1">
+                            <i class="fas fa-memory"></i>
+                            <span>--%</span>
+                        </span>
+                        <span id="temp-stat" class="flex items-center space-x-1">
+                            <i class="fas fa-thermometer-half"></i>
+                            <span>--°C</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Navigation tabs -->
+        <nav class="mb-8">
+            <div class="border-b border-gray-200">
+                <nav class="-mb-px flex space-x-8 overflow-x-auto">
+                    <button @click="activeTab = 'overview'"
+                            :class="activeTab === 'overview' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                            class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+                        <i class="fas fa-tachometer-alt mr-2"></i>Overview
+                    </button>
+                    <button @click="activeTab = 'general'"
+                            :class="activeTab === 'general' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                            class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+                        <i class="fas fa-sliders-h mr-2"></i>General
+                    </button>
+                    <button @click="activeTab = 'display'"
+                            :class="activeTab === 'display' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                            class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+                        <i class="fas fa-desktop mr-2"></i>Display
+                    </button>
+                    <button @click="activeTab = 'sports'"
+                            :class="activeTab === 'sports' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                            class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+                        <i class="fas fa-football-ball mr-2"></i>Sports
+                    </button>
+                    <button @click="activeTab = 'plugins'"
+                            :class="activeTab === 'plugins' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                            class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+                        <i class="fas fa-plug mr-2"></i>Plugins
+                    </button>
+                    <button @click="activeTab = 'fonts'"
+                            :class="activeTab === 'fonts' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                            class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+                        <i class="fas fa-font mr-2"></i>Fonts
+                    </button>
+                    <button @click="activeTab = 'logs'"
+                            :class="activeTab === 'logs' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                            class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+                        <i class="fas fa-file-alt mr-2"></i>Logs
+                    </button>
+                </nav>
+            </div>
+        </nav>
+
+        <!-- Tab content -->
+        <div id="tab-content" class="space-y-6">
+            <!-- Overview tab -->
+            <div x-show="activeTab === 'overview'" x-transition>
+                <div hx-get="/v3/partials/overview" hx-trigger="load" hx-target="#overview-content"></div>
+                <div id="overview-content" class="animate-pulse">
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+                        <div class="h-32 bg-gray-200 rounded"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- General tab -->
+            <div x-show="activeTab === 'general'" x-transition>
+                <div hx-get="/v3/partials/general" hx-trigger="load" hx-target="#general-content"></div>
+                <div id="general-content" class="animate-pulse">
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+                        <div class="space-y-4">
+                            <div class="h-10 bg-gray-200 rounded"></div>
+                            <div class="h-10 bg-gray-200 rounded"></div>
+                            <div class="h-10 bg-gray-200 rounded"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Display tab -->
+            <div x-show="activeTab === 'display'" x-transition>
+                <div hx-get="/v3/partials/display" hx-trigger="load" hx-target="#display-content"></div>
+                <div id="display-content" class="animate-pulse">
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="h-32 bg-gray-200 rounded"></div>
+                            <div class="h-32 bg-gray-200 rounded"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sports tab -->
+            <div x-show="activeTab === 'sports'" x-transition>
+                <div hx-get="/v3/partials/sports" hx-trigger="load" hx-target="#sports-content"></div>
+                <div id="sports-content" class="animate-pulse">
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+                        <div class="space-y-4">
+                            <div class="h-16 bg-gray-200 rounded"></div>
+                            <div class="h-16 bg-gray-200 rounded"></div>
+                            <div class="h-16 bg-gray-200 rounded"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Plugins tab -->
+            <div x-show="activeTab === 'plugins'" x-transition>
+                <div hx-get="/v3/partials/plugins" hx-trigger="load" hx-target="#plugins-content"></div>
+                <div id="plugins-content" class="animate-pulse">
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div class="h-24 bg-gray-200 rounded"></div>
+                            <div class="h-24 bg-gray-200 rounded"></div>
+                            <div class="h-24 bg-gray-200 rounded"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fonts tab -->
+            <div x-show="activeTab === 'fonts'" x-transition>
+                <div hx-get="/v3/partials/fonts" hx-trigger="load" hx-target="#fonts-content"></div>
+                <div id="fonts-content" class="animate-pulse">
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+                        <div class="space-y-4">
+                            <div class="h-20 bg-gray-200 rounded"></div>
+                            <div class="h-20 bg-gray-200 rounded"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logs tab -->
+            <div x-show="activeTab === 'logs'" x-transition>
+                <div hx-get="/v3/partials/logs" hx-trigger="load" hx-target="#logs-content"></div>
+                <div id="logs-content" class="animate-pulse">
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+                        <div class="h-96 bg-gray-200 rounded"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Notifications -->
+    <div id="notifications" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+    <!-- SSE connection for real-time updates -->
+    <script>
+        // Connect to SSE streams
+        const statsSource = new EventSource('/api/v3/stream/stats');
+        const displaySource = new EventSource('/api/v3/stream/display');
+
+        statsSource.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            updateSystemStats(data);
+        };
+
+        displaySource.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            // Handle display updates if needed
+        };
+
+        // Connection status
+        statsSource.addEventListener('open', function() {
+            document.getElementById('connection-status').innerHTML = `
+                <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span class="text-gray-600">Connected</span>
+            `;
+        });
+
+        statsSource.addEventListener('error', function() {
+            document.getElementById('connection-status').innerHTML = `
+                <div class="w-2 h-2 bg-red-500 rounded-full"></div>
+                <span class="text-gray-600">Disconnected</span>
+            `;
+        });
+
+        function updateSystemStats(data) {
+            // Update CPU
+            const cpuEl = document.getElementById('cpu-stat');
+            if (cpuEl && data.cpu_percent !== undefined) {
+                cpuEl.querySelector('span').textContent = data.cpu_percent + '%';
+            }
+
+            // Update Memory
+            const memEl = document.getElementById('memory-stat');
+            if (memEl && data.memory_used_percent !== undefined) {
+                memEl.querySelector('span').textContent = data.memory_used_percent + '%';
+            }
+
+            // Update Temperature
+            const tempEl = document.getElementById('temp-stat');
+            if (tempEl && data.cpu_temp !== undefined) {
+                tempEl.querySelector('span').textContent = data.cpu_temp + '°C';
+            }
+        }
+
+        // Alpine.js app function
+        function app() {
+            return {
+                activeTab: 'overview',
+
+                showNotification(message, type = 'info') {
+                    const notifications = document.getElementById('notifications');
+                    const notification = document.createElement('div');
+
+                    const colors = {
+                        success: 'bg-green-500',
+                        error: 'bg-red-500',
+                        warning: 'bg-yellow-500',
+                        info: 'bg-blue-500'
+                    };
+
+                    notification.className = `px-4 py-3 rounded-md text-white text-sm ${colors[type] || colors.info}`;
+                    notification.textContent = message;
+
+                    notifications.appendChild(notification);
+
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 5000);
+                }
+            }
+        }
+    </script>
+
+    <!-- Custom v3 JavaScript -->
+    <script src="{{ url_for('static', filename='v3/app.js') }}"></script>
+</body>
+</html>

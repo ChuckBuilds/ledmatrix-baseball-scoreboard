@@ -1,0 +1,412 @@
+<div class="bg-white rounded-lg shadow p-6">
+    <div class="border-b border-gray-200 pb-4 mb-6">
+        <h2 class="text-lg font-semibold text-gray-900">System Logs</h2>
+        <p class="mt-1 text-sm text-gray-600">View real-time logs from the LED matrix service for troubleshooting.</p>
+    </div>
+
+    <!-- Controls -->
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <div class="flex items-center space-x-4">
+            <!-- Log Mode Toggle -->
+            <div class="flex items-center space-x-2">
+                <label class="flex items-center">
+                    <input type="checkbox" id="log-realtime-toggle" class="form-control h-4 w-4" checked>
+                    <span class="ml-2 text-sm font-medium">Real-time</span>
+                </label>
+                <span class="text-sm text-gray-600">|</span>
+                <button id="refresh-logs-btn" class="btn bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-sm">
+                    <i class="fas fa-sync-alt mr-1"></i>Refresh
+                </button>
+            </div>
+
+            <!-- Log Level Filter -->
+            <select id="log-level-filter" class="form-control text-sm">
+                <option value="">All Levels</option>
+                <option value="ERROR">Errors Only</option>
+                <option value="WARNING">Warnings & Errors</option>
+                <option value="INFO">Info & Above</option>
+            </select>
+
+            <!-- Search -->
+            <div class="relative">
+                <input type="text" id="log-search" placeholder="Search logs..." class="form-control text-sm pl-8 pr-4 py-1 w-48">
+                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs"></i>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-2">
+            <!-- Auto-scroll toggle -->
+            <label class="flex items-center">
+                <input type="checkbox" id="log-autoscroll" class="form-control h-4 w-4" checked>
+                <span class="ml-2 text-sm">Auto-scroll</span>
+            </label>
+
+            <!-- Clear logs -->
+            <button id="clear-logs-btn" class="btn bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm">
+                <i class="fas fa-trash mr-1"></i>Clear
+            </button>
+
+            <!-- Download logs -->
+            <button id="download-logs-btn" class="btn bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm">
+                <i class="fas fa-download mr-1"></i>Download
+            </button>
+        </div>
+    </div>
+
+    <!-- Log Display -->
+    <div class="relative">
+        <div id="logs-container" class="bg-gray-900 text-gray-100 font-mono text-sm rounded-lg p-4 h-96 overflow-y-auto border">
+            <div id="logs-loading" class="flex items-center justify-center h-full text-gray-400">
+                <div class="text-center">
+                    <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                    <p>Loading logs...</p>
+                </div>
+            </div>
+            <div id="logs-content" class="hidden">
+                <!-- Logs will be inserted here -->
+            </div>
+            <div id="logs-empty" class="hidden flex items-center justify-center h-full text-gray-400">
+                <div class="text-center">
+                    <i class="fas fa-file-alt text-4xl mb-2"></i>
+                    <p>No logs available</p>
+                    <p class="text-sm">Logs will appear here when the service runs</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Log stats -->
+        <div id="log-stats" class="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded hidden">
+            <span id="log-count">0</span> entries
+        </div>
+    </div>
+
+    <!-- Connection Status -->
+    <div id="log-connection-status" class="mt-4 text-sm text-gray-600 flex items-center space-x-2">
+        <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+        <span>Connected to log stream</span>
+    </div>
+</div>
+
+<script>
+// Global variables
+let logsEventSource = null;
+let allLogs = [];
+let filteredLogs = [];
+let logContainer = null;
+let logsContent = null;
+let isRealtime = true;
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    logContainer = document.getElementById('logs-container');
+    logsContent = document.getElementById('logs-content');
+
+    initializeLogs();
+
+    // Event listeners
+    document.getElementById('log-realtime-toggle').addEventListener('change', toggleRealtime);
+    document.getElementById('refresh-logs-btn').addEventListener('click', refreshLogs);
+    document.getElementById('log-level-filter').addEventListener('change', filterLogs);
+    document.getElementById('log-search').addEventListener('input', filterLogs);
+    document.getElementById('log-autoscroll').addEventListener('change', toggleAutoscroll);
+    document.getElementById('clear-logs-btn').addEventListener('click', clearLogs);
+    document.getElementById('download-logs-btn').addEventListener('click', downloadLogs);
+});
+
+function initializeLogs() {
+    // Load initial logs
+    loadLogs();
+
+    // Setup SSE for real-time logs
+    setupRealtimeLogs();
+
+    // Setup auto-scroll
+    setupAutoscroll();
+}
+
+function loadLogs() {
+    showLoading();
+
+    fetch('/api/v3/logs')
+        .then(response => response.json())
+        .then(data => {
+            hideLoading();
+
+            if (data.status === 'success' && data.data && data.data.logs) {
+                processLogs(data.data.logs);
+                updateLogStats();
+            } else {
+                showEmptyState();
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            showError('Failed to load logs: ' + error.message);
+        });
+}
+
+function setupRealtimeLogs() {
+    if (logsEventSource) {
+        logsEventSource.close();
+    }
+
+    logsEventSource = new EventSource('/api/v3/stream/logs');
+
+    logsEventSource.onopen = function() {
+        document.getElementById('log-connection-status').innerHTML = `
+            <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span>Connected to log stream</span>
+        `;
+    };
+
+    logsEventSource.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+
+        if (data.logs && isRealtime) {
+            processLogs(data.logs, true);
+            updateLogStats();
+
+            if (document.getElementById('log-autoscroll').checked) {
+                scrollToBottom();
+            }
+        }
+    };
+
+    logsEventSource.onerror = function() {
+        document.getElementById('log-connection-status').innerHTML = `
+            <div class="w-2 h-2 bg-red-500 rounded-full"></div>
+            <span>Disconnected from log stream</span>
+        `;
+
+        // Attempt to reconnect after 5 seconds
+        setTimeout(setupRealtimeLogs, 5000);
+    };
+}
+
+function processLogs(logsText, append = false) {
+    if (!append) {
+        allLogs = [];
+        logsContent.innerHTML = '';
+    }
+
+    // Parse logs (basic parsing - you might want more sophisticated parsing)
+    const lines = logsText.split('\n').filter(line => line.trim());
+
+    lines.forEach(line => {
+        const logEntry = parseLogLine(line);
+        if (logEntry) {
+            allLogs.push(logEntry);
+        }
+    });
+
+    renderLogs();
+}
+
+function parseLogLine(line) {
+    // Basic log parsing - extract timestamp, level, message
+    // This is a simple regex - you might want more sophisticated parsing
+    const match = line.match(/^(\w+\s+\d+\s+\d+:\d+:\d+)\s+(\w+)\s+(.*)$/);
+
+    if (match) {
+        return {
+            timestamp: match[1],
+            level: match[2],
+            message: match[3],
+            raw: line,
+            id: Date.now() + Math.random() // Simple ID for DOM manipulation
+        };
+    }
+
+    return null;
+}
+
+function renderLogs() {
+    if (filteredLogs.length === 0 && allLogs.length > 0) {
+        filterLogs();
+        return;
+    }
+
+    if (filteredLogs.length === 0) {
+        showEmptyState();
+        return;
+    }
+
+    logsContent.innerHTML = '';
+
+    filteredLogs.forEach(log => {
+        const logElement = document.createElement('div');
+        logElement.className = `log-entry mb-1 ${getLogLevelClass(log.level)}`;
+        logElement.innerHTML = `
+            <span class="log-timestamp text-gray-400">${log.timestamp}</span>
+            <span class="log-level ${getLogLevelBadgeClass(log.level)}">${log.level}</span>
+            <span class="log-message">${escapeHtml(log.message)}</span>
+        `;
+        logsContent.appendChild(logElement);
+    });
+
+    logsContent.classList.remove('hidden');
+}
+
+function getLogLevelClass(level) {
+    const classes = {
+        'ERROR': 'text-red-400',
+        'WARNING': 'text-yellow-400',
+        'INFO': 'text-blue-400',
+        'DEBUG': 'text-gray-400'
+    };
+    return classes[level] || 'text-gray-300';
+}
+
+function getLogLevelBadgeClass(level) {
+    const classes = {
+        'ERROR': 'bg-red-900 text-red-100',
+        'WARNING': 'bg-yellow-900 text-yellow-100',
+        'INFO': 'bg-blue-900 text-blue-100',
+        'DEBUG': 'bg-gray-900 text-gray-100'
+    };
+    return classes[level] || 'bg-gray-900 text-gray-100';
+}
+
+function filterLogs() {
+    const levelFilter = document.getElementById('log-level-filter').value;
+    const searchTerm = document.getElementById('log-search').value.toLowerCase();
+
+    filteredLogs = allLogs.filter(log => {
+        // Level filter
+        if (levelFilter) {
+            const levels = {
+                'ERROR': ['ERROR'],
+                'WARNING': ['ERROR', 'WARNING'],
+                'INFO': ['ERROR', 'WARNING', 'INFO']
+            };
+
+            if (!levels[levelFilter].includes(log.level)) {
+                return false;
+            }
+        }
+
+        // Search filter
+        if (searchTerm && !log.message.toLowerCase().includes(searchTerm)) {
+            return false;
+        }
+
+        return true;
+    });
+
+    renderLogs();
+    updateLogStats();
+}
+
+function toggleRealtime() {
+    isRealtime = document.getElementById('log-realtime-toggle').checked;
+
+    if (isRealtime) {
+        setupRealtimeLogs();
+    } else if (logsEventSource) {
+        logsEventSource.close();
+        logsEventSource = null;
+    }
+}
+
+function refreshLogs() {
+    loadLogs();
+    showNotification('Logs refreshed', 'success');
+}
+
+function clearLogs() {
+    allLogs = [];
+    filteredLogs = [];
+    logsContent.innerHTML = '';
+    showEmptyState();
+    updateLogStats();
+    showNotification('Logs cleared', 'info');
+}
+
+function downloadLogs() {
+    if (filteredLogs.length === 0) {
+        showNotification('No logs to download', 'warning');
+        return;
+    }
+
+    const logText = filteredLogs.map(log => log.raw).join('\n');
+    const blob = new Blob([logText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ledmatrix-logs-${new Date().toISOString().slice(0, 19)}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showNotification('Logs downloaded', 'success');
+}
+
+function setupAutoscroll() {
+    const observer = new MutationObserver(scrollToBottom);
+    observer.observe(logsContent, { childList: true });
+}
+
+function scrollToBottom() {
+    if (document.getElementById('log-autoscroll').checked) {
+        logContainer.scrollTop = logContainer.scrollHeight;
+    }
+}
+
+function toggleAutoscroll() {
+    if (!document.getElementById('log-autoscroll').checked) {
+        // Don't auto-scroll if unchecked
+        return;
+    }
+
+    // Scroll to bottom when re-enabled
+    scrollToBottom();
+}
+
+function updateLogStats() {
+    const stats = document.getElementById('log-stats');
+    const count = document.getElementById('log-count');
+
+    if (stats && count) {
+        count.textContent = filteredLogs.length;
+        stats.classList.remove('hidden');
+    }
+}
+
+function showLoading() {
+    document.getElementById('logs-loading').classList.remove('hidden');
+    document.getElementById('logs-content').classList.add('hidden');
+    document.getElementById('logs-empty').classList.add('hidden');
+}
+
+function hideLoading() {
+    document.getElementById('logs-loading').classList.add('hidden');
+}
+
+function showEmptyState() {
+    document.getElementById('logs-loading').classList.add('hidden');
+    document.getElementById('logs-content').classList.add('hidden');
+    document.getElementById('logs-empty').classList.remove('hidden');
+    document.getElementById('log-stats').classList.add('hidden');
+}
+
+function showError(message) {
+    logsContent.innerHTML = `<div class="text-red-400 p-4">${escapeHtml(message)}</div>`;
+    logsContent.classList.remove('hidden');
+}
+
+// Utility function to escape HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', function() {
+    if (logsEventSource) {
+        logsEventSource.close();
+    }
+});
+</script>
