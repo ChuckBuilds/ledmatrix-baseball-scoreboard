@@ -213,6 +213,7 @@ function renderInstalledPlugins(plugins) {
                     <div class="flex items-center space-x-2 mb-1">
                         <h4 class="font-medium text-gray-900">${escapeHtml(plugin.name || plugin.id)}</h4>
                         ${plugin.verified ? '<span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">✓ Verified</span>' : ''}
+                        ${plugin.enabled ? '<span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded ml-2">Enabled</span>' : '<span class="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded ml-2">Disabled</span>'}
                     </div>
                     <div class="text-sm text-gray-600 space-y-1">
                         <p><i class="fas fa-user mr-1"></i>${escapeHtml(plugin.author || 'Unknown')}</p>
@@ -221,20 +222,6 @@ function renderInstalledPlugins(plugins) {
                         <p><i class="fas fa-star mr-1"></i>${plugin.stars || 0} stars</p>
                     </div>
                     <p class="text-sm text-gray-700 mt-2">${escapeHtml(plugin.description || 'No description available')}</p>
-                </div>
-
-                <!-- Plugin Status -->
-                <div class="flex flex-col items-end space-y-2">
-                    <label class="flex items-center">
-                        <input type="checkbox"
-                               class="plugin-enabled"
-                               data-plugin-id="${plugin.id}"
-                               ${plugin.enabled ? 'checked' : ''}
-                               onchange="togglePlugin('${plugin.id}', this.checked)">
-                        <span class="ml-2 text-sm ${plugin.enabled ? 'text-green-600' : 'text-gray-500'}">
-                            ${plugin.enabled ? 'Enabled' : 'Disabled'}
-                        </span>
-                    </label>
                 </div>
             </div>
 
@@ -264,27 +251,12 @@ function renderInstalledPlugins(plugins) {
     `).join('');
 }
 
-function togglePlugin(pluginId, enabled) {
-    fetch('/api/v3/plugins/toggle', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plugin_id: pluginId, enabled })
-    })
-    .then(response => response.json())
-    .then(data => {
-        showNotification(data.message, data.status);
-
-        // Update visual state
-        const checkbox = document.querySelector(`.plugin-enabled[data-plugin-id="${pluginId}"]`);
-        if (checkbox) {
-            const statusText = checkbox.parentElement.querySelector('span:last-child');
-            statusText.textContent = enabled ? 'Enabled' : 'Disabled';
-            statusText.className = `ml-2 text-sm ${enabled ? 'text-green-600' : 'text-gray-500'}`;
-        }
-    })
-    .catch(error => {
-        showNotification('Error toggling plugin: ' + error.message, 'error');
-    });
+// Helper function to update toggle text dynamically
+function updateToggleText(checkbox) {
+    const statusText = document.getElementById('enabled-status-text');
+    if (statusText) {
+        statusText.textContent = checkbox.checked ? 'Enabled' : 'Disabled';
+    }
 }
 
 function configurePlugin(pluginId) {
@@ -340,8 +312,27 @@ function generatePluginConfigForm(pluginId, config) {
 function generateFormFromSchema(schema, config) {
     let formHtml = '<form id="plugin-config-form" class="space-y-4">';
 
+    // Always add the enabled toggle at the top
+    const enabledValue = config.enabled !== undefined ? config.enabled : true;
+    formHtml += `
+        <div class="form-group bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <label for="enabled" class="block text-sm font-medium text-gray-900 mb-2">
+                Plugin Status
+            </label>
+            <p class="text-sm text-gray-600 mb-3">Enable or disable this plugin from the rotation</p>
+            <label class="inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="enabled" name="enabled" ${enabledValue ? 'checked' : ''} class="sr-only peer" onchange="updateToggleText(this)">
+                <div class="relative w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                <span class="ms-3 text-sm font-medium text-gray-900 peer-checked:text-green-600" id="enabled-status-text">${enabledValue ? 'Enabled' : 'Disabled'}</span>
+            </label>
+        </div>
+    `;
+
     if (schema.properties) {
         Object.entries(schema.properties).forEach(([key, prop]) => {
+            // Skip the 'enabled' property if it's in the schema since we already added it
+            if (key === 'enabled') return;
+
             const value = config[key] !== undefined ? config[key] : prop.default;
             const label = prop.title || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
             const description = prop.description || '';
@@ -413,13 +404,18 @@ function generateFormFromSchema(schema, config) {
 }
 
 function generateSimpleConfigForm(config) {
+    const enabledValue = config.enabled !== undefined ? config.enabled : true;
     return `
         <form id="plugin-config-form" class="space-y-4">
-            <div class="form-group">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Plugin Status</label>
-                <label class="flex items-center">
-                    <input type="checkbox" name="enabled" ${config.enabled ? 'checked' : ''} class="form-control h-4 w-4">
-                    <span class="ml-2 text-sm">Enabled</span>
+            <div class="form-group bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <label for="enabled" class="block text-sm font-medium text-gray-900 mb-2">
+                    Plugin Status
+                </label>
+                <p class="text-sm text-gray-600 mb-3">Enable or disable this plugin from the rotation</p>
+                <label class="inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="enabled" name="enabled" ${enabledValue ? 'checked' : ''} class="sr-only peer" onchange="updateToggleText(this)">
+                    <div class="relative w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                    <span class="ms-3 text-sm font-medium text-gray-900 peer-checked:text-green-600" id="enabled-status-text">${enabledValue ? 'Enabled' : 'Disabled'}</span>
                 </label>
             </div>
 
@@ -685,11 +681,16 @@ document.addEventListener('submit', function(e) {
         const formData = new FormData(e.target);
         const config = {};
 
+        // Get the enabled checkbox state (unchecked checkboxes don't appear in FormData)
+        const enabledCheckbox = document.getElementById('enabled');
+        config.enabled = enabledCheckbox ? enabledCheckbox.checked : true;
+
         // Convert form data to config object
         for (let [key, value] of formData.entries()) {
-            if (key === 'enabled') {
-                config[key] = value === 'on';
-            } else if (key === 'display_duration') {
+            // Skip enabled since we already handled it
+            if (key === 'enabled') continue;
+
+            if (key === 'display_duration') {
                 config[key] = parseInt(value);
             } else {
                 config[key] = value;

@@ -6,7 +6,7 @@ from pathlib import Path
 
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_FILE = os.path.join(PROJECT_DIR, 'config', 'config.json')
-WEB_INTERFACE_SCRIPT = os.path.join(PROJECT_DIR, 'web_interface_v2.py')
+WEB_INTERFACE_SCRIPT = os.path.join(PROJECT_DIR, 'web_interface_v3.py')
 
 def install_dependencies():
     """Install required dependencies using system Python."""

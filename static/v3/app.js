@@ -132,21 +132,6 @@ document.addEventListener('keydown', function(e) {
 });
 
 // Plugin management helpers
-window.togglePlugin = function(pluginId, enabled) {
-    fetch('/api/v3/plugins/toggle', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plugin_id: pluginId, enabled })
-    })
-    .then(response => response.json())
-    .then(data => {
-        showNotification(data.message, data.status);
-    })
-    .catch(error => {
-        showNotification('Error toggling plugin: ' + error.message, 'error');
-    });
-};
-
 window.installPlugin = function(pluginId) {
     fetch('/api/v3/plugins/install', {
         method: 'POST',
