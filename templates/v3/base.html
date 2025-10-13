@@ -106,25 +106,27 @@
         <div id="tab-content" class="space-y-6">
             <!-- Overview tab -->
             <div x-show="activeTab === 'overview'" x-transition>
-                <div hx-get="/v3/partials/overview" hx-trigger="load" hx-target="#overview-content"></div>
-                <div id="overview-content" class="animate-pulse">
-                    <div class="bg-white rounded-lg shadow p-6">
-                        <div class="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
-                        <div class="h-32 bg-gray-200 rounded"></div>
+                <div id="overview-content" hx-get="/v3/partials/overview" hx-trigger="load" hx-swap="innerHTML">
+                    <div class="animate-pulse">
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <div class="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+                            <div class="h-32 bg-gray-200 rounded"></div>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- General tab -->
             <div x-show="activeTab === 'general'" x-transition>
-                <div hx-get="/v3/partials/general" hx-trigger="load" hx-target="#general-content"></div>
-                <div id="general-content" class="animate-pulse">
-                    <div class="bg-white rounded-lg shadow p-6">
-                        <div class="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
-                        <div class="space-y-4">
-                            <div class="h-10 bg-gray-200 rounded"></div>
-                            <div class="h-10 bg-gray-200 rounded"></div>
-                            <div class="h-10 bg-gray-200 rounded"></div>
+                <div id="general-content" hx-get="/v3/partials/general" hx-trigger="load" hx-swap="innerHTML">
+                    <div class="animate-pulse">
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <div class="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+                            <div class="space-y-4">
+                                <div class="h-10 bg-gray-200 rounded"></div>
+                                <div class="h-10 bg-gray-200 rounded"></div>
+                                <div class="h-10 bg-gray-200 rounded"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -132,13 +134,14 @@
 
             <!-- Display tab -->
             <div x-show="activeTab === 'display'" x-transition>
-                <div hx-get="/v3/partials/display" hx-trigger="load" hx-target="#display-content"></div>
-                <div id="display-content" class="animate-pulse">
-                    <div class="bg-white rounded-lg shadow p-6">
-                        <div class="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="h-32 bg-gray-200 rounded"></div>
-                            <div class="h-32 bg-gray-200 rounded"></div>
+                <div id="display-content" hx-get="/v3/partials/display" hx-trigger="load" hx-swap="innerHTML">
+                    <div class="animate-pulse">
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <div class="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="h-32 bg-gray-200 rounded"></div>
+                                <div class="h-32 bg-gray-200 rounded"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -146,14 +149,15 @@
 
             <!-- Sports tab -->
             <div x-show="activeTab === 'sports'" x-transition>
-                <div hx-get="/v3/partials/sports" hx-trigger="load" hx-target="#sports-content"></div>
-                <div id="sports-content" class="animate-pulse">
-                    <div class="bg-white rounded-lg shadow p-6">
-                        <div class="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
-                        <div class="space-y-4">
-                            <div class="h-16 bg-gray-200 rounded"></div>
-                            <div class="h-16 bg-gray-200 rounded"></div>
-                            <div class="h-16 bg-gray-200 rounded"></div>
+                <div id="sports-content" hx-get="/v3/partials/sports" hx-trigger="load" hx-swap="innerHTML">
+                    <div class="animate-pulse">
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <div class="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+                            <div class="space-y-4">
+                                <div class="h-16 bg-gray-200 rounded"></div>
+                                <div class="h-16 bg-gray-200 rounded"></div>
+                                <div class="h-16 bg-gray-200 rounded"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -161,14 +165,15 @@
 
             <!-- Plugins tab -->
             <div x-show="activeTab === 'plugins'" x-transition>
-                <div hx-get="/v3/partials/plugins" hx-trigger="load" hx-target="#plugins-content"></div>
-                <div id="plugins-content" class="animate-pulse">
-                    <div class="bg-white rounded-lg shadow p-6">
-                        <div class="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <div class="h-24 bg-gray-200 rounded"></div>
-                            <div class="h-24 bg-gray-200 rounded"></div>
-                            <div class="h-24 bg-gray-200 rounded"></div>
+                <div id="plugins-content" hx-get="/v3/partials/plugins" hx-trigger="load" hx-swap="innerHTML">
+                    <div class="animate-pulse">
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <div class="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div class="h-24 bg-gray-200 rounded"></div>
+                                <div class="h-24 bg-gray-200 rounded"></div>
+                                <div class="h-24 bg-gray-200 rounded"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -176,13 +181,14 @@
 
             <!-- Fonts tab -->
             <div x-show="activeTab === 'fonts'" x-transition>
-                <div hx-get="/v3/partials/fonts" hx-trigger="load" hx-target="#fonts-content"></div>
-                <div id="fonts-content" class="animate-pulse">
-                    <div class="bg-white rounded-lg shadow p-6">
-                        <div class="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
-                        <div class="space-y-4">
-                            <div class="h-20 bg-gray-200 rounded"></div>
-                            <div class="h-20 bg-gray-200 rounded"></div>
+                <div id="fonts-content" hx-get="/v3/partials/fonts" hx-trigger="load" hx-swap="innerHTML">
+                    <div class="animate-pulse">
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <div class="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+                            <div class="space-y-4">
+                                <div class="h-20 bg-gray-200 rounded"></div>
+                                <div class="h-20 bg-gray-200 rounded"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -190,11 +196,12 @@
 
             <!-- Logs tab -->
             <div x-show="activeTab === 'logs'" x-transition>
-                <div hx-get="/v3/partials/logs" hx-trigger="load" hx-target="#logs-content"></div>
-                <div id="logs-content" class="animate-pulse">
-                    <div class="bg-white rounded-lg shadow p-6">
-                        <div class="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
-                        <div class="h-96 bg-gray-200 rounded"></div>
+                <div id="logs-content" hx-get="/v3/partials/logs" hx-trigger="load" hx-swap="innerHTML">
+                    <div class="animate-pulse">
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <div class="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+                            <div class="h-96 bg-gray-200 rounded"></div>
+                        </div>
                     </div>
                 </div>
             </div>

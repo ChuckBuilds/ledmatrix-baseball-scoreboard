@@ -35,14 +35,42 @@ def system_status_generator():
     """Generate system status updates"""
     while True:
         try:
-            # Get basic system info (could be expanded)
+            # Try to import psutil for system stats
+            try:
+                import psutil
+                cpu_percent = round(psutil.cpu_percent(interval=1), 1)
+                memory = psutil.virtual_memory()
+                memory_used_percent = round(memory.percent, 1)
+                
+                # Try to get CPU temperature (Raspberry Pi specific)
+                cpu_temp = 0
+                try:
+                    with open('/sys/class/thermal/thermal_zone0/temp', 'r') as f:
+                        cpu_temp = round(float(f.read()) / 1000.0, 1)
+                except:
+                    pass
+                    
+            except ImportError:
+                cpu_percent = 0
+                memory_used_percent = 0
+                cpu_temp = 0
+            
+            # Check if display service is running
+            service_active = False
+            try:
+                result = subprocess.run(['systemctl', 'is-active', 'ledmatrix'], 
+                                      capture_output=True, text=True, timeout=2)
+                service_active = result.stdout.strip() == 'active'
+            except:
+                pass
+            
             status = {
                 'timestamp': time.time(),
                 'uptime': 'Running',
-                'service_active': True,  # This would need to be checked from systemd
-                'cpu_percent': 0,  # Would need psutil or similar
-                'memory_used_percent': 0,
-                'cpu_temp': 0,
+                'service_active': service_active,
+                'cpu_percent': cpu_percent,
+                'memory_used_percent': memory_used_percent,
+                'cpu_temp': cpu_temp,
                 'disk_used_percent': 0
             }
             yield status
