@@ -377,46 +377,48 @@
             
             if (!ledCanvas || !img || !toggle) return;
             
-            if (!toggle.checked) {
-                ledCanvas.style.display = 'none';
-                return;
-            }
-            
-            ledCanvas.style.display = 'block';
-            const ctx = ledCanvas.getContext('2d');
-            const tempCanvas = document.createElement('canvas');
-            const tempCtx = tempCanvas.getContext('2d');
-            
+            const show = toggle.checked;
+            ledCanvas.style.display = show ? 'block' : 'none';
+            if (!show) return;
+
             const scale = parseInt(document.getElementById('scaleRange')?.value || '8');
             const fillPct = parseInt(document.getElementById('dotFillRange')?.value || '75');
-            const dotFill = fillPct / 100;
+            const dotRadius = Math.max(1, Math.floor((scale * fillPct) / 200)); // radius in px
             
-            // Get original pixel data
-            tempCanvas.width = img.naturalWidth;
-            tempCanvas.height = img.naturalHeight;
-            tempCtx.drawImage(img, 0, 0);
-            const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-            
+            const ctx = ledCanvas.getContext('2d', { willReadFrequently: true });
             ctx.clearRect(0, 0, ledCanvas.width, ledCanvas.height);
+
+            // Create an offscreen canvas to sample pixel colors
+            const off = document.createElement('canvas');
+            const logicalWidth = Math.floor(ledCanvas.width / scale);
+            const logicalHeight = Math.floor(ledCanvas.height / scale);
+            off.width = logicalWidth;
+            off.height = logicalHeight;
+            const offCtx = off.getContext('2d', { willReadFrequently: true });
             
-            for (let y = 0; y < tempCanvas.height; y++) {
-                for (let x = 0; x < tempCanvas.width; x++) {
-                    const idx = (y * tempCanvas.width + x) * 4;
-                    const r = imageData.data[idx];
-                    const g = imageData.data[idx + 1];
-                    const b = imageData.data[idx + 2];
-                    const a = imageData.data[idx + 3];
+            // Draw the current image scaled down to logical LEDs to sample colors
+            try {
+                offCtx.drawImage(img, 0, 0, logicalWidth, logicalHeight);
+            } catch (e) {
+                // Draw failures ignored
+                return;
+            }
+
+            // Draw circular dots for each LED pixel
+            for (let y = 0; y < logicalHeight; y++) {
+                for (let x = 0; x < logicalWidth; x++) {
+                    const pixel = offCtx.getImageData(x, y, 1, 1).data;
+                    const r = pixel[0], g = pixel[1], b = pixel[2], a = pixel[3];
                     
-                    if (a > 0) {
-                        const cx = x * scale + scale / 2;
-                        const cy = y * scale + scale / 2;
-                        const radius = (scale / 2) * dotFill;
-                        
-                        ctx.fillStyle = `rgba(${r},${g},${b},${a/255})`;
-                        ctx.beginPath();
-                        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-                        ctx.fill();
-                    }
+                    // Skip fully transparent or black pixels to reduce overdraw
+                    if (a === 0 || (r|g|b) === 0) continue;
+                    
+                    ctx.fillStyle = `rgb(${r},${g},${b})`;
+                    const cx = Math.floor(x * scale + scale / 2);
+                    const cy = Math.floor(y * scale + scale / 2);
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, dotRadius, 0, Math.PI * 2);
+                    ctx.fill();
                 }
             }
         }
