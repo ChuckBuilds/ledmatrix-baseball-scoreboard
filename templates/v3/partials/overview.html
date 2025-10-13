@@ -115,40 +115,5 @@
     </div>
 </div>
 
-<!-- Update stats via SSE -->
-<script>
-    // Listen for system stats updates
-    if (typeof statsSource !== 'undefined') {
-        statsSource.onmessage = function(event) {
-            const data = JSON.parse(event.data);
-
-            // Update CPU
-            const cpuEl = document.getElementById('cpu-usage');
-            if (cpuEl && data.cpu_percent !== undefined) {
-                cpuEl.textContent = data.cpu_percent + '%';
-            }
-
-            // Update Memory
-            const memEl = document.getElementById('memory-usage');
-            if (memEl && data.memory_used_percent !== undefined) {
-                memEl.textContent = data.memory_used_percent + '%';
-            }
-
-            // Update Temperature
-            const tempEl = document.getElementById('cpu-temp');
-            if (tempEl && data.cpu_temp !== undefined) {
-                tempEl.textContent = data.cpu_temp + '°C';
-            }
-
-            // Update Display Status
-            const displayEl = document.getElementById('display-status');
-            if (displayEl) {
-                displayEl.textContent = data.service_active ? 'Active' : 'Inactive';
-                displayEl.className = data.service_active ?
-                    'text-lg font-medium text-green-600' :
-                    'text-lg font-medium text-red-600';
-            }
-        };
-    }
-</script>
+<!-- Stats are updated via the global updateSystemStats function in base.html -->
 

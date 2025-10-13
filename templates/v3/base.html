@@ -263,6 +263,30 @@
                 const spans = tempEl.querySelectorAll('span');
                 if (spans.length > 0) spans[spans.length - 1].textContent = data.cpu_temp + '°C';
             }
+
+            // Update Overview tab stats (if visible)
+            const cpuUsageEl = document.getElementById('cpu-usage');
+            if (cpuUsageEl && data.cpu_percent !== undefined) {
+                cpuUsageEl.textContent = data.cpu_percent + '%';
+            }
+
+            const memUsageEl = document.getElementById('memory-usage');
+            if (memUsageEl && data.memory_used_percent !== undefined) {
+                memUsageEl.textContent = data.memory_used_percent + '%';
+            }
+
+            const cpuTempEl = document.getElementById('cpu-temp');
+            if (cpuTempEl && data.cpu_temp !== undefined) {
+                cpuTempEl.textContent = data.cpu_temp + '°C';
+            }
+
+            const displayStatusEl = document.getElementById('display-status');
+            if (displayStatusEl) {
+                displayStatusEl.textContent = data.service_active ? 'Active' : 'Inactive';
+                displayStatusEl.className = data.service_active ?
+                    'text-lg font-medium text-green-600' :
+                    'text-lg font-medium text-red-600';
+            }
         }
 
         // Alpine.js app function
