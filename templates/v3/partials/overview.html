@@ -127,8 +127,8 @@
             <div id="previewStage" class="preview-stage" style="display:none; position:relative; display:inline-block;">
                 <div id="previewMeta" style="position:absolute; top:-28px; left:0; color:#ddd; font-size:12px; opacity:0.85;"></div>
                 <img id="displayImage" style="image-rendering: pixelated; display: block;" alt="LED Matrix Display">
-                <canvas id="ledCanvas" style="position:absolute; top:0; left:0; pointer-events:none; display:none;"></canvas>
-                <canvas id="gridOverlay" style="position:absolute; top:0; left:0; pointer-events:none;"></canvas>
+                <canvas id="ledCanvas" style="position:absolute; top:0; left:0; pointer-events:none; display:none; z-index: 10;"></canvas>
+                <canvas id="gridOverlay" style="position:absolute; top:0; left:0; pointer-events:none; z-index: 20;"></canvas>
             </div>
             <div id="displayPlaceholder" class="text-center text-gray-400 py-8">
                 <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>

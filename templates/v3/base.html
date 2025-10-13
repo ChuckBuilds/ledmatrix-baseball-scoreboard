@@ -683,21 +683,25 @@
             const toggle = document.getElementById('toggleLedDots');
 
             if (!ledCanvas || !img || !toggle) {
+                console.log('LED Dots: Missing elements', {ledCanvas: !!ledCanvas, img: !!img, toggle: !!toggle});
                 return;
             }
 
             const show = toggle.checked;
+            console.log('LED Dots: Toggle is', show ? 'ON' : 'OFF');
 
             ledCanvas.style.display = show ? 'block' : 'none';
             if (!show) {
                 // Clear canvas when hiding
                 const ctx = ledCanvas.getContext('2d');
                 ctx.clearRect(0, 0, ledCanvas.width, ledCanvas.height);
+                console.log('LED Dots: Canvas cleared and hidden');
                 return;
             }
 
             // Show and render LED dots
             ledCanvas.style.display = 'block';
+            console.log('LED Dots: Rendering with canvas size', ledCanvas.width, 'x', ledCanvas.height);
 
             const scale = parseInt(document.getElementById('scaleRange')?.value || '8');
             const fillPct = parseInt(document.getElementById('dotFillRange')?.value || '75');
@@ -744,7 +748,10 @@
 
             // If nothing was drawn (e.g., image not ready), hide overlay to show base image
             if (drawn === 0) {
+                console.log('LED Dots: No dots drawn, hiding canvas');
                 ledCanvas.style.display = 'none';
+            } else {
+                console.log('LED Dots: Successfully drew', drawn, 'dots with radius', dotRadius, 'px');
             }
         }
 
