@@ -227,7 +227,7 @@
                                     <label class="flex items-center">
                                         <input type="checkbox"
                                                x-bind:checked="plugin.enabled"
-                                               x-on:change="togglePlugin(plugin.id, $event.target.checked)"
+                                               x-on:change="togglePluginFromTab(plugin.id, $event.target.checked)"
                                                class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
                                         <span class="ml-2 text-sm" x-bind:class="plugin.enabled ? 'text-green-600' : 'text-gray-500'">
                                             <span x-text="plugin.enabled ? 'Enabled' : 'Disabled'"></span>
@@ -303,6 +303,11 @@
 
                                 <!-- Action Buttons -->
                                 <div class="flex justify-end space-x-3 mt-6 pt-6 border-t border-gray-200">
+                                    <button type="button"
+                                            x-on:click="refreshPlugins()"
+                                            class="btn bg-gray-600 hover:bg-gray-700 text-white px-4 py-2">
+                                        <i class="fas fa-sync-alt mr-2"></i>Refresh All
+                                    </button>
                                     <button type="button"
                                             x-on:click="refreshPlugin(plugin.id)"
                                             class="btn bg-gray-600 hover:bg-gray-700 text-white px-4 py-2">
@@ -421,16 +426,27 @@
                 init() {
                     // Load installed plugins when the app initializes
                     this.loadInstalledPlugins();
+
+                    // Also load plugins when switching to plugins tab
+                    this.$watch('activeTab', (newTab) => {
+                        if (newTab === 'plugins' && this.installedPlugins.length === 0) {
+                            this.loadInstalledPlugins();
+                        }
+                    });
                 },
 
                 async loadInstalledPlugins() {
                     try {
+                        console.log('Loading installed plugins...');
                         const response = await fetch('/api/v3/plugins/installed');
                         const data = await response.json();
 
                         if (data.status === 'success') {
                             this.installedPlugins = data.data.plugins || [];
+                            console.log(`Loaded ${this.installedPlugins.length} plugins:`, this.installedPlugins.map(p => p.id));
                             this.updatePluginTabs();
+                        } else {
+                            console.error('Failed to load plugins:', data.message);
                         }
                     } catch (error) {
                         console.error('Error loading installed plugins:', error);
@@ -439,21 +455,32 @@
 
                 updatePluginTabs() {
                     const pluginTabsRow = document.getElementById('plugin-tabs-row');
-                    const pluginTabsNav = pluginTabsRow.querySelector('nav');
+                    const pluginTabsNav = pluginTabsRow?.querySelector('nav');
+
+                    if (!pluginTabsNav) {
+                        console.error('Plugin tabs navigation not found');
+                        return;
+                    }
+
+                    console.log(`Updating plugin tabs for ${this.installedPlugins.length} plugins`);
 
                     if (this.installedPlugins.length === 0) {
+                        console.log('No plugins installed, hiding plugin tabs row');
                         pluginTabsRow.style.display = 'none';
                         return;
                     }
 
                     // Show the plugin tabs row
+                    console.log('Showing plugin tabs row');
                     pluginTabsRow.style.display = 'block';
 
                     // Clear existing plugin tabs (except the Plugin Manager tab)
                     const existingTabs = pluginTabsNav.querySelectorAll('.plugin-tab');
+                    console.log(`Removing ${existingTabs.length} existing plugin tabs`);
                     existingTabs.forEach(tab => tab.remove());
 
                     // Add tabs for each installed plugin
+                    console.log('Adding tabs for plugins:', this.installedPlugins.map(p => p.id));
                     this.installedPlugins.forEach(plugin => {
                         const tabButton = document.createElement('button');
                         tabButton.type = 'button';
@@ -493,6 +520,17 @@
                     const div = document.createElement('div');
                     div.textContent = text;
                     return div.innerHTML;
+                },
+
+                async refreshPlugins() {
+                    await this.loadInstalledPlugins();
+                    this.showNotification('Plugin list refreshed', 'success');
+                },
+
+                async togglePluginFromTab(pluginId, enabled) {
+                    await togglePlugin(pluginId, enabled);
+                    // Refresh the plugin list after toggling
+                    await this.loadInstalledPlugins();
                 }
             }
         }
