@@ -123,48 +123,11 @@ def stream_display():
 def stream_logs():
     return sse_response(logs_generator)
 
-# Main route - serve v3 interface as default
+# Main route - redirect to v3 interface as default
 @app.route('/')
 def index():
-    """Main v3 interface page - now the default"""
-    try:
-        if pages_v3.config_manager:
-            # Load configuration data
-            main_config = pages_v3.config_manager.load_config()
-            schedule_config = main_config.get('schedule', {})
-
-            # Get raw config files for JSON editor
-            main_config_data = pages_v3.config_manager.get_raw_file_content('main')
-            secrets_config_data = pages_v3.config_manager.get_raw_file_content('secrets')
-            main_config_json = json.dumps(main_config_data, indent=4)
-            secrets_config_json = json.dumps(secrets_config_data, indent=4)
-        else:
-            raise Exception("Config manager not initialized")
-
-    except Exception as e:
-        flash(f"Error loading configuration: {e}", "error")
-        schedule_config = {}
-        main_config_json = "{}"
-        secrets_config_json = "{}"
-        main_config_data = {}
-        secrets_config_data = {}
-        main_config_path = ""
-        secrets_config_path = ""
-
-    return render_template('v3/index.html',
-                           schedule_config=schedule_config,
-                           main_config_json=main_config_json,
-                           secrets_config_json=secrets_config_json,
-                           main_config_path=pages_v3.config_manager.get_config_path() if pages_v3.config_manager else "",
-                           secrets_config_path=pages_v3.config_manager.get_secrets_path() if pages_v3.config_manager else "",
-                           main_config=main_config_data,
-                           secrets_config=secrets_config_data)
-
-# Keep v3 route for backwards compatibility
-@pages_v3.route('/')
-def v3_index():
-    """v3 interface page"""
-    return index()
+    """Redirect to v3 interface"""
+    return redirect(url_for('pages_v3.index'))
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
