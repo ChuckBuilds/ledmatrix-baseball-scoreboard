@@ -324,7 +324,7 @@ function generateFormFromSchema(schema, config) {
             if (prop.type === 'boolean') {
                 formHtml += `
                     <label class="flex items-center">
-                        <input type="checkbox" id="${key}" name="${key}" ${value ? 'checked' : ''} class="form-control h-4 w-4">
+                        <input type="checkbox" id="${key}" name="${key}" ${value ? 'checked' : ''} class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
                         <span class="ml-2 text-sm">Enabled</span>
                     </label>
                 `;
@@ -333,16 +333,16 @@ function generateFormFromSchema(schema, config) {
                 const max = prop.maximum !== undefined ? `max="${prop.maximum}"` : '';
                 const step = prop.type === 'integer' ? 'step="1"' : 'step="any"';
                 formHtml += `
-                    <input type="number" id="${key}" name="${key}" value="${value || ''}" ${min} ${max} ${step} class="form-control">
+                    <input type="number" id="${key}" name="${key}" value="${value || ''}" ${min} ${max} ${step} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                 `;
             } else if (prop.type === 'array') {
                 const arrayValue = Array.isArray(value) ? value.join(', ') : '';
                 formHtml += `
-                    <input type="text" id="${key}" name="${key}" value="${arrayValue}" placeholder="Enter values separated by commas" class="form-control">
+                    <input type="text" id="${key}" name="${key}" value="${arrayValue}" placeholder="Enter values separated by commas" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                     <p class="text-sm text-gray-600 mt-1">Enter values separated by commas</p>
                 `;
             } else if (prop.enum) {
-                formHtml += `<select id="${key}" name="${key}" class="form-control">`;
+                formHtml += `<select id="${key}" name="${key}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">`;
                 prop.enum.forEach(option => {
                     const selected = value === option ? 'selected' : '';
                     formHtml += `<option value="${option}" ${selected}>${option}</option>`;
@@ -352,7 +352,7 @@ function generateFormFromSchema(schema, config) {
                 // Default to text input
                 const maxLength = prop.maxLength || '';
                 formHtml += `
-                    <input type="text" id="${key}" name="${key}" value="${value || ''}" ${maxLength ? `maxlength="${maxLength}"` : ''} class="form-control">
+                    <input type="text" id="${key}" name="${key}" value="${value || ''}" ${maxLength ? `maxlength="${maxLength}"` : ''} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                 `;
             }
 
@@ -361,18 +361,18 @@ function generateFormFromSchema(schema, config) {
     }
 
     formHtml += `
-        <div class="flex justify-end space-x-2">
-            <button type="button" onclick="closePluginConfigModal()" class="btn bg-gray-600 hover:bg-gray-700 text-white px-4 py-2">
+        <div class="flex justify-end space-x-2 pt-4 border-t border-gray-200">
+            <button type="button" onclick="closePluginConfigModal()" class="btn bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md">
                 Cancel
             </button>
-            <button type="submit" class="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2">
-                Save Configuration
+            <button type="submit" class="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">
+                <i class="fas fa-save mr-2"></i>Save Configuration
             </button>
         </div>
     </form>
     `;
 
-    return formHtml;
+    return Promise.resolve(formHtml);
 }
 
 function generateSimpleConfigForm(config) {
@@ -618,6 +618,51 @@ function showError(message) {
         </div>
     `;
     content.classList.remove('hidden');
+}
+
+// Plugin configuration form submission
+document.addEventListener('submit', function(e) {
+    if (e.target.id === 'plugin-config-form') {
+        e.preventDefault();
+
+        const formData = new FormData(e.target);
+        const config = {};
+
+        // Convert form data to config object
+        for (let [key, value] of formData.entries()) {
+            if (key === 'enabled') {
+                config[key] = value === 'on';
+            } else if (key === 'display_duration') {
+                config[key] = parseInt(value);
+            } else {
+                config[key] = value;
+            }
+        }
+
+        // Save the configuration
+        savePluginConfiguration(currentPluginConfig.pluginId, config);
+    }
+});
+
+function savePluginConfiguration(pluginId, config) {
+    // Update the plugin configuration in the backend
+    fetch('/api/v3/plugins/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plugin_id: pluginId, config })
+    })
+    .then(response => response.json())
+    .then(data => {
+        showNotification(data.message, data.status);
+        if (data.status === 'success') {
+            closePluginConfigModal();
+            // Refresh the installed plugins to update the UI
+            loadInstalledPlugins();
+        }
+    })
+    .catch(error => {
+        showNotification('Error saving plugin configuration: ' + error.message, 'error');
+    });
 }
 
 // Utility function to escape HTML

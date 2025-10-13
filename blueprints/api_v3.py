@@ -501,6 +501,40 @@ def refresh_plugin_store():
         print(error_details)
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
+@api_v3.route('/plugins/config', methods=['POST'])
+def save_plugin_config():
+    """Save plugin configuration"""
+    try:
+        if not api_v3.config_manager:
+            return jsonify({'status': 'error', 'message': 'Config manager not initialized'}), 500
+
+        data = request.get_json()
+        if not data or 'plugin_id' not in data:
+            return jsonify({'status': 'error', 'message': 'plugin_id required'}), 400
+
+        plugin_id = data['plugin_id']
+        plugin_config = data.get('config', {})
+
+        # Get current config
+        current_config = api_v3.config_manager.load_config()
+
+        # Update plugin configuration
+        if plugin_id not in current_config:
+            current_config[plugin_id] = {}
+
+        current_config[plugin_id].update(plugin_config)
+
+        # Save the updated config
+        api_v3.config_manager.save_config(current_config)
+
+        return jsonify({'status': 'success', 'message': f'Plugin {plugin_id} configuration saved successfully'})
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Error in save_plugin_config: {str(e)}")
+        print(error_details)
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
 @api_v3.route('/plugins/schema', methods=['GET'])
 def get_plugin_schema():
     """Get plugin configuration schema"""
@@ -512,7 +546,7 @@ def get_plugin_schema():
         # Try to read the config_schema.json file from the plugin directory
         plugins_dir = Path('plugins')
         schema_path = plugins_dir / plugin_id / 'config_schema.json'
-        
+
         if schema_path.exists():
             try:
                 with open(schema_path, 'r', encoding='utf-8') as f:
@@ -520,7 +554,7 @@ def get_plugin_schema():
                 return jsonify({'status': 'success', 'data': {'schema': schema}})
             except Exception as e:
                 print(f"Error reading schema file for {plugin_id}: {e}")
-        
+
         # Return a simple default schema if file not found
         schema = {
             'type': 'object',
