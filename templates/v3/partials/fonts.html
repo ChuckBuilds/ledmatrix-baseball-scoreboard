@@ -243,6 +243,17 @@ async function initializeFontManagement() {
 }
 
 async function loadFontData() {
+    const detectedContainer = document.getElementById('detected-fonts');
+    const availableContainer = document.getElementById('available-fonts');
+
+    // Show loading states
+    if (detectedContainer) {
+        detectedContainer.innerHTML = '<div class="text-blue-400">Loading font data...</div>';
+    }
+    if (availableContainer) {
+        availableContainer.innerHTML = '<div class="text-blue-400">Loading font data...</div>';
+    }
+
     try {
         const [catalogRes, tokensRes, overridesRes] = await Promise.all([
             fetch('/api/v3/fonts/catalog'),
@@ -250,16 +261,34 @@ async function loadFontData() {
             fetch('/api/v3/fonts/overrides')
         ]);
 
-        fontCatalog = (await catalogRes.json()).data.catalog || {};
-        fontTokens = (await tokensRes.json()).data.tokens || {};
-        fontOverrides = (await overridesRes.json()).data.overrides || {};
+        // Check if all responses are successful
+        if (!catalogRes.ok || !tokensRes.ok || !overridesRes.ok) {
+            throw new Error(`HTTP ${catalogRes.status}/${tokensRes.status}/${overridesRes.status}`);
+        }
+
+        const catalogData = await catalogRes.json();
+        const tokensData = await tokensRes.json();
+        const overridesData = await overridesRes.json();
+
+        fontCatalog = catalogData.data?.catalog || {};
+        fontTokens = tokensData.data?.tokens || {};
+        fontOverrides = overridesData.data?.overrides || {};
 
         // Update displays
         updateDetectedFontsDisplay();
         updateAvailableFontsDisplay();
     } catch (error) {
         console.error('Error loading font data:', error);
-        throw error;
+
+        // Show error states
+        if (detectedContainer) {
+            detectedContainer.innerHTML = '<div class="text-red-400">Error loading font data</div>';
+        }
+        if (availableContainer) {
+            availableContainer.innerHTML = '<div class="text-red-400">Error loading font data</div>';
+        }
+
+        showNotification('Error loading font configuration', 'error');
     }
 }
 
@@ -267,12 +296,34 @@ function updateDetectedFontsDisplay() {
     const container = document.getElementById('detected-fonts');
     if (!container) return;
 
-    // Sample detected fonts (in real implementation, this would come from managers)
-    const detectedFonts = {
-        'nfl.live.score': { family: 'press_start', size_px: 8, usage_count: 15 },
-        'clock.time': { family: 'four_by_six', size_px: 12, usage_count: 8 },
-        'weather.current': { family: 'matrix_light_6', size_px: 10, usage_count: 5 }
-    };
+    // In a real implementation, this would collect font usage from all active managers
+    // For now, we'll simulate this by analyzing the font overrides and catalog
+    const detectedFonts = {};
+
+    // Check font overrides for active elements
+    for (const [elementKey, override] of Object.entries(fontOverrides)) {
+        if (override.family) {
+            detectedFonts[elementKey] = {
+                family: override.family,
+                size_px: override.size_px || 8,
+                usage_count: 1, // Would be actual usage count in real implementation
+                source: 'override'
+            };
+        }
+    }
+
+    // Check font catalog for commonly used fonts
+    for (const [fontKey, fontPath] of Object.entries(fontCatalog)) {
+        // Add some commonly used system fonts if not already in overrides
+        if (!detectedFonts[fontKey]) {
+            detectedFonts[fontKey] = {
+                family: fontKey,
+                size_px: 8,
+                usage_count: 1,
+                source: 'system'
+            };
+        }
+    }
 
     if (Object.keys(detectedFonts).length === 0) {
         container.innerHTML = '<div class="text-gray-400">No fonts detected yet (managers will register fonts when they render)</div>';
@@ -281,8 +332,8 @@ function updateDetectedFontsDisplay() {
 
     const lines = [];
     for (const [elementKey, fontInfo] of Object.entries(detectedFonts)) {
-        const colorStr = fontInfo.color ? ` [RGB: ${fontInfo.color.join(',')}]` : '';
-        lines.push(`${elementKey}: ${fontInfo.family}@${fontInfo.size_px}px${colorStr} (used ${fontInfo.usage_count}x)`);
+        const sourceStr = fontInfo.source === 'override' ? ' [OVERRIDE]' : ' [SYSTEM]';
+        lines.push(`${elementKey}: ${fontInfo.family}@${fontInfo.size_px}px (used ${fontInfo.usage_count}x)${sourceStr}`);
     }
     container.textContent = lines.join('\n');
 }
@@ -296,7 +347,10 @@ function updateAvailableFontsDisplay() {
         return;
     }
 
-    const lines = Object.entries(fontCatalog).map(([name, path]) => `${name}: ${path}`);
+    const lines = Object.entries(fontCatalog).map(([name, path]) => {
+        const fullPath = path.startsWith('/') ? path : `assets/fonts/${path}`;
+        return `${name}: ${fullPath}`;
+    });
     container.textContent = lines.join('\n');
 }
 
