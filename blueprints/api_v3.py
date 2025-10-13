@@ -69,6 +69,47 @@ def get_secrets_config():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
+@api_v3.route('/config/raw/main', methods=['POST'])
+def save_raw_main_config():
+    """Save raw main configuration JSON"""
+    try:
+        if not api_v3.config_manager:
+            return jsonify({'status': 'error', 'message': 'Config manager not initialized'}), 500
+
+        data = request.get_json()
+        if not data:
+            return jsonify({'status': 'error', 'message': 'No data provided'}), 400
+
+        # Validate that it's valid JSON (already parsed by request.get_json())
+        # Save the raw config file
+        api_v3.config_manager.save_raw_file_content('main', data)
+
+        return jsonify({'status': 'success', 'message': 'Main configuration saved successfully'})
+    except json.JSONDecodeError as e:
+        return jsonify({'status': 'error', 'message': f'Invalid JSON: {str(e)}'}), 400
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@api_v3.route('/config/raw/secrets', methods=['POST'])
+def save_raw_secrets_config():
+    """Save raw secrets configuration JSON"""
+    try:
+        if not api_v3.config_manager:
+            return jsonify({'status': 'error', 'message': 'Config manager not initialized'}), 500
+
+        data = request.get_json()
+        if not data:
+            return jsonify({'status': 'error', 'message': 'No data provided'}), 400
+
+        # Save the secrets config
+        api_v3.config_manager.save_raw_file_content('secrets', data)
+
+        return jsonify({'status': 'success', 'message': 'Secrets configuration saved successfully'})
+    except json.JSONDecodeError as e:
+        return jsonify({'status': 'error', 'message': f'Invalid JSON: {str(e)}'}), 400
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
 @api_v3.route('/system/status', methods=['GET'])
 def get_system_status():
     """Get system status"""

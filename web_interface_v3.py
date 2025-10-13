@@ -26,20 +26,8 @@ app.register_blueprint(api_v3, url_prefix='/api/v3')
 @app.after_request
 def add_security_headers(response):
     """Add security headers to all responses"""
-    # Set a clean Permissions-Policy header that disables advertising and privacy sandbox features
-    # This prevents browser warnings about unrecognized features
-    response.headers['Permissions-Policy'] = (
-        'geolocation=(), '
-        'microphone=(), '
-        'camera=(), '
-        'payment=(), '
-        'usb=(), '
-        'magnetometer=(), '
-        'gyroscope=(), '
-        'accelerometer=()'
-    )
-    
-    # Additional security headers
+    # Only set standard security headers - avoid Permissions-Policy to prevent browser warnings
+    # about unrecognized features
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'SAMEORIGIN'
     response.headers['X-XSS-Protection'] = '1; mode=block'
@@ -238,6 +226,11 @@ def stream_logs():
 def index():
     """Redirect to v3 interface"""
     return redirect(url_for('pages_v3.index'))
+
+@app.route('/favicon.ico')
+def favicon():
+    """Return 204 No Content for favicon to avoid 404 errors"""
+    return '', 204
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
