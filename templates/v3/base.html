@@ -723,6 +723,7 @@
             }
 
             // Draw circular dots for each LED pixel
+            let drawn = 0;
             for (let y = 0; y < logicalHeight; y++) {
                 for (let x = 0; x < logicalWidth; x++) {
                     const pixel = offCtx.getImageData(x, y, 1, 1).data;
@@ -737,7 +738,13 @@
                     ctx.beginPath();
                     ctx.arc(cx, cy, dotRadius, 0, Math.PI * 2);
                     ctx.fill();
+                    drawn++;
                 }
+            }
+
+            // If nothing was drawn (e.g., image not ready), hide overlay to show base image
+            if (drawn === 0) {
+                ledCanvas.style.display = 'none';
             }
         }
 
