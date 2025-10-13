@@ -145,44 +145,56 @@ def display_preview_generator():
 # Logs generator for SSE
 def logs_generator():
     """Generate log updates from journalctl"""
-    last_position = None
-
     while True:
         try:
-            # Get recent logs from journalctl (similar to original implementation)
-            result = subprocess.run(
-                ['sudo', 'journalctl', '-u', 'ledmatrix.service', '-n', '100', '--no-pager', '--since', '1 minute ago'],
-                capture_output=True, text=True, check=True
-            )
+            # Get recent logs from journalctl (simplified version)
+            try:
+                result = subprocess.run(
+                    ['sudo', 'journalctl', '-u', 'ledmatrix.service', '-n', '50', '--no-pager'],
+                    capture_output=True, text=True, timeout=5
+                )
 
-            logs_text = result.stdout.strip()
+                if result.returncode == 0:
+                    logs_text = result.stdout.strip()
+                    if logs_text:
+                        logs_data = {
+                            'timestamp': time.time(),
+                            'logs': logs_text
+                        }
+                        yield logs_data
+                    else:
+                        # No logs available
+                        logs_data = {
+                            'timestamp': time.time(),
+                            'logs': 'No logs available from ledmatrix service'
+                        }
+                        yield logs_data
+                else:
+                    # journalctl failed
+                    error_data = {
+                        'timestamp': time.time(),
+                        'logs': f'journalctl failed with return code {result.returncode}: {result.stderr.strip()}'
+                    }
+                    yield error_data
 
-            # Check if logs have changed
-            current_position = hash(logs_text)
-            if last_position != current_position:
-                last_position = current_position
-
-                logs_data = {
+            except subprocess.TimeoutExpired:
+                # Timeout - just skip this update
+                pass
+            except Exception as e:
+                error_data = {
                     'timestamp': time.time(),
-                    'logs': logs_text if logs_text else 'No recent logs available'
+                    'logs': f'Error running journalctl: {str(e)}'
                 }
-                yield logs_data
+                yield error_data
 
-        except subprocess.CalledProcessError as e:
-            # If journalctl fails, yield error message
-            error_data = {
-                'timestamp': time.time(),
-                'logs': f'Error fetching logs: {e.stderr.strip()}'
-            }
-            yield error_data
         except Exception as e:
             error_data = {
                 'timestamp': time.time(),
-                'logs': f'Unexpected error: {str(e)}'
+                'logs': f'Unexpected error in logs generator: {str(e)}'
             }
             yield error_data
 
-        time.sleep(3)  # Update every 3 seconds
+        time.sleep(2)  # Update every 2 seconds
 
 # SSE endpoints
 @app.route('/api/v3/stream/stats')

@@ -189,35 +189,22 @@ function processLogs(logsText, append = false) {
         logsContent.innerHTML = '';
     }
 
-    // Parse logs (basic parsing - you might want more sophisticated parsing)
+    // Simple log processing - just split by lines for now
     const lines = logsText.split('\n').filter(line => line.trim());
 
     lines.forEach(line => {
-        const logEntry = parseLogLine(line);
-        if (logEntry) {
-            allLogs.push(logEntry);
-        }
+        // For now, treat each line as a simple log entry
+        const logEntry = {
+            timestamp: new Date().toLocaleTimeString(),
+            level: 'INFO',
+            message: line,
+            raw: line,
+            id: Date.now() + Math.random()
+        };
+        allLogs.push(logEntry);
     });
 
     renderLogs();
-}
-
-function parseLogLine(line) {
-    // Basic log parsing - extract timestamp, level, message
-    // This is a simple regex - you might want more sophisticated parsing
-    const match = line.match(/^(\w+\s+\d+\s+\d+:\d+:\d+)\s+(\w+)\s+(.*)$/);
-
-    if (match) {
-        return {
-            timestamp: match[1],
-            level: match[2],
-            message: match[3],
-            raw: line,
-            id: Date.now() + Math.random() // Simple ID for DOM manipulation
-        };
-    }
-
-    return null;
 }
 
 function renderLogs() {
@@ -310,7 +297,9 @@ function toggleRealtime() {
 
 function refreshLogs() {
     loadLogs();
-    showNotification('Logs refreshed', 'success');
+    if (typeof showNotification !== 'undefined') {
+        showNotification('Logs refreshed', 'success');
+    }
 }
 
 function clearLogs() {
@@ -319,12 +308,16 @@ function clearLogs() {
     logsContent.innerHTML = '';
     showEmptyState();
     updateLogStats();
-    showNotification('Logs cleared', 'info');
+    if (typeof showNotification !== 'undefined') {
+        showNotification('Logs cleared', 'info');
+    }
 }
 
 function downloadLogs() {
     if (filteredLogs.length === 0) {
-        showNotification('No logs to download', 'warning');
+        if (typeof showNotification !== 'undefined') {
+            showNotification('No logs to download', 'warning');
+        }
         return;
     }
 
@@ -340,7 +333,9 @@ function downloadLogs() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    showNotification('Logs downloaded', 'success');
+    if (typeof showNotification !== 'undefined') {
+        showNotification('Logs downloaded', 'success');
+    }
 }
 
 function setupAutoscroll() {
