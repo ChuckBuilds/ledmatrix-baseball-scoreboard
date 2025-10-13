@@ -153,3 +153,55 @@
 
 <!-- Stats are updated via the global updateSystemStats function in base.html -->
 
+<script>
+// Setup display preview controls (runs when this partial loads)
+(function() {
+    const scaleRange = document.getElementById('scaleRange');
+    const scaleValue = document.getElementById('scaleValue');
+    const dotFillRange = document.getElementById('dotFillRange');
+    const dotFillValue = document.getElementById('dotFillValue');
+    const toggleGrid = document.getElementById('toggleGrid');
+    const toggleLedDots = document.getElementById('toggleLedDots');
+    
+    if (scaleRange && scaleValue) {
+        scaleRange.addEventListener('input', function() {
+            scaleValue.textContent = this.value + 'x';
+            // Re-render the preview with new scale
+            const img = document.getElementById('displayImage');
+            if (img && img.src) {
+                const data = {
+                    image: img.src.replace('data:image/png;base64,', ''),
+                    width: img.naturalWidth,
+                    height: img.naturalHeight
+                };
+                updateDisplayPreview(data);
+            }
+        });
+    }
+    
+    if (dotFillRange && dotFillValue) {
+        dotFillRange.addEventListener('input', function() {
+            dotFillValue.textContent = this.value + '%';
+            renderLedDots();
+        });
+    }
+    
+    if (toggleGrid) {
+        toggleGrid.addEventListener('change', function() {
+            const canvas = document.getElementById('gridOverlay');
+            const img = document.getElementById('displayImage');
+            if (canvas && img && img.src) {
+                const scale = parseInt(scaleRange?.value || '8');
+                drawGrid(canvas, img.naturalWidth, img.naturalHeight, scale);
+            }
+        });
+    }
+    
+    if (toggleLedDots) {
+        toggleLedDots.addEventListener('change', function() {
+            renderLedDots();
+        });
+    }
+})();
+</script>
+

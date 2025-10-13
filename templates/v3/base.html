@@ -460,50 +460,6 @@
                 link.click();
             }
         }
-
-        // Setup event listeners for display controls
-        document.addEventListener('DOMContentLoaded', function() {
-            const scaleRange = document.getElementById('scaleRange');
-            const scaleValue = document.getElementById('scaleValue');
-            const dotFillRange = document.getElementById('dotFillRange');
-            const dotFillValue = document.getElementById('dotFillValue');
-            const toggleGrid = document.getElementById('toggleGrid');
-            const toggleLedDots = document.getElementById('toggleLedDots');
-            
-            if (scaleRange && scaleValue) {
-                scaleRange.addEventListener('input', function() {
-                    scaleValue.textContent = this.value + 'x';
-                    // Trigger preview update with current data
-                    const img = document.getElementById('displayImage');
-                    if (img && img.src) {
-                        const event = new Event('load');
-                        img.dispatchEvent(event);
-                    }
-                });
-            }
-            
-            if (dotFillRange && dotFillValue) {
-                dotFillRange.addEventListener('input', function() {
-                    dotFillValue.textContent = this.value + '%';
-                    renderLedDots();
-                });
-            }
-            
-            if (toggleGrid) {
-                toggleGrid.addEventListener('change', function() {
-                    const canvas = document.getElementById('gridOverlay');
-                    const img = document.getElementById('displayImage');
-                    if (canvas && img && img.src) {
-                        const scale = parseInt(document.getElementById('scaleRange')?.value || '8');
-                        drawGrid(canvas, img.naturalWidth, img.naturalHeight, scale);
-                    }
-                });
-            }
-            
-            if (toggleLedDots) {
-                toggleLedDots.addEventListener('change', renderLedDots);
-            }
-        });
     </script>
 
     <!-- Custom v3 JavaScript -->
