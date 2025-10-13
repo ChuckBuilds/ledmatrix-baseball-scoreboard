@@ -690,16 +690,18 @@
             const show = toggle.checked;
             console.log('LED Dots: Toggle is', show ? 'ON' : 'OFF');
 
-            ledCanvas.style.display = show ? 'block' : 'none';
             if (!show) {
-                // Clear canvas when hiding
+                // LED mode OFF: Show image, hide canvas
+                img.style.display = 'block';
+                ledCanvas.style.display = 'none';
                 const ctx = ledCanvas.getContext('2d');
                 ctx.clearRect(0, 0, ledCanvas.width, ledCanvas.height);
-                console.log('LED Dots: Canvas cleared and hidden');
+                console.log('LED Dots: Canvas cleared and hidden, showing pixelated image');
                 return;
             }
 
-            // Show and render LED dots
+            // LED mode ON: Hide image, show only dots on canvas
+            img.style.display = 'none';
             ledCanvas.style.display = 'block';
             console.log('LED Dots: Rendering with canvas size', ledCanvas.width, 'x', ledCanvas.height);
 
@@ -725,6 +727,10 @@
                 console.error('Failed to draw image to offscreen canvas:', e);
                 return;
             }
+
+            // Fill canvas with black background (LED matrix bezel)
+            ctx.fillStyle = 'rgb(0, 0, 0)';
+            ctx.fillRect(0, 0, ledCanvas.width, ledCanvas.height);
 
             // Draw circular dots for each LED pixel
             let drawn = 0;
