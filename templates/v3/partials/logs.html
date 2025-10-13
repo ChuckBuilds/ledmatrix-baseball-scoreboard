@@ -62,7 +62,7 @@
                     <p>Loading logs...</p>
                 </div>
             </div>
-            <div id="logs-content" class="hidden space-y-0.5">
+            <div id="logs-display" class="hidden space-y-0.5">
                 <!-- Logs will be inserted here -->
             </div>
             <div id="logs-empty" class="hidden flex items-center justify-center h-full text-gray-400">
@@ -101,7 +101,7 @@ const MAX_LOGS = 500; // Maximum number of logs to keep in memory
 // Initialize immediately (this script runs when the partial is loaded)
 (function() {
     logContainer = document.getElementById('logs-container');
-    logsContent = document.getElementById('logs-content');
+    logsContent = document.getElementById('logs-display');
 
     initializeLogs();
 
@@ -445,7 +445,7 @@ function updateLogStats() {
 
 function showLoading() {
     document.getElementById('logs-loading').classList.remove('hidden');
-    document.getElementById('logs-content').classList.add('hidden');
+    document.getElementById('logs-display').classList.add('hidden');
     document.getElementById('logs-empty').classList.add('hidden');
 }
 
@@ -455,7 +455,7 @@ function hideLoading() {
 
 function showEmptyState() {
     document.getElementById('logs-loading').classList.add('hidden');
-    document.getElementById('logs-content').classList.add('hidden');
+    document.getElementById('logs-display').classList.add('hidden');
     document.getElementById('logs-empty').classList.remove('hidden');
     document.getElementById('log-stats').classList.add('hidden');
 }
