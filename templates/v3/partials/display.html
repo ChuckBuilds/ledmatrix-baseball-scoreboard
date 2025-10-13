@@ -102,6 +102,70 @@
                            class="form-control">
                     <p class="mt-1 text-sm text-gray-600">GPIO slowdown factor (0-5)</p>
                 </div>
+
+                <div class="form-group">
+                    <label for="scan_mode" class="block text-sm font-medium text-gray-700">Scan Mode</label>
+                    <input type="number"
+                           id="scan_mode"
+                           name="scan_mode"
+                           value="{{ main_config.display.hardware.scan_mode or 0 }}"
+                           min="0"
+                           max="1"
+                           class="form-control">
+                    <p class="mt-1 text-sm text-gray-600">Scan mode for LED matrix (0-1)</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="form-group">
+                    <label for="pwm_bits" class="block text-sm font-medium text-gray-700">PWM Bits</label>
+                    <input type="number"
+                           id="pwm_bits"
+                           name="pwm_bits"
+                           value="{{ main_config.display.hardware.pwm_bits or 9 }}"
+                           min="1"
+                           max="11"
+                           class="form-control">
+                    <p class="mt-1 text-sm text-gray-600">PWM bits for brightness control (1-11)</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="pwm_dither_bits" class="block text-sm font-medium text-gray-700">PWM Dither Bits</label>
+                    <input type="number"
+                           id="pwm_dither_bits"
+                           name="pwm_dither_bits"
+                           value="{{ main_config.display.hardware.pwm_dither_bits or 1 }}"
+                           min="0"
+                           max="4"
+                           class="form-control">
+                    <p class="mt-1 text-sm text-gray-600">PWM dither bits (0-4)</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="form-group">
+                    <label for="pwm_lsb_nanoseconds" class="block text-sm font-medium text-gray-700">PWM LSB Nanoseconds</label>
+                    <input type="number"
+                           id="pwm_lsb_nanoseconds"
+                           name="pwm_lsb_nanoseconds"
+                           value="{{ main_config.display.hardware.pwm_lsb_nanoseconds or 130 }}"
+                           min="50"
+                           max="500"
+                           class="form-control">
+                    <p class="mt-1 text-sm text-gray-600">PWM LSB nanoseconds (50-500)</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="limit_refresh_rate_hz" class="block text-sm font-medium text-gray-700">Limit Refresh Rate (Hz)</label>
+                    <input type="number"
+                           id="limit_refresh_rate_hz"
+                           name="limit_refresh_rate_hz"
+                           value="{{ main_config.display.hardware.limit_refresh_rate_hz or 120 }}"
+                           min="1"
+                           max="1000"
+                           class="form-control">
+                    <p class="mt-1 text-sm text-gray-600">Limit refresh rate in Hz (1-1000)</p>
+                </div>
             </div>
         </div>
 
