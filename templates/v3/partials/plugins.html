@@ -41,6 +41,35 @@
 
         <!-- Plugin Store Section (Always visible at bottom) -->
         <div id="plugin-store-section" class="border-t border-gray-200 pt-8">
+            <!-- GitHub Auth Warning Banner -->
+            <div id="github-auth-warning" class="hidden mb-4 bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+                    </div>
+                    <div class="ml-3 flex-1">
+                        <p class="text-sm text-yellow-700">
+                            <strong>Limited API Access:</strong> GitHub API requests are limited to <span id="rate-limit-count">60</span> per hour without authentication.
+                            Add a GitHub token to increase this to 5,000 requests/hour and get real-time plugin stats.
+                        </p>
+                        <p class="mt-2 text-sm text-yellow-700">
+                            <a href="https://github.com/settings/tokens/new?description=LEDMatrix%20Plugin%20Manager&scopes=" target="_blank" class="font-medium underline hover:text-yellow-800">
+                                Create a GitHub Token →
+                            </a>
+                            <span class="mx-2">|</span>
+                            <a href="#" onclick="event.preventDefault(); showGithubTokenInstructions()" class="font-medium underline hover:text-yellow-800">
+                                Setup Instructions
+                            </a>
+                        </p>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <button onclick="dismissGithubWarning()" class="text-yellow-700 hover:text-yellow-900">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-md font-medium text-gray-900">Plugin Store</h3>
                 <span id="store-count" class="text-sm text-gray-500">Loading...</span>
@@ -113,6 +142,9 @@ document.addEventListener('htmx:afterSettle', function(event) {
 
 function initializePlugins() {
     console.log('Initializing plugins...');
+
+    // Check GitHub authentication status
+    checkGitHubAuthStatus();
 
     // Load both installed plugins and plugin store
     loadInstalledPlugins();
@@ -708,5 +740,106 @@ function debounce(func, wait) {
         clearTimeout(timeout);
         timeout = setTimeout(later, wait);
     };
+}
+
+// GitHub Authentication Status
+function checkGitHubAuthStatus() {
+    fetch('/api/v3/plugins/store/github-status')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const authData = data.data;
+                
+                // Show warning if not authenticated
+                if (!authData.authenticated) {
+                    // Check if user has dismissed the warning (stored in session storage)
+                    const dismissed = sessionStorage.getItem('github-auth-warning-dismissed');
+                    if (!dismissed) {
+                        const warning = document.getElementById('github-auth-warning');
+                        const rateLimit = document.getElementById('rate-limit-count');
+                        
+                        if (warning && rateLimit) {
+                            rateLimit.textContent = authData.rate_limit;
+                            warning.classList.remove('hidden');
+                        }
+                    }
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error checking GitHub auth status:', error);
+        });
+}
+
+function dismissGithubWarning() {
+    const warning = document.getElementById('github-auth-warning');
+    if (warning) {
+        warning.classList.add('hidden');
+        // Remember dismissal for this session
+        sessionStorage.setItem('github-auth-warning-dismissed', 'true');
+    }
+}
+
+function showGithubTokenInstructions() {
+    const instructions = `
+        <div class="space-y-4">
+            <h4 class="font-semibold text-lg">How to Add a GitHub Token</h4>
+            
+            <div class="space-y-3">
+                <div class="bg-gray-50 p-3 rounded">
+                    <h5 class="font-medium mb-2">Step 1: Create a GitHub Token</h5>
+                    <ol class="list-decimal list-inside space-y-1 text-sm">
+                        <li>Click the "Create a GitHub Token" link above (or <a href="https://github.com/settings/tokens/new?description=LEDMatrix%20Plugin%20Manager&scopes=" target="_blank" class="text-blue-600 underline">click here</a>)</li>
+                        <li>Give it a name like "LEDMatrix Plugin Manager"</li>
+                        <li>No special scopes/permissions are needed for public repositories</li>
+                        <li>Click "Generate token" at the bottom</li>
+                        <li>Copy the generated token (it starts with "ghp_")</li>
+                    </ol>
+                </div>
+                
+                <div class="bg-gray-50 p-3 rounded">
+                    <h5 class="font-medium mb-2">Step 2: Add Token to LEDMatrix</h5>
+                    <ol class="list-decimal list-inside space-y-1 text-sm">
+                        <li>SSH into your Raspberry Pi</li>
+                        <li>Edit the secrets file: <code class="bg-gray-200 px-1 rounded">nano ~/LEDMatrix/config/config_secrets.json</code></li>
+                        <li>Find the "github" section and add your token:
+                            <pre class="bg-gray-800 text-white p-2 rounded mt-2 text-xs overflow-x-auto">"github": {
+  "api_token": "ghp_your_token_here"
+}</pre>
+                        </li>
+                        <li>Save the file (Ctrl+O, Enter, Ctrl+X)</li>
+                        <li>Restart the web service: <code class="bg-gray-200 px-1 rounded">sudo systemctl restart ledmatrix-web</code></li>
+                    </ol>
+                </div>
+                
+                <div class="bg-blue-50 p-3 rounded border border-blue-200">
+                    <p class="text-sm text-blue-800">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        <strong>Note:</strong> Your token is stored locally and never shared. It's only used to authenticate API requests to GitHub.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="flex justify-end">
+                <button onclick="closeInstructionsModal()" class="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">
+                    Got it!
+                </button>
+            </div>
+        </div>
+    `;
+    
+    // Use the existing plugin config modal for instructions
+    const modal = document.getElementById('plugin-config-modal');
+    const title = document.getElementById('plugin-config-title');
+    const content = document.getElementById('plugin-config-content');
+    
+    title.textContent = 'GitHub Token Setup';
+    content.innerHTML = instructions;
+    modal.classList.remove('hidden');
+}
+
+function closeInstructionsModal() {
+    const modal = document.getElementById('plugin-config-modal');
+    modal.classList.add('hidden');
 }
 </script>

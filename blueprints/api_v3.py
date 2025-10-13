@@ -478,6 +478,31 @@ def list_plugin_store():
         print(error_details)
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
+@api_v3.route('/plugins/store/github-status', methods=['GET'])
+def get_github_auth_status():
+    """Check if GitHub authentication is configured"""
+    try:
+        if not api_v3.plugin_store_manager:
+            return jsonify({'status': 'error', 'message': 'Plugin store manager not initialized'}), 500
+        
+        # Check if GitHub token is configured
+        has_token = api_v3.plugin_store_manager.github_token is not None and len(api_v3.plugin_store_manager.github_token) > 0
+        
+        return jsonify({
+            'status': 'success',
+            'data': {
+                'authenticated': has_token,
+                'rate_limit': 5000 if has_token else 60,
+                'message': 'GitHub API authenticated' if has_token else 'No GitHub token configured'
+            }
+        })
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Error in get_github_auth_status: {str(e)}")
+        print(error_details)
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
 @api_v3.route('/plugins/store/refresh', methods=['POST'])
 def refresh_plugin_store():
     """Refresh plugin store repository"""

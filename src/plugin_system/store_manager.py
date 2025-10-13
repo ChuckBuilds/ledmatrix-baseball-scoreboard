@@ -41,9 +41,29 @@ class PluginStoreManager:
         self.registry_cache = None
         self.github_cache = {}  # Cache for GitHub API responses
         self.cache_timeout = 3600  # 1 hour cache timeout
+        self.github_token = self._load_github_token()
 
         # Ensure plugins directory exists
         self.plugins_dir.mkdir(exist_ok=True)
+
+    def _load_github_token(self) -> Optional[str]:
+        """
+        Load GitHub API token from config_secrets.json if available.
+        
+        Returns:
+            GitHub token or None if not configured
+        """
+        try:
+            config_path = Path(__file__).parent.parent.parent / "config" / "config_secrets.json"
+            if config_path.exists():
+                with open(config_path, 'r') as f:
+                    config = json.load(f)
+                    token = config.get('github', {}).get('api_token', '').strip()
+                    if token and token != "YOUR_GITHUB_PERSONAL_ACCESS_TOKEN":
+                        return token
+        except Exception as e:
+            self.logger.debug(f"Could not load GitHub token: {e}")
+        return None
 
     def _get_github_repo_info(self, repo_url: str) -> Dict[str, Any]:
         """Fetch GitHub repository information (stars, etc.)"""
@@ -72,6 +92,10 @@ class PluginStoreManager:
                         'Accept': 'application/vnd.github.v3+json',
                         'User-Agent': 'LEDMatrix-Plugin-Manager/1.0'
                     }
+                    
+                    # Add authentication if token is available
+                    if self.github_token:
+                        headers['Authorization'] = f'token {self.github_token}'
 
                     response = requests.get(api_url, headers=headers, timeout=10)
                     if response.status_code == 200:
@@ -88,6 +112,19 @@ class PluginStoreManager:
                         # Cache the result
                         self.github_cache[cache_key] = (time.time(), repo_info)
                         return repo_info
+                    elif response.status_code == 403:
+                        # Rate limit or authentication issue
+                        if not self.github_token:
+                            self.logger.warning(
+                                f"GitHub API rate limit likely exceeded (403). "
+                                f"Add a GitHub personal access token to config/config_secrets.json "
+                                f"under 'github.api_token' to increase rate limits from 60 to 5000/hour."
+                            )
+                        else:
+                            self.logger.warning(
+                                f"GitHub API request failed: 403 for {api_url}. "
+                                f"Your token may have insufficient permissions or rate limit exceeded."
+                            )
                     else:
                         self.logger.warning(f"GitHub API request failed: {response.status_code} for {api_url}")
 
