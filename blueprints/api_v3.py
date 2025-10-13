@@ -140,6 +140,13 @@ def execute_system_action():
             project_dir = os.path.join(home_dir, 'LEDMatrix')
             result = subprocess.run(['git', 'pull'],
                                  capture_output=True, text=True, cwd=project_dir)
+        elif action == 'restart_display_service':
+            result = subprocess.run(['sudo', 'systemctl', 'restart', 'ledmatrix'],
+                                 capture_output=True, text=True)
+        elif action == 'restart_web_service':
+            # Try to restart the web service (assuming it's ledmatrix-web.service)
+            result = subprocess.run(['sudo', 'systemctl', 'restart', 'ledmatrix-web'],
+                                 capture_output=True, text=True)
         else:
             return jsonify({'status': 'error', 'message': f'Unknown action: {action}'}), 400
 

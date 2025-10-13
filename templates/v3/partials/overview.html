@@ -99,6 +99,22 @@
                 <i class="fas fa-power-off mr-2"></i>
                 Reboot System
             </button>
+
+            <button hx-post="/api/v3/system/action"
+                    hx-vals='{"action": "restart_display_service"}'
+                    hx-swap="none"
+                    class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                <i class="fas fa-redo mr-2"></i>
+                Restart Display Service
+            </button>
+
+            <button hx-post="/api/v3/system/action"
+                    hx-vals='{"action": "restart_web_service"}'
+                    hx-swap="none"
+                    class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                <i class="fas fa-redo mr-2"></i>
+                Restart Web Service
+            </button>
         </div>
     </div>
 
