@@ -175,6 +175,7 @@ body {
 @media (min-width: 768px) {
     .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .md\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .md\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .md\:flex { display: flex; }
     .md\:hidden { display: none; }
 }
@@ -182,7 +183,30 @@ body {
 @media (min-width: 1024px) {
     .lg\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .lg\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .lg\:grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .lg\:grid-cols-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
     .lg\:px-8 { padding-left: 2rem; padding-right: 2rem; }
+}
+
+@media (min-width: 1280px) {
+    .xl\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .xl\:grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .xl\:grid-cols-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    .xl\:grid-cols-7 { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+    .xl\:grid-cols-8 { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+    .xl\:px-12 { padding-left: 3rem; padding-right: 3rem; }
+    .xl\:space-x-6 > * + * { margin-left: 1.5rem; }
+}
+
+@media (min-width: 1536px) {
+    .2xl\:grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .2xl\:grid-cols-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    .2xl\:grid-cols-7 { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+    .2xl\:grid-cols-8 { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+    .2xl\:grid-cols-9 { grid-template-columns: repeat(9, minmax(0, 1fr)); }
+    .2xl\:grid-cols-10 { grid-template-columns: repeat(10, minmax(0, 1fr)); }
+    .2xl\:px-16 { padding-left: 4rem; padding-right: 4rem; }
+    .2xl\:space-x-8 > * + * { margin-left: 2rem; }
 }
 
 /* HTMX loading states */
