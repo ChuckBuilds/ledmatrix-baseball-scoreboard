@@ -344,12 +344,13 @@ def list_plugin_store():
         # Filter by query and category if provided
         filtered_plugins = plugins
         if query:
-            filtered_plugins = filtered_plugins.filter(p =>
-                p['name'].toLowerCase().includes(query.toLowerCase()) ||
-                p['description'].toLowerCase().includes(query.toLowerCase())
-            )
+            query_lower = query.lower()
+            filtered_plugins = [p for p in filtered_plugins if 
+                query_lower in p['name'].lower() or 
+                query_lower in p['description'].lower()
+            ]
         if category:
-            filtered_plugins = filtered_plugins.filter(p => p['category'] === category)
+            filtered_plugins = [p for p in filtered_plugins if p['category'] == category]
 
         return jsonify({'status': 'success', 'data': {'plugins': filtered_plugins}})
     except Exception as e:
