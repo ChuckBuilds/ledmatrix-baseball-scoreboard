@@ -55,7 +55,7 @@
 
     <!-- Log Display -->
     <div class="relative">
-        <div id="logs-container" class="bg-gray-900 text-gray-100 font-mono text-sm rounded-lg p-3 border border-gray-700 shadow-inner overflow-y-auto" style="height: 512px; max-height: 512px;">
+        <div id="logs-container" class="bg-gray-900 text-gray-100 font-mono text-sm rounded-lg p-3 border border-gray-700 shadow-inner overflow-y-auto" style="height: calc(100vh - 400px); min-height: 400px; max-height: calc(100vh - 200px);">
             <div id="logs-loading" class="flex items-center justify-center h-full text-gray-400">
                 <div class="text-center">
                     <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
@@ -113,6 +113,16 @@ const MAX_LOGS = 500; // Maximum number of logs to keep in memory
     document.getElementById('log-autoscroll').addEventListener('change', toggleAutoscroll);
     document.getElementById('clear-logs-btn').addEventListener('click', clearLogs);
     document.getElementById('download-logs-btn').addEventListener('click', downloadLogs);
+
+    // Handle window resize for responsive height
+    window.addEventListener('resize', function() {
+        if (logContainer) {
+            // Force a reflow to update calc() values
+            logContainer.style.display = 'none';
+            logContainer.offsetHeight; // Trigger reflow
+            logContainer.style.display = '';
+        }
+    });
 })();
 
 function initializeLogs() {
@@ -412,7 +422,7 @@ function setupAutoscroll() {
 
 function scrollToBottom() {
     const autoscrollEl = document.getElementById('log-autoscroll');
-    if (autoscrollEl && autoscrollEl.checked) {
+    if (autoscrollEl && autoscrollEl.checked && logContainer) {
         logContainer.scrollTop = logContainer.scrollHeight;
     }
 }
