@@ -692,7 +692,7 @@
 
             if (!show) {
                 // LED mode OFF: Show image, hide canvas
-                img.style.display = 'block';
+                img.style.visibility = 'visible';
                 ledCanvas.style.display = 'none';
                 const ctx = ledCanvas.getContext('2d');
                 ctx.clearRect(0, 0, ledCanvas.width, ledCanvas.height);
@@ -700,8 +700,8 @@
                 return;
             }
 
-            // LED mode ON: Hide image, show only dots on canvas
-            img.style.display = 'none';
+            // LED mode ON: Hide image (but keep layout space), show only dots on canvas
+            img.style.visibility = 'hidden';
             ledCanvas.style.display = 'block';
             console.log('LED Dots: Rendering with canvas size', ledCanvas.width, 'x', ledCanvas.height);
 
