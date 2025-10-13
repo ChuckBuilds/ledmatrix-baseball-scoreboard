@@ -485,7 +485,9 @@
                         const tabButton = document.createElement('button');
                         tabButton.type = 'button';
                         tabButton.className = `plugin-tab whitespace-nowrap py-2 px-1 lg:px-2 xl:px-3 border-b-2 font-medium text-sm ${this.activeTab === plugin.id ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`;
-                        tabButton.setAttribute('@click', `activeTab = '${plugin.id}'`);
+                        tabButton.onclick = () => {
+                            this.activeTab = plugin.id;
+                        };
                         tabButton.innerHTML = `
                             <i class="fas fa-puzzle-piece mr-2"></i>${this.escapeHtml(plugin.name || plugin.id)}
                         `;
