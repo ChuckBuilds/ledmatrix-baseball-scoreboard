@@ -88,8 +88,8 @@
 let installedPlugins = [];
 let currentPluginConfig = null;
 
-// Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
+// Initialize when DOM is ready or when HTMX loads content
+function initPluginsPage() {
     initializePlugins();
 
     // Event listeners
@@ -97,9 +97,21 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('restart-display-btn').addEventListener('click', restartDisplay);
     document.getElementById('search-plugins-btn').addEventListener('click', searchPluginStore);
     document.getElementById('close-plugin-config').addEventListener('click', closePluginConfigModal);
+}
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', initPluginsPage);
+
+// Also initialize when HTMX loads this content
+document.addEventListener('htmx:afterSettle', function(event) {
+    if (event.target.id === 'plugins-content') {
+        initPluginsPage();
+    }
 });
 
 function initializePlugins() {
+    console.log('Initializing plugins...');
+
     // Load both installed plugins and plugin store
     loadInstalledPlugins();
     searchPluginStore(); // Load plugin store with no filters
@@ -107,20 +119,28 @@ function initializePlugins() {
     // Setup search functionality
     document.getElementById('plugin-search').addEventListener('input', debounce(searchPluginStore, 300));
     document.getElementById('plugin-category').addEventListener('change', searchPluginStore);
+
+    console.log('Plugins initialized');
 }
 
 function loadInstalledPlugins() {
+    console.log('Loading installed plugins...');
     showLoading();
 
     fetch('/api/v3/plugins/installed')
-        .then(response => response.json())
+        .then(response => {
+            console.log('Installed plugins response:', response.status);
+            return response.json();
+        })
         .then(data => {
+            console.log('Installed plugins data:', data);
             hideLoading();
 
             if (data.status === 'success') {
                 installedPlugins = data.data.plugins || [];
+                console.log('Installed plugins count:', installedPlugins.length);
                 renderInstalledPlugins(installedPlugins);
-                
+
                 // Update count
                 const countEl = document.getElementById('installed-count');
                 if (countEl) {
@@ -131,6 +151,7 @@ function loadInstalledPlugins() {
             }
         })
         .catch(error => {
+            console.error('Error loading installed plugins:', error);
             hideLoading();
             showError('Error loading plugins: ' + error.message);
         });
@@ -450,6 +471,7 @@ function restartDisplay() {
 }
 
 function searchPluginStore() {
+    console.log('Searching plugin store...');
     const query = document.getElementById('plugin-search').value;
     const category = document.getElementById('plugin-category').value;
 
@@ -462,13 +484,20 @@ function searchPluginStore() {
         url += '?' + params.toString();
     }
 
+    console.log('Store URL:', url);
+
     fetch(url)
-        .then(response => response.json())
+        .then(response => {
+            console.log('Store response:', response.status);
+            return response.json();
+        })
         .then(data => {
+            console.log('Store data:', data);
             if (data.status === 'success') {
                 const plugins = data.data.plugins || [];
+                console.log('Store plugins count:', plugins.length);
                 renderPluginStore(plugins);
-                
+
                 // Update count
                 const countEl = document.getElementById('store-count');
                 if (countEl) {
@@ -483,6 +512,7 @@ function searchPluginStore() {
             }
         })
         .catch(error => {
+            console.error('Error searching plugin store:', error);
             showError('Error searching plugin store: ' + error.message);
             const countEl = document.getElementById('store-count');
             if (countEl) {
