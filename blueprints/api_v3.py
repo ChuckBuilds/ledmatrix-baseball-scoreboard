@@ -180,22 +180,6 @@ def get_display_current():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
-@api_v3.route('/logs', methods=['GET'])
-def get_logs():
-    """Get system logs"""
-    try:
-        # Get logs from journalctl for the ledmatrix service (similar to original)
-        result = subprocess.run(
-            ['sudo', 'journalctl', '-u', 'ledmatrix.service', '-n', '500', '--no-pager'],
-            capture_output=True, text=True, check=True
-        )
-        logs = result.stdout
-        return jsonify({'status': 'success', 'data': {'logs': logs}})
-    except subprocess.CalledProcessError as e:
-        return jsonify({'status': 'error', 'message': f"Error fetching logs: {e.stderr}"}), 500
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-
 @api_v3.route('/plugins/installed', methods=['GET'])
 def get_installed_plugins():
     """Get installed plugins"""

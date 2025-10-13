@@ -261,15 +261,10 @@ function processLogs(logsText, append = false) {
         allLogs = allLogs.slice(-MAX_LOGS);
     }
 
-    renderLogs();
+    filterLogs();
 }
 
 function renderLogs() {
-    if (filteredLogs.length === 0 && allLogs.length > 0) {
-        filterLogs();
-        return;
-    }
-
     if (filteredLogs.length === 0) {
         showEmptyState();
         return;
