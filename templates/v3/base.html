@@ -726,10 +726,6 @@
                 return;
             }
 
-            // First, fill entire canvas with semi-transparent black for LED bezel effect
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-            ctx.fillRect(0, 0, ledCanvas.width, ledCanvas.height);
-
             // Draw circular dots for each LED pixel
             let drawn = 0;
             for (let y = 0; y < logicalHeight; y++) {
