@@ -374,17 +374,32 @@
             const ledCanvas = document.getElementById('ledCanvas');
             const img = document.getElementById('displayImage');
             const toggle = document.getElementById('toggleLedDots');
-            
-            if (!ledCanvas || !img || !toggle) return;
-            
+
+            if (!ledCanvas || !img || !toggle) {
+                console.log('LED dots: Missing elements', { ledCanvas, img, toggle });
+                return;
+            }
+
             const show = toggle.checked;
+            console.log('LED dots toggle state:', show);
+
             ledCanvas.style.display = show ? 'block' : 'none';
-            if (!show) return;
+            if (!show) {
+                // Clear canvas when hiding
+                const ctx = ledCanvas.getContext('2d');
+                ctx.clearRect(0, 0, ledCanvas.width, ledCanvas.height);
+                return;
+            }
+
+            // Show and render LED dots
+            ledCanvas.style.display = 'block';
 
             const scale = parseInt(document.getElementById('scaleRange')?.value || '8');
             const fillPct = parseInt(document.getElementById('dotFillRange')?.value || '75');
             const dotRadius = Math.max(1, Math.floor((scale * fillPct) / 200)); // radius in px
-            
+
+            console.log('LED dots rendering:', { scale, fillPct, dotRadius, canvasWidth: ledCanvas.width, canvasHeight: ledCanvas.height });
+
             const ctx = ledCanvas.getContext('2d', { willReadFrequently: true });
             ctx.clearRect(0, 0, ledCanvas.width, ledCanvas.height);
 
@@ -395,32 +410,38 @@
             off.width = logicalWidth;
             off.height = logicalHeight;
             const offCtx = off.getContext('2d', { willReadFrequently: true });
-            
+
+            console.log('Offscreen canvas:', { logicalWidth, logicalHeight, offWidth: off.width, offHeight: off.height });
+
             // Draw the current image scaled down to logical LEDs to sample colors
             try {
                 offCtx.drawImage(img, 0, 0, logicalWidth, logicalHeight);
+                console.log('Successfully drew image to offscreen canvas');
             } catch (e) {
-                // Draw failures ignored
+                console.error('Failed to draw image to offscreen canvas:', e);
                 return;
             }
 
             // Draw circular dots for each LED pixel
+            let dotsDrawn = 0;
             for (let y = 0; y < logicalHeight; y++) {
                 for (let x = 0; x < logicalWidth; x++) {
                     const pixel = offCtx.getImageData(x, y, 1, 1).data;
                     const r = pixel[0], g = pixel[1], b = pixel[2], a = pixel[3];
-                    
+
                     // Skip fully transparent or black pixels to reduce overdraw
                     if (a === 0 || (r|g|b) === 0) continue;
-                    
+
                     ctx.fillStyle = `rgb(${r},${g},${b})`;
                     const cx = Math.floor(x * scale + scale / 2);
                     const cy = Math.floor(y * scale + scale / 2);
                     ctx.beginPath();
                     ctx.arc(cx, cy, dotRadius, 0, Math.PI * 2);
                     ctx.fill();
+                    dotsDrawn++;
                 }
             }
+            console.log('LED dots rendered:', dotsDrawn, 'dots drawn');
         }
 
         function drawGrid(canvas, pixelWidth, pixelHeight, scale) {
