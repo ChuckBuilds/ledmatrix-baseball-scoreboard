@@ -243,22 +243,25 @@
         });
 
         function updateSystemStats(data) {
-            // Update CPU
+            // Update CPU in header
             const cpuEl = document.getElementById('cpu-stat');
             if (cpuEl && data.cpu_percent !== undefined) {
-                cpuEl.querySelector('span').textContent = data.cpu_percent + '%';
+                const spans = cpuEl.querySelectorAll('span');
+                if (spans.length > 0) spans[spans.length - 1].textContent = data.cpu_percent + '%';
             }
 
-            // Update Memory
+            // Update Memory in header
             const memEl = document.getElementById('memory-stat');
             if (memEl && data.memory_used_percent !== undefined) {
-                memEl.querySelector('span').textContent = data.memory_used_percent + '%';
+                const spans = memEl.querySelectorAll('span');
+                if (spans.length > 0) spans[spans.length - 1].textContent = data.memory_used_percent + '%';
             }
 
-            // Update Temperature
+            // Update Temperature in header
             const tempEl = document.getElementById('temp-stat');
             if (tempEl && data.cpu_temp !== undefined) {
-                tempEl.querySelector('span').textContent = data.cpu_temp + '°C';
+                const spans = tempEl.querySelectorAll('span');
+                if (spans.length > 0) spans[spans.length - 1].textContent = data.cpu_temp + '°C';
             }
         }
 

@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify, Response
 import json
+import os
 import subprocess
 import time
 from pathlib import Path
@@ -90,7 +91,15 @@ def get_system_status():
 def execute_system_action():
     """Execute system actions (start/stop/reboot/etc)"""
     try:
-        data = request.get_json()
+        # HTMX sends data as form data, not JSON
+        data = request.get_json(silent=True) or {}
+        if not data:
+            # Try to get from form data if JSON fails
+            data = {
+                'action': request.form.get('action'),
+                'mode': request.form.get('mode')
+            }
+        
         if not data or 'action' not in data:
             return jsonify({'status': 'error', 'message': 'Action required'}), 400
 
@@ -143,7 +152,11 @@ def execute_system_action():
         })
 
     except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Error in execute_system_action: {str(e)}")
+        print(error_details)
+        return jsonify({'status': 'error', 'message': str(e), 'details': error_details}), 500
 
 @api_v3.route('/display/current', methods=['GET'])
 def get_display_current():
