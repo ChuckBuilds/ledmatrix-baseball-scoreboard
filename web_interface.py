@@ -9,6 +9,30 @@ app = Flask(__name__)
 app.secret_key = os.urandom(24)
 config_manager = ConfigManager()
 
+# Add security headers to all responses
+@app.after_request
+def add_security_headers(response):
+    """Add security headers to all responses"""
+    # Set a clean Permissions-Policy header that disables advertising and privacy sandbox features
+    # This prevents browser warnings about unrecognized features
+    response.headers['Permissions-Policy'] = (
+        'geolocation=(), '
+        'microphone=(), '
+        'camera=(), '
+        'payment=(), '
+        'usb=(), '
+        'magnetometer=(), '
+        'gyroscope=(), '
+        'accelerometer=()'
+    )
+    
+    # Additional security headers
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    
+    return response
+
 @app.route('/')
 def index():
     try:
