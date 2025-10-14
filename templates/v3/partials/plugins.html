@@ -17,7 +17,7 @@
     </div>
 
     <!-- Plugin Content Area -->
-    <div id="plugins-loading" class="hidden animate-pulse">
+    <div id="plugins-loading" class="hidden animate-pulse" style="display: none;">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
             <div class="bg-gray-200 rounded-lg p-4 h-24"></div>
             <div class="bg-gray-200 rounded-lg p-4 h-24"></div>
@@ -169,6 +169,9 @@ document.addEventListener('htmx:afterSettle', function(event) {
 function initializePlugins() {
     console.log('Initializing plugins...');
 
+    // Ensure loading is hidden initially
+    hideLoading();
+
     // Check GitHub authentication status
     checkGitHubAuthStatus();
 
@@ -221,6 +224,23 @@ function loadInstalledPlugins() {
         });
 }
 
+// Helper function to parse tags
+function parseTags(tags) {
+    if (!tags) return [];
+    if (Array.isArray(tags)) return tags;
+    if (typeof tags === 'string') {
+        // Try to parse as JSON array first
+        try {
+            const parsed = JSON.parse(tags);
+            if (Array.isArray(parsed)) return parsed;
+        } catch (e) {
+            // Not JSON, try comma-separated
+            return tags.split(',').map(t => t.trim()).filter(t => t);
+        }
+    }
+    return [];
+}
+
 function renderInstalledPlugins(plugins) {
     const container = document.getElementById('installed-plugins-grid');
 
@@ -235,7 +255,9 @@ function renderInstalledPlugins(plugins) {
         return;
     }
 
-    container.innerHTML = plugins.map(plugin => `
+    container.innerHTML = plugins.map(plugin => {
+        const tags = parseTags(plugin.tags);
+        return `
         <div class="bg-gray-50 rounded-lg p-4 border">
             <div class="flex items-start justify-between mb-3">
                 <div class="flex-1">
@@ -255,9 +277,9 @@ function renderInstalledPlugins(plugins) {
             </div>
 
             <!-- Plugin Tags -->
-            ${plugin.tags ? `
-                <div class="flex flex-wrap gap-1 mb-3">
-                    ${plugin.tags.map(tag => `<span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">${escapeHtml(tag)}</span>`).join('')}
+            ${tags.length > 0 ? `
+                <div class="flex flex-wrap gap-2 mb-3">
+                    ${tags.map(tag => `<span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">${escapeHtml(tag)}</span>`).join(' ')}
                 </div>
             ` : ''}
 
@@ -277,7 +299,8 @@ function renderInstalledPlugins(plugins) {
                 </button>
             </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
 }
 
 // Helper function to update toggle text dynamically
@@ -619,7 +642,9 @@ function renderPluginStore(plugins) {
         return;
     }
 
-    container.innerHTML = plugins.map(plugin => `
+    container.innerHTML = plugins.map(plugin => {
+        const tags = parseTags(plugin.tags);
+        return `
         <div class="bg-gray-50 rounded-lg p-4 border">
             <div class="flex items-start justify-between mb-3">
                 <div class="flex-1">
@@ -637,9 +662,9 @@ function renderPluginStore(plugins) {
             </div>
 
             <!-- Plugin Tags -->
-            ${plugin.tags ? `
-                <div class="flex flex-wrap gap-1 mb-3">
-                    ${plugin.tags.map(tag => `<span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">${escapeHtml(tag)}</span>`).join('')}
+            ${tags.length > 0 ? `
+                <div class="flex flex-wrap gap-2 mb-3">
+                    ${tags.map(tag => `<span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">${escapeHtml(tag)}</span>`).join(' ')}
                 </div>
             ` : ''}
 
@@ -655,7 +680,8 @@ function renderPluginStore(plugins) {
                 </button>
             </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
 }
 
 function installPlugin(pluginId) {
@@ -684,7 +710,11 @@ function showLoading() {
     const loadingEl = document.getElementById('plugins-loading');
     const contentEl = document.getElementById('plugins-content');
     if (loadingEl && contentEl) {
+        // Force show loading skeleton
+        loadingEl.style.display = '';
         loadingEl.classList.remove('hidden');
+        // Force hide content
+        contentEl.style.display = 'none';
         contentEl.classList.add('hidden');
     }
 }
@@ -693,7 +723,11 @@ function hideLoading() {
     const loadingEl = document.getElementById('plugins-loading');
     const contentEl = document.getElementById('plugins-content');
     if (loadingEl && contentEl) {
+        // Force hide loading skeleton
+        loadingEl.style.display = 'none';
         loadingEl.classList.add('hidden');
+        // Force show content
+        contentEl.style.display = '';
         contentEl.classList.remove('hidden');
     }
 }
