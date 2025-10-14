@@ -460,10 +460,9 @@ class PluginStoreManager:
                 timeout=60
             )
             
-            # Remove .git directory to save space
-            git_dir = target_path / '.git'
-            if git_dir.exists():
-                shutil.rmtree(git_dir)
+            # Keep .git directory for update functionality
+            # This allows plugins to be updated via 'git pull'
+            self.logger.debug(f"Successfully cloned {repo_url} to {target_path}")
             
             return True
             
