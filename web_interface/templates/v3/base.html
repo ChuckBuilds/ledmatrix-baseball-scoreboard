@@ -834,7 +834,8 @@
 
         // ===== Plugin Management Functions =====
 
-        async function togglePlugin(pluginId, enabled) {
+        // Make togglePluginFromTab global so Alpine.js can access it  
+        window.togglePluginFromTab = async function(pluginId, enabled) {
             try {
                 const response = await fetch('/api/v3/plugins/toggle', {
                     method: 'POST',
@@ -843,16 +844,18 @@
                 });
                 const data = await response.json();
 
-                app.showNotification(data.message, data.status);
+                showNotification(data.message, data.status);
 
-                // Update the plugin in the list
-                const plugin = app.installedPlugins.find(p => p.id === pluginId);
-                if (plugin) {
-                    plugin.enabled = enabled;
+                // Update the plugin in window.installedPlugins
+                if (window.installedPlugins) {
+                    const plugin = window.installedPlugins.find(p => p.id === pluginId);
+                    if (plugin) {
+                        plugin.enabled = enabled;
+                    }
                 }
 
             } catch (error) {
-                app.showNotification('Error toggling plugin: ' + error.message, 'error');
+                showNotification('Error toggling plugin: ' + error.message, 'error');
             }
         }
 
