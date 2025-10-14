@@ -858,8 +858,15 @@
 
         async function savePluginConfig(pluginId) {
             try {
-                // Get the form for this plugin
-                const form = document.querySelector(`form[x-on\\:submit\\.prevent="savePluginConfig('${pluginId}')"]`);
+                console.log('Saving config for plugin:', pluginId);
+                
+                // Find the active plugin tab's form
+                const pluginTab = document.querySelector(`[x-show="activeTab === '${pluginId}'"]`);
+                if (!pluginTab) {
+                    throw new Error('Plugin tab not found for ' + pluginId);
+                }
+                
+                const form = pluginTab.querySelector('form');
                 if (!form) {
                     throw new Error('Form not found for plugin ' + pluginId);
                 }
@@ -890,20 +897,43 @@
                 const data = await response.json();
 
                 if (data.status === 'success') {
-                    app.showNotification(`Configuration saved for ${pluginId}`, 'success');
+                    showNotification(`Configuration saved for ${pluginId}`, 'success');
                 } else {
                     throw new Error(data.message || 'Failed to save configuration');
                 }
 
             } catch (error) {
                 console.error('Error saving plugin configuration:', error);
-                app.showNotification('Error saving plugin configuration: ' + error.message, 'error');
+                showNotification('Error saving plugin configuration: ' + error.message, 'error');
             }
+        }
+        
+        // Notification helper function
+        function showNotification(message, type = 'info') {
+            console.log(`[${type.toUpperCase()}]`, message);
+            
+            // Create a simple toast notification
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-500' :
+                type === 'error' ? 'bg-red-500' :
+                'bg-blue-500'
+            } text-white`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            // Fade out and remove after 3 seconds
+            setTimeout(() => {
+                notification.style.transition = 'opacity 0.5s';
+                notification.style.opacity = '0';
+                setTimeout(() => notification.remove(), 500);
+            }, 3000);
         }
 
         async function updatePlugin(pluginId) {
             try {
-                app.showNotification(`Updating ${pluginId}...`, 'info');
+                showNotification(`Updating ${pluginId}...`, 'info');
 
                 const response = await fetch('/api/v3/plugins/update', {
                     method: 'POST',
@@ -912,27 +942,28 @@
                 });
                 const data = await response.json();
 
-                app.showNotification(data.message, data.status);
+                showNotification(data.message, data.status);
 
                 if (data.status === 'success') {
                     // Refresh the plugin list
                     await app.loadInstalledPlugins();
                 }
             } catch (error) {
-                app.showNotification('Error updating plugin: ' + error.message, 'error');
+                showNotification('Error updating plugin: ' + error.message, 'error');
             }
         }
 
         async function uninstallPlugin(pluginId) {
             try {
-                const plugin = app.installedPlugins.find(p => p.id === pluginId);
+                // Get plugin info from window.installedPlugins
+                const plugin = window.installedPlugins ? window.installedPlugins.find(p => p.id === pluginId) : null;
                 const pluginName = plugin ? (plugin.name || pluginId) : pluginId;
 
                 if (!confirm(`Are you sure you want to uninstall ${pluginName}?`)) {
                     return;
                 }
 
-                app.showNotification(`Uninstalling ${pluginName}...`, 'info');
+                showNotification(`Uninstalling ${pluginName}...`, 'info');
 
                 const response = await fetch('/api/v3/plugins/uninstall', {
                     method: 'POST',
@@ -941,14 +972,14 @@
                 });
                 const data = await response.json();
 
-                app.showNotification(data.message, data.status);
+                showNotification(data.message, data.status);
 
                 if (data.status === 'success') {
                     // Refresh the plugin list
                     await app.loadInstalledPlugins();
                 }
             } catch (error) {
-                app.showNotification('Error uninstalling plugin: ' + error.message, 'error');
+                showNotification('Error uninstalling plugin: ' + error.message, 'error');
             }
         }
 
