@@ -98,7 +98,7 @@
             </div>
 
             <!-- Second row - Plugin tabs (populated dynamically) -->
-            <div id="plugin-tabs-row" class="border-b border-gray-200" style="display: none;">
+            <div id="plugin-tabs-row" class="border-b border-gray-200">
                 <nav class="-mb-px flex space-x-4 lg:space-x-6 xl:space-x-8 overflow-x-auto">
                     <button @click="activeTab = 'plugins'"
                             :class="activeTab === 'plugins' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
@@ -466,7 +466,8 @@
                     console.log('Plugin tabs elements:', {
                         pluginTabsRow: !!pluginTabsRow,
                         pluginTabsNav: !!pluginTabsNav,
-                        bodyExists: !!document.body
+                        bodyExists: !!document.body,
+                        installedPlugins: this.installedPlugins
                     });
 
                     if (!pluginTabsRow || !pluginTabsNav) {
@@ -483,14 +484,8 @@
 
                     console.log(`Updating plugin tabs for ${this.installedPlugins.length} plugins`);
 
-                    if (this.installedPlugins.length === 0) {
-                        console.log('No plugins installed, hiding plugin tabs row');
-                        pluginTabsRow.style.display = 'none';
-                        return;
-                    }
-
-                    // Show the plugin tabs row
-                    console.log('Showing plugin tabs row');
+                    // Always show the plugin tabs row (Plugin Manager should always be available)
+                    console.log('Ensuring plugin tabs row is visible');
                     pluginTabsRow.style.display = 'block';
 
                     // Clear existing plugin tabs (except the Plugin Manager tab)
