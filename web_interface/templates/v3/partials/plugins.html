@@ -152,8 +152,8 @@ let loadingStates = { installed: false, store: false };
 // Plugin Manager App Object (make available globally)
 window.pluginManager = {
     async loadInstalledPlugins() {
-        console.log('Loading installed plugins...');
-        loadingStates.installed = true;
+    console.log('Loading installed plugins...');
+    loadingStates.installed = true;
         this.checkAndShowLoading();
 
         try {
@@ -172,9 +172,13 @@ window.pluginManager = {
                 }
 
                 // Update main app's plugin list for navigation tabs
-                // Use a timeout to ensure Alpine.js is fully initialized
-                setTimeout(() => {
-                    console.log('Updating main app plugin tabs...', {
+                // Use multiple attempts to ensure Alpine.js is fully initialized
+                let attempts = 0;
+                const maxAttempts = 10;
+
+                function tryUpdatePluginTabs() {
+                    attempts++;
+                    console.log(`Attempt ${attempts} to update plugin tabs...`, {
                         appExists: !!window.app,
                         installedPluginsExists: !!(window.app && window.app.installedPlugins),
                         pluginCount: installedPlugins.length,
@@ -185,10 +189,18 @@ window.pluginManager = {
                         window.app.installedPlugins = installedPlugins;
                         window.app.updatePluginTabs();
                         console.log('Plugin tabs updated successfully');
-                    } else {
-                        console.warn('Main app or installedPlugins not available for tab updates');
+                        return true;
                     }
-                }, 100);
+
+                    if (attempts < maxAttempts) {
+                        setTimeout(tryUpdatePluginTabs, 200);
+                    } else {
+                        console.warn('Failed to update plugin tabs after maximum attempts');
+                    }
+                    return false;
+                }
+
+                setTimeout(tryUpdatePluginTabs, 100);
             } else {
                 this.showError('Failed to load installed plugins: ' + data.message);
             }
@@ -204,69 +216,69 @@ window.pluginManager = {
     },
 
     renderInstalledPlugins(plugins) {
-        const container = document.getElementById('installed-plugins-grid');
+    const container = document.getElementById('installed-plugins-grid');
         if (!container) return;
 
-        if (plugins.length === 0) {
-            container.innerHTML = `
-                <div class="col-span-full text-center py-8">
-                    <i class="fas fa-plug text-4xl text-gray-400 mb-2"></i>
-                    <p class="text-gray-600">No plugins installed</p>
-                    <p class="text-sm text-gray-500 mt-1">Install plugins from the store to get started</p>
-                </div>
-            `;
-            return;
-        }
-
-        container.innerHTML = plugins.map(plugin => {
-            const tags = this.parseTags(plugin.tags);
-            return `
-            <div class="bg-gray-50 rounded-lg p-4 border">
-                <div class="flex items-start justify-between mb-3">
-                    <div class="flex-1">
-                        <div class="flex items-center space-x-2 mb-1">
-                            <div class="flex items-center space-x-2">
-                                <span class="plugin-icon">${this.getPluginIcon(plugin)}</span>
-                                <h4 class="font-medium text-gray-900">${this.escapeHtml(plugin.name || plugin.id)}</h4>
-                            </div>
-                            ${plugin.verified ? '<span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">✓ Verified</span>' : ''}
-                            ${plugin.enabled ? '<span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded ml-2">Enabled</span>' : '<span class="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded ml-2">Disabled</span>'}
-                        </div>
-                        <div class="text-sm text-gray-600 space-y-1">
-                            <p><i class="fas fa-user mr-1"></i>${this.escapeHtml(plugin.author || 'Unknown')}</p>
-                            <p><i class="fas fa-tag mr-1"></i>v${plugin.version || '1.0.0'}</p>
-                            <p><i class="fas fa-folder mr-1"></i>${this.escapeHtml(plugin.category || 'General')}</p>
-                            <p><i class="fas fa-star mr-1"></i>${plugin.stars || 0} stars</p>
-                        </div>
-                        <p class="text-sm text-gray-700 mt-2">${this.escapeHtml(plugin.description || 'No description available')}</p>
-                    </div>
-                </div>
-
-                <!-- Plugin Tags -->
-                ${tags.length > 0 ? `
-                    <div class="flex flex-wrap gap-2 mb-3">
-                        ${tags.map(tag => `<span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">${this.escapeHtml(tag)}</span>`).join(' ')}
-                    </div>
-                ` : ''}
-
-                <!-- Plugin Actions -->
-                <div class="flex space-x-2">
-                    <button onclick="pluginManager.configurePlugin('${plugin.id}')"
-                            class="btn bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm flex-1">
-                        <i class="fas fa-cog mr-1"></i>Configure
-                    </button>
-                    <button onclick="pluginManager.updatePlugin('${plugin.id}')"
-                            class="btn bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-sm flex-1">
-                        <i class="fas fa-sync mr-1"></i>Update
-                    </button>
-                    <button onclick="pluginManager.uninstallPlugin('${plugin.id}')"
-                            class="btn bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm flex-1">
-                        <i class="fas fa-trash mr-1"></i>Uninstall
-                    </button>
-                </div>
+    if (plugins.length === 0) {
+        container.innerHTML = `
+            <div class="col-span-full text-center py-8">
+                <i class="fas fa-plug text-4xl text-gray-400 mb-2"></i>
+                <p class="text-gray-600">No plugins installed</p>
+                <p class="text-sm text-gray-500 mt-1">Install plugins from the store to get started</p>
             </div>
         `;
-        }).join('');
+        return;
+    }
+
+    container.innerHTML = plugins.map(plugin => {
+            const tags = this.parseTags(plugin.tags);
+        return `
+        <div class="bg-gray-50 rounded-lg p-4 border">
+            <div class="flex items-start justify-between mb-3">
+                <div class="flex-1">
+                    <div class="flex items-center space-x-2 mb-1">
+                        <div class="flex items-center space-x-2">
+                                <span class="plugin-icon">${this.getPluginIcon(plugin)}</span>
+                                <h4 class="font-medium text-gray-900">${this.escapeHtml(plugin.name || plugin.id)}</h4>
+                        </div>
+                        ${plugin.verified ? '<span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">✓ Verified</span>' : ''}
+                        ${plugin.enabled ? '<span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded ml-2">Enabled</span>' : '<span class="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded ml-2">Disabled</span>'}
+                    </div>
+                    <div class="text-sm text-gray-600 space-y-1">
+                            <p><i class="fas fa-user mr-1"></i>${this.escapeHtml(plugin.author || 'Unknown')}</p>
+                        <p><i class="fas fa-tag mr-1"></i>v${plugin.version || '1.0.0'}</p>
+                            <p><i class="fas fa-folder mr-1"></i>${this.escapeHtml(plugin.category || 'General')}</p>
+                        <p><i class="fas fa-star mr-1"></i>${plugin.stars || 0} stars</p>
+                    </div>
+                        <p class="text-sm text-gray-700 mt-2">${this.escapeHtml(plugin.description || 'No description available')}</p>
+                </div>
+            </div>
+
+            <!-- Plugin Tags -->
+            ${tags.length > 0 ? `
+                <div class="flex flex-wrap gap-2 mb-3">
+                        ${tags.map(tag => `<span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">${this.escapeHtml(tag)}</span>`).join(' ')}
+                </div>
+            ` : ''}
+
+            <!-- Plugin Actions -->
+            <div class="flex space-x-2">
+                    <button onclick="pluginManager.configurePlugin('${plugin.id}')"
+                        class="btn bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm flex-1">
+                    <i class="fas fa-cog mr-1"></i>Configure
+                </button>
+                    <button onclick="pluginManager.updatePlugin('${plugin.id}')"
+                        class="btn bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-sm flex-1">
+                    <i class="fas fa-sync mr-1"></i>Update
+                </button>
+                    <button onclick="pluginManager.uninstallPlugin('${plugin.id}')"
+                        class="btn bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm flex-1">
+                    <i class="fas fa-trash mr-1"></i>Uninstall
+                </button>
+            </div>
+        </div>
+    `;
+    }).join('');
 
         // Update count
         const countEl = document.getElementById('installed-count');
@@ -445,8 +457,12 @@ window.pluginManager = {
                 this.renderInstalledPlugins(installedPlugins);
 
                 // Update main app's plugin list and tabs
-                setTimeout(() => {
-                    console.log('Updating main app after uninstall...', {
+                let attempts = 0;
+                const maxAttempts = 10;
+
+                function tryUpdateAfterUninstall() {
+                    attempts++;
+                    console.log(`Uninstall update attempt ${attempts}...`, {
                         appExists: !!window.app,
                         installedPluginsExists: !!(window.app && window.app.installedPlugins),
                         pluginCount: installedPlugins.length
@@ -456,8 +472,16 @@ window.pluginManager = {
                         window.app.installedPlugins = installedPlugins;
                         window.app.updatePluginTabs();
                         console.log('Plugin tabs updated after uninstall');
+                        return true;
                     }
-                }, 100);
+
+                    if (attempts < maxAttempts) {
+                        setTimeout(tryUpdateAfterUninstall, 200);
+                    }
+                    return false;
+                }
+
+                setTimeout(tryUpdateAfterUninstall, 100);
 
                 // Also refresh from server to ensure consistency
                 setTimeout(() => {
@@ -491,10 +515,10 @@ window.pluginManager = {
     },
 
     async configurePlugin(pluginId) {
-        console.log('Configuring plugin:', pluginId);
+    console.log('Configuring plugin:', pluginId);
 
         try {
-            // Load plugin configuration
+    // Load plugin configuration
             const response = await fetch(`/api/v3/plugins/config?plugin_id=${pluginId}`);
             const data = await response.json();
 
@@ -508,33 +532,33 @@ window.pluginManager = {
         } catch (error) {
             console.error('Error loading plugin configuration:', error);
             this.showNotification('Error loading plugin configuration: ' + error.message, 'error');
-        }
+}
     },
 
     async showPluginConfigModal(pluginId, config) {
-        const modal = document.getElementById('plugin-config-modal');
-        const title = document.getElementById('plugin-config-title');
-        const content = document.getElementById('plugin-config-content');
+    const modal = document.getElementById('plugin-config-modal');
+    const title = document.getElementById('plugin-config-title');
+    const content = document.getElementById('plugin-config-content');
 
         if (!modal || !title || !content) {
             console.error('Plugin config modal elements not found');
             return;
         }
 
-        // Find the plugin to get its icon
-        const plugin = installedPlugins.find(p => p.id === pluginId);
+    // Find the plugin to get its icon
+    const plugin = installedPlugins.find(p => p.id === pluginId);
         const iconHTML = plugin ? this.getPluginIcon(plugin) : '<i class="fas fa-puzzle-piece"></i>';
-        const pluginName = plugin ? (plugin.name || pluginId) : pluginId;
+    const pluginName = plugin ? (plugin.name || pluginId) : pluginId;
 
-        title.innerHTML = `${iconHTML} Configure ${pluginName}`;
+    title.innerHTML = `${iconHTML} Configure ${pluginName}`;
         content.innerHTML = await this.generatePluginConfigForm(pluginId, config);
 
-        modal.classList.remove('hidden');
+    modal.classList.remove('hidden');
     },
 
     async generatePluginConfigForm(pluginId, config) {
         try {
-            // Load plugin schema for dynamic form generation
+    // Load plugin schema for dynamic form generation
             const schemaResponse = await fetch(`/api/v3/plugins/schema?plugin_id=${pluginId}`);
             const schemaData = await schemaResponse.json();
 
@@ -547,15 +571,107 @@ window.pluginManager = {
         } catch (error) {
             console.error('Error loading schema:', error);
             return this.generateSimpleConfigForm(config);
-        }
+}
     },
 
     generateFormFromSchema(schema, config) {
-        let formHtml = '<form id="plugin-config-form" class="space-y-4">';
+    let formHtml = '<form id="plugin-config-form" class="space-y-4">';
 
-        // Always add the enabled toggle at the top
-        const enabledValue = config.enabled !== undefined ? config.enabled : true;
-        formHtml += `
+    // Always add the enabled toggle at the top
+    const enabledValue = config.enabled !== undefined ? config.enabled : true;
+    formHtml += `
+        <div class="form-group bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <label for="enabled" class="block text-sm font-medium text-gray-900 mb-2">
+                Plugin Status
+            </label>
+            <p class="text-sm text-gray-600 mb-3">Enable or disable this plugin from the rotation</p>
+            <label class="inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="enabled" name="enabled" ${enabledValue ? 'checked' : ''} class="sr-only peer" onchange="updateToggleText(this)">
+                <div class="relative w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                <span class="ms-3 text-sm font-medium text-gray-900 peer-checked:text-green-600" id="enabled-status-text">${enabledValue ? 'Enabled' : 'Disabled'}</span>
+            </label>
+        </div>
+    `;
+
+    if (schema.properties) {
+        Object.entries(schema.properties).forEach(([key, prop]) => {
+            // Skip the 'enabled' property if it's in the schema since we already added it
+            if (key === 'enabled') return;
+
+            const value = config[key] !== undefined ? config[key] : prop.default;
+            const label = prop.title || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            const description = prop.description || '';
+
+            formHtml += `
+                <div class="form-group">
+                    <label for="${key}" class="block text-sm font-medium text-gray-700 mb-1">
+                        ${label}
+                    </label>
+            `;
+
+            if (description) {
+                formHtml += `<p class="text-sm text-gray-600 mb-2">${description}</p>`;
+            }
+
+            // Generate appropriate input based on type
+            if (prop.type === 'boolean') {
+                formHtml += `
+                    <label class="flex items-center">
+                        <input type="checkbox" id="${key}" name="${key}" ${value ? 'checked' : ''} class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                        <span class="ml-2 text-sm">Enabled</span>
+                    </label>
+                `;
+            } else if (prop.type === 'number' || prop.type === 'integer') {
+                const min = prop.minimum !== undefined ? `min="${prop.minimum}"` : '';
+                const max = prop.maximum !== undefined ? `max="${prop.maximum}"` : '';
+                const step = prop.type === 'integer' ? 'step="1"' : 'step="any"';
+                formHtml += `
+                    <input type="number" id="${key}" name="${key}" value="${value || ''}" ${min} ${max} ${step} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                `;
+            } else if (prop.type === 'array') {
+                const arrayValue = Array.isArray(value) ? value.join(', ') : '';
+                formHtml += `
+                    <input type="text" id="${key}" name="${key}" value="${arrayValue}" placeholder="Enter values separated by commas" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <p class="text-sm text-gray-600 mt-1">Enter values separated by commas</p>
+                `;
+            } else if (prop.enum) {
+                formHtml += `<select id="${key}" name="${key}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">`;
+                prop.enum.forEach(option => {
+                    const selected = value === option ? 'selected' : '';
+                    formHtml += `<option value="${option}" ${selected}>${option}</option>`;
+                });
+                formHtml += `</select>`;
+            } else {
+                // Default to text input
+                const maxLength = prop.maxLength || '';
+                formHtml += `
+                    <input type="text" id="${key}" name="${key}" value="${value || ''}" ${maxLength ? `maxlength="${maxLength}"` : ''} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                `;
+            }
+
+            formHtml += `</div>`;
+        });
+    }
+
+    formHtml += `
+        <div class="flex justify-end space-x-2 pt-4 border-t border-gray-200">
+                <button type="button" onclick="pluginManager.closePluginConfigModal()" class="btn bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md">
+                Cancel
+            </button>
+            <button type="submit" class="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">
+                <i class="fas fa-save mr-2"></i>Save Configuration
+            </button>
+        </div>
+    </form>
+    `;
+
+        return formHtml;
+    },
+
+    generateSimpleConfigForm(config) {
+    const enabledValue = config.enabled !== undefined ? config.enabled : true;
+    return `
+        <form id="plugin-config-form" class="space-y-4">
             <div class="form-group bg-blue-50 p-4 rounded-lg border border-blue-200">
                 <label for="enabled" class="block text-sm font-medium text-gray-900 mb-2">
                     Plugin Status
@@ -567,114 +683,22 @@ window.pluginManager = {
                     <span class="ms-3 text-sm font-medium text-gray-900 peer-checked:text-green-600" id="enabled-status-text">${enabledValue ? 'Enabled' : 'Disabled'}</span>
                 </label>
             </div>
-        `;
 
-        if (schema.properties) {
-            Object.entries(schema.properties).forEach(([key, prop]) => {
-                // Skip the 'enabled' property if it's in the schema since we already added it
-                if (key === 'enabled') return;
+            <div class="form-group">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Configuration</label>
+                <textarea name="config" class="form-control h-32" placeholder="Plugin configuration JSON">${JSON.stringify(config, null, 2)}</textarea>
+            </div>
 
-                const value = config[key] !== undefined ? config[key] : prop.default;
-                const label = prop.title || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                const description = prop.description || '';
-
-                formHtml += `
-                    <div class="form-group">
-                        <label for="${key}" class="block text-sm font-medium text-gray-700 mb-1">
-                            ${label}
-                        </label>
-                `;
-
-                if (description) {
-                    formHtml += `<p class="text-sm text-gray-600 mb-2">${description}</p>`;
-                }
-
-                // Generate appropriate input based on type
-                if (prop.type === 'boolean') {
-                    formHtml += `
-                        <label class="flex items-center">
-                            <input type="checkbox" id="${key}" name="${key}" ${value ? 'checked' : ''} class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                            <span class="ml-2 text-sm">Enabled</span>
-                        </label>
-                    `;
-                } else if (prop.type === 'number' || prop.type === 'integer') {
-                    const min = prop.minimum !== undefined ? `min="${prop.minimum}"` : '';
-                    const max = prop.maximum !== undefined ? `max="${prop.maximum}"` : '';
-                    const step = prop.type === 'integer' ? 'step="1"' : 'step="any"';
-                    formHtml += `
-                        <input type="number" id="${key}" name="${key}" value="${value || ''}" ${min} ${max} ${step} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                    `;
-                } else if (prop.type === 'array') {
-                    const arrayValue = Array.isArray(value) ? value.join(', ') : '';
-                    formHtml += `
-                        <input type="text" id="${key}" name="${key}" value="${arrayValue}" placeholder="Enter values separated by commas" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                        <p class="text-sm text-gray-600 mt-1">Enter values separated by commas</p>
-                    `;
-                } else if (prop.enum) {
-                    formHtml += `<select id="${key}" name="${key}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">`;
-                    prop.enum.forEach(option => {
-                        const selected = value === option ? 'selected' : '';
-                        formHtml += `<option value="${option}" ${selected}>${option}</option>`;
-                    });
-                    formHtml += `</select>`;
-                } else {
-                    // Default to text input
-                    const maxLength = prop.maxLength || '';
-                    formHtml += `
-                        <input type="text" id="${key}" name="${key}" value="${value || ''}" ${maxLength ? `maxlength="${maxLength}"` : ''} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                    `;
-                }
-
-                formHtml += `</div>`;
-            });
-        }
-
-        formHtml += `
-            <div class="flex justify-end space-x-2 pt-4 border-t border-gray-200">
-                <button type="button" onclick="pluginManager.closePluginConfigModal()" class="btn bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md">
+            <div class="flex justify-end space-x-2">
+                    <button type="button" onclick="pluginManager.closePluginConfigModal()" class="btn bg-gray-600 hover:bg-gray-700 text-white px-4 py-2">
                     Cancel
                 </button>
-                <button type="submit" class="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">
-                    <i class="fas fa-save mr-2"></i>Save Configuration
+                <button type="submit" class="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2">
+                    Save Configuration
                 </button>
             </div>
         </form>
-        `;
-
-        return formHtml;
-    },
-
-    generateSimpleConfigForm(config) {
-        const enabledValue = config.enabled !== undefined ? config.enabled : true;
-        return `
-            <form id="plugin-config-form" class="space-y-4">
-                <div class="form-group bg-blue-50 p-4 rounded-lg border border-blue-200">
-                    <label for="enabled" class="block text-sm font-medium text-gray-900 mb-2">
-                        Plugin Status
-                    </label>
-                    <p class="text-sm text-gray-600 mb-3">Enable or disable this plugin from the rotation</p>
-                    <label class="inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="enabled" name="enabled" ${enabledValue ? 'checked' : ''} class="sr-only peer" onchange="updateToggleText(this)">
-                        <div class="relative w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
-                        <span class="ms-3 text-sm font-medium text-gray-900 peer-checked:text-green-600" id="enabled-status-text">${enabledValue ? 'Enabled' : 'Disabled'}</span>
-                    </label>
-                </div>
-
-                <div class="form-group">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Configuration</label>
-                    <textarea name="config" class="form-control h-32" placeholder="Plugin configuration JSON">${JSON.stringify(config, null, 2)}</textarea>
-                </div>
-
-                <div class="flex justify-end space-x-2">
-                    <button type="button" onclick="pluginManager.closePluginConfigModal()" class="btn bg-gray-600 hover:bg-gray-700 text-white px-4 py-2">
-                        Cancel
-                    </button>
-                    <button type="submit" class="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2">
-                        Save Configuration
-                    </button>
-                </div>
-            </form>
-        `;
+    `;
     },
 
     closePluginConfigModal() {
@@ -692,16 +716,16 @@ window.pluginManager = {
     },
 
     restartDisplay() {
-        fetch('/api/v3/system/action', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'start_display' })
-        })
-        .then(response => response.json())
-        .then(data => {
+    fetch('/api/v3/system/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'start_display' })
+    })
+    .then(response => response.json())
+    .then(data => {
             this.showNotification(data.message, data.status);
-        })
-        .catch(error => {
+    })
+    .catch(error => {
             this.showNotification('Error restarting display: ' + error.message, 'error');
         });
     },
@@ -710,62 +734,62 @@ window.pluginManager = {
         // Use the main app's notification system if available
         if (window.app && window.app.showNotification) {
             window.app.showNotification(message, type);
-        } else {
+            } else {
             console.log(`Plugin Manager: ${type.toUpperCase()} - ${message}`);
         }
     },
 
     showLoading() {
-        const loadingEl = document.getElementById('plugins-loading');
-        const contentEl = document.getElementById('plugins-content');
-        if (loadingEl && contentEl) {
-            // Force show loading skeleton
-            loadingEl.style.display = '';
-            loadingEl.classList.remove('hidden');
-            // Force hide content
-            contentEl.style.display = 'none';
-            contentEl.classList.add('hidden');
-        }
+    const loadingEl = document.getElementById('plugins-loading');
+    const contentEl = document.getElementById('plugins-content');
+    if (loadingEl && contentEl) {
+        // Force show loading skeleton
+        loadingEl.style.display = '';
+        loadingEl.classList.remove('hidden');
+        // Force hide content
+        contentEl.style.display = 'none';
+        contentEl.classList.add('hidden');
+    }
     },
 
     hideLoading() {
-        const loadingEl = document.getElementById('plugins-loading');
-        const contentEl = document.getElementById('plugins-content');
-        if (loadingEl && contentEl) {
-            // Force hide loading skeleton
-            loadingEl.style.display = 'none';
-            loadingEl.classList.add('hidden');
-            // Force show content
-            contentEl.style.display = '';
-            contentEl.classList.remove('hidden');
-        }
+    const loadingEl = document.getElementById('plugins-loading');
+    const contentEl = document.getElementById('plugins-content');
+    if (loadingEl && contentEl) {
+        // Force hide loading skeleton
+        loadingEl.style.display = 'none';
+        loadingEl.classList.add('hidden');
+        // Force show content
+        contentEl.style.display = '';
+        contentEl.classList.remove('hidden');
+    }
     },
 
     checkAndShowLoading() {
-        // Only show loading if either state is loading
-        if (loadingStates.installed || loadingStates.store) {
+    // Only show loading if either state is loading
+    if (loadingStates.installed || loadingStates.store) {
             this.showLoading();
-        }
+    }
     },
 
     checkAndHideLoading() {
-        // Only hide loading when both are done
-        if (!loadingStates.installed && !loadingStates.store) {
+    // Only hide loading when both are done
+    if (!loadingStates.installed && !loadingStates.store) {
             this.hideLoading();
-        }
+    }
     },
 
     showError(message) {
-        const content = document.getElementById('plugins-content');
+    const content = document.getElementById('plugins-content');
         if (content) {
-            content.innerHTML = `
-                <div class="text-center py-8">
-                    <i class="fas fa-exclamation-triangle text-4xl text-red-400 mb-2"></i>
+    content.innerHTML = `
+        <div class="text-center py-8">
+            <i class="fas fa-exclamation-triangle text-4xl text-red-400 mb-2"></i>
                     <p class="text-red-600">${this.escapeHtml(message)}</p>
-                </div>
-            `;
-            content.classList.remove('hidden');
-        }
+        </div>
+    `;
+    content.classList.remove('hidden');
+}
     },
 
     // Utility functions
@@ -800,10 +824,10 @@ window.pluginManager = {
     },
 
     escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
 };
 
 // Initialize when DOM is ready or when HTMX loads content

@@ -456,19 +456,28 @@
                     }
                 },
 
-                updatePluginTabs() {
-                    console.log('updatePluginTabs called with:', this.installedPlugins.length, 'plugins');
+                updatePluginTabs(retryCount = 0) {
+                    const maxRetries = 5;
+                    console.log('updatePluginTabs called with:', this.installedPlugins.length, 'plugins (attempt', retryCount + 1, ')');
 
                     const pluginTabsRow = document.getElementById('plugin-tabs-row');
                     const pluginTabsNav = pluginTabsRow?.querySelector('nav');
 
                     console.log('Plugin tabs elements:', {
                         pluginTabsRow: !!pluginTabsRow,
-                        pluginTabsNav: !!pluginTabsNav
+                        pluginTabsNav: !!pluginTabsNav,
+                        bodyExists: !!document.body
                     });
 
-                    if (!pluginTabsNav) {
-                        console.error('Plugin tabs navigation not found');
+                    if (!pluginTabsRow || !pluginTabsNav) {
+                        if (retryCount < maxRetries) {
+                            console.log('Plugin tabs container not found, retrying...');
+                            setTimeout(() => {
+                                this.updatePluginTabs(retryCount + 1);
+                            }, 500);
+                        } else {
+                            console.error('Plugin tabs container not found after maximum retries');
+                        }
                         return;
                     }
 
