@@ -55,17 +55,19 @@
 
     <!-- Log Display -->
     <div class="relative">
-        <div id="logs-container" class="bg-gray-900 text-gray-100 font-mono text-sm rounded-lg p-3 border border-gray-700 shadow-inner overflow-y-auto" style="height: 500px; min-height: 400px; max-height: 70vh; position: relative;">
+        <div id="logs-container" class="bg-gray-900 text-gray-100 font-mono text-sm rounded-lg p-3 border border-gray-700 shadow-inner relative" style="height: 500px; min-height: 400px; max-height: 70vh;">
             <div id="logs-loading" class="flex items-center justify-center h-full text-gray-400">
                 <div class="text-center">
                     <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
                     <p>Loading logs...</p>
                 </div>
             </div>
-            <div id="logs-display" class="hidden" style="position: relative; z-index: 1;">
-                <!-- Logs will be inserted here -->
+            <div id="logs-display" class="hidden absolute inset-0 overflow-y-auto">
+                <div class="logs-content">
+                    <!-- Logs will be inserted here -->
+                </div>
             </div>
-            <div id="logs-empty" class="hidden flex items-center justify-center h-full text-gray-400">
+            <div id="logs-empty" class="hidden absolute inset-0 flex items-center justify-center text-gray-400">
                 <div class="text-center">
                     <i class="fas fa-file-alt text-4xl mb-2"></i>
                     <p>No logs available</p>
@@ -101,7 +103,7 @@ const MAX_LOGS = 500; // Maximum number of logs to keep in memory
 // Initialize immediately (this script runs when the partial is loaded)
 (function() {
     logContainer = document.getElementById('logs-container');
-    logsContent = document.getElementById('logs-display');
+    logsContent = document.querySelector('#logs-display .logs-content');
 
     // Logs container initialized successfully
 
@@ -290,6 +292,9 @@ function renderLogs() {
 
     // Hide empty state first
     document.getElementById('logs-empty').classList.add('hidden');
+    // Show logs display
+    logsContent.classList.remove('hidden');
+    document.getElementById('logs-loading').classList.add('hidden');
 
     logsContent.innerHTML = '';
 
@@ -305,9 +310,6 @@ function renderLogs() {
         `;
         logsContent.appendChild(logElement);
     });
-
-    logsContent.classList.remove('hidden');
-    document.getElementById('logs-loading').classList.add('hidden');
 }
 
 function getLogLevelClass(level) {
