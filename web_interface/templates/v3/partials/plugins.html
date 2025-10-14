@@ -325,9 +325,22 @@ function showPluginConfigModal(pluginId, config) {
     const content = document.getElementById('plugin-config-content');
 
     title.textContent = `Configure ${pluginId}`;
-    content.innerHTML = generatePluginConfigForm(pluginId, config);
-
+    
+    // Show loading state while form is generated
+    content.innerHTML = '<div class="flex items-center justify-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-blue-600"></i></div>';
+    
+    // Show modal immediately
     modal.classList.remove('hidden');
+    
+    // Generate form asynchronously
+    generatePluginConfigForm(pluginId, config)
+        .then(formHtml => {
+            content.innerHTML = formHtml;
+        })
+        .catch(error => {
+            console.error('Error generating config form:', error);
+            content.innerHTML = '<p class="text-red-600">Error loading configuration form</p>';
+        });
 }
 
 function generatePluginConfigForm(pluginId, config) {
