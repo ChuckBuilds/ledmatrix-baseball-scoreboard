@@ -867,11 +867,17 @@ function initPluginsPage() {
 
 
 // Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', initPluginsPage);
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initPluginsPage);
+} else {
+    // DOM is already ready, initialize now
+    initPluginsPage();
+}
 
 // Also initialize when HTMX loads this content
-document.addEventListener('htmx:afterSettle', function(event) {
+document.addEventListener('htmx:afterSwap', function(event) {
     if (event.target.id === 'plugins-content') {
+        console.log('HTMX afterSwap event detected for plugins-content, initializing...');
         initPluginsPage();
     }
 });
