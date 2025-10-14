@@ -819,6 +819,8 @@ function debounce(func, wait) {
 }
 
 // GitHub Authentication Status
+// Only shows the warning banner if no GitHub token is configured
+// The token itself is never exposed to the frontend for security
 function checkGitHubAuthStatus() {
     fetch('/api/v3/plugins/store/github-status')
         .then(response => response.json())
@@ -826,7 +828,7 @@ function checkGitHubAuthStatus() {
             if (data.status === 'success') {
                 const authData = data.data;
 
-                // Show warning if not authenticated
+                // Only show the banner if no GitHub token is configured
                 if (!authData.authenticated) {
                     // Check if user has dismissed the warning (stored in session storage)
                     const dismissed = sessionStorage.getItem('github-auth-warning-dismissed');
@@ -837,7 +839,15 @@ function checkGitHubAuthStatus() {
                         if (warning && rateLimit) {
                             rateLimit.textContent = authData.rate_limit;
                             warning.classList.remove('hidden');
+                            console.log('GitHub token not configured - showing API limit warning');
                         }
+                    }
+                } else {
+                    // Token is configured - ensure the banner is hidden
+                    const warning = document.getElementById('github-auth-warning');
+                    if (warning) {
+                        warning.classList.add('hidden');
+                        console.log('GitHub token is configured - API limit warning hidden');
                     }
                 }
             }
