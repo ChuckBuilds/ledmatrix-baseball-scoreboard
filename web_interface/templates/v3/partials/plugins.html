@@ -822,6 +822,20 @@ function initPluginsPage() {
     console.log('=== PLUGIN MANAGER INITIALIZATION ===');
     console.log('DOM ready, initializing plugin manager...');
 
+    // Verify critical elements exist
+    const installedGrid = document.getElementById('installed-plugins-grid');
+    const storeGrid = document.getElementById('plugin-store-grid');
+    console.log('Critical elements check:', {
+        installedGrid: !!installedGrid,
+        storeGrid: !!storeGrid
+    });
+
+    if (!installedGrid || !storeGrid) {
+        console.error('Critical plugin elements not found! Retrying in 500ms...');
+        setTimeout(initPluginsPage, 500);
+        return;
+    }
+
     // Check GitHub authentication status first (fast operation)
     checkGitHubAuthStatus();
 
