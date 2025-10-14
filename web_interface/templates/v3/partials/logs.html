@@ -103,13 +103,7 @@ const MAX_LOGS = 500; // Maximum number of logs to keep in memory
     logContainer = document.getElementById('logs-container');
     logsContent = document.getElementById('logs-display');
 
-    // Debug logging
-    console.log('Logs container initialized:', {
-        container: logContainer,
-        height: logContainer ? logContainer.offsetHeight : 'null',
-        scrollHeight: logContainer ? logContainer.scrollHeight : 'null',
-        overflow: logContainer ? getComputedStyle(logContainer).overflowY : 'null'
-    });
+    // Logs container initialized successfully
 
     initializeLogs();
 
@@ -213,12 +207,7 @@ function processLogs(logsText, append = false) {
         allLogs = [];
         logsContent.innerHTML = '';
 
-        // Debug container state after clearing
-        console.log('Container after clearing:', {
-            height: logContainer.offsetHeight,
-            scrollHeight: logContainer.scrollHeight,
-            clientHeight: logContainer.clientHeight
-        });
+        // Container cleared for new logs
     }
 
     // Parse journalctl output
