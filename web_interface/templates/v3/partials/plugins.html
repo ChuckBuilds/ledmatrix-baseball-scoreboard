@@ -115,19 +115,41 @@
 </div>
 
 <script>
-// Global variables
+(function() {
+    'use strict';
+
+    console.log('Plugin manager script starting...');
+    
+    // Local variables for this instance
 let installedPlugins = [];
 let currentPluginConfig = null;
 
 // Initialize when DOM is ready or when HTMX loads content
-function initPluginsPage() {
+window.initPluginsPage = function() {
     initializePlugins();
 
-    // Event listeners
-    document.getElementById('refresh-plugins-btn').addEventListener('click', refreshPlugins);
-    document.getElementById('restart-display-btn').addEventListener('click', restartDisplay);
-    document.getElementById('search-plugins-btn').addEventListener('click', searchPluginStore);
-    document.getElementById('close-plugin-config').addEventListener('click', closePluginConfigModal);
+    // Event listeners (remove old ones first to prevent duplicates)
+    const refreshBtn = document.getElementById('refresh-plugins-btn');
+    const restartBtn = document.getElementById('restart-display-btn');
+    const searchBtn = document.getElementById('search-plugins-btn');
+    const closeBtn = document.getElementById('close-plugin-config');
+    
+    if (refreshBtn) {
+        refreshBtn.replaceWith(refreshBtn.cloneNode(true));
+        document.getElementById('refresh-plugins-btn').addEventListener('click', refreshPlugins);
+    }
+    if (restartBtn) {
+        restartBtn.replaceWith(restartBtn.cloneNode(true));
+        document.getElementById('restart-display-btn').addEventListener('click', restartDisplay);
+    }
+    if (searchBtn) {
+        searchBtn.replaceWith(searchBtn.cloneNode(true));
+        document.getElementById('search-plugins-btn').addEventListener('click', searchPluginStore);
+    }
+    if (closeBtn) {
+        closeBtn.replaceWith(closeBtn.cloneNode(true));
+        document.getElementById('close-plugin-config').addEventListener('click', closePluginConfigModal);
+    }
 }
 
 // Initialize immediately when script loads (HTMX has already swapped content)
@@ -262,7 +284,7 @@ function updateToggleText(checkbox) {
     }
 }
 
-function configurePlugin(pluginId) {
+window.configurePlugin = function(pluginId) {
     console.log('Configuring plugin:', pluginId);
 
     // Load plugin configuration
@@ -439,12 +461,12 @@ function generateSimpleConfigForm(config) {
     `;
 }
 
-function closePluginConfigModal() {
+window.closePluginConfigModal = function() {
     document.getElementById('plugin-config-modal').classList.add('hidden');
-    currentPluginConfig = null;
+        currentPluginConfig = null;
 }
 
-function updatePlugin(pluginId) {
+window.updatePlugin = function(pluginId) {
     showNotification(`Updating ${pluginId}...`, 'info');
 
     fetch('/api/v3/plugins/update', {
@@ -464,7 +486,7 @@ function updatePlugin(pluginId) {
     });
 }
 
-function uninstallPlugin(pluginId) {
+window.uninstallPlugin = function(pluginId) {
     const plugin = installedPlugins.find(p => p.id === pluginId);
     const pluginName = plugin ? (plugin.name || pluginId) : pluginId;
 
@@ -625,7 +647,8 @@ function renderPluginStore(plugins) {
     `).join('');
 }
 
-function installPlugin(pluginId) {
+// Expose functions to window for onclick handlers
+window.installPlugin = function(pluginId) {
     showNotification(`Installing ${pluginId}...`, 'info');
 
     fetch('/api/v3/plugins/install', {
@@ -708,9 +731,9 @@ document.addEventListener('submit', function(e) {
 function savePluginConfiguration(pluginId, config) {
     // Update the plugin configuration in the backend
     fetch('/api/v3/plugins/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plugin_id: pluginId, config })
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ plugin_id: pluginId, config })
     })
     .then(response => response.json())
     .then(data => {
@@ -753,7 +776,7 @@ function checkGitHubAuthStatus() {
         .then(data => {
             if (data.status === 'success') {
                 const authData = data.data;
-                
+
                 // Show warning if not authenticated
                 if (!authData.authenticated) {
                     // Check if user has dismissed the warning (stored in session storage)
@@ -761,7 +784,7 @@ function checkGitHubAuthStatus() {
                     if (!dismissed) {
                         const warning = document.getElementById('github-auth-warning');
                         const rateLimit = document.getElementById('rate-limit-count');
-                        
+
                         if (warning && rateLimit) {
                             rateLimit.textContent = authData.rate_limit;
                             warning.classList.remove('hidden');
@@ -775,7 +798,7 @@ function checkGitHubAuthStatus() {
         });
 }
 
-function dismissGithubWarning() {
+window.dismissGithubWarning = function() {
     const warning = document.getElementById('github-auth-warning');
     if (warning) {
         warning.classList.add('hidden');
@@ -784,7 +807,7 @@ function dismissGithubWarning() {
     }
 }
 
-function showGithubTokenInstructions() {
+window.showGithubTokenInstructions = function() {
     const instructions = `
         <div class="space-y-4">
             <h4 class="font-semibold text-lg">How to Add a GitHub Token</h4>
@@ -842,8 +865,10 @@ function showGithubTokenInstructions() {
     modal.classList.remove('hidden');
 }
 
-function closeInstructionsModal() {
+window.closeInstructionsModal = function() {
     const modal = document.getElementById('plugin-config-modal');
     modal.classList.add('hidden');
 }
+
+})(); // End IIFE
 </script>
