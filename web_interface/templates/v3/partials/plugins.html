@@ -72,7 +72,9 @@
 
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-md font-medium text-gray-900">Plugin Store</h3>
-                <span id="store-count" class="text-sm text-gray-500">Loading...</span>
+                <span id="store-count" class="text-sm text-gray-500">
+                    <i class="fas fa-spinner fa-spin mr-1"></i>Loading...
+                </span>
             </div>
             <div class="mb-4">
                 <div class="flex space-x-4">
@@ -93,7 +95,16 @@
                 </div>
             </div>
             <div id="plugin-store-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
-                <!-- Store plugins will be loaded here -->
+                <!-- Loading skeleton -->
+                <div class="store-loading col-span-full">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+                        <div class="bg-gray-200 rounded-lg p-4 h-48 animate-pulse"></div>
+                        <div class="bg-gray-200 rounded-lg p-4 h-48 animate-pulse"></div>
+                        <div class="bg-gray-200 rounded-lg p-4 h-48 animate-pulse"></div>
+                        <div class="bg-gray-200 rounded-lg p-4 h-48 animate-pulse"></div>
+                        <div class="bg-gray-200 rounded-lg p-4 h-48 animate-pulse"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -121,8 +132,11 @@
     console.log('Plugin manager script starting...');
     
     // Local variables for this instance
-let installedPlugins = [];
-let currentPluginConfig = null;
+    let installedPlugins = [];
+    let currentPluginConfig = null;
+    let pluginStoreCache = null; // Cache for plugin store to speed up subsequent loads
+    let cacheTimestamp = null;
+    const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 // Initialize when DOM is ready or when HTMX loads content
 window.initPluginsPage = function() {
@@ -548,6 +562,27 @@ function searchPluginStore() {
     const query = document.getElementById('plugin-search').value;
     const category = document.getElementById('plugin-category').value;
 
+    // Check if we can use cached data (only for non-filtered requests)
+    const now = Date.now();
+    const isCacheValid = pluginStoreCache && cacheTimestamp && (now - cacheTimestamp < CACHE_DURATION);
+    
+    if (!query && !category && isCacheValid) {
+        console.log('Using cached plugin store data');
+        renderPluginStore(pluginStoreCache);
+        const countEl = document.getElementById('store-count');
+        if (countEl) {
+            countEl.innerHTML = `${pluginStoreCache.length} available`;
+        }
+        return;
+    }
+
+    // Show loading state
+    const countEl = document.getElementById('store-count');
+    if (countEl) {
+        countEl.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Loading...';
+    }
+    showStoreLoading(true);
+
     let url = '/api/v3/plugins/store/list';
     const params = new URLSearchParams();
     if (query) params.append('query', query);
@@ -566,32 +601,47 @@ function searchPluginStore() {
         })
         .then(data => {
             console.log('Store data:', data);
+            showStoreLoading(false);
+            
             if (data.status === 'success') {
                 const plugins = data.data.plugins || [];
                 console.log('Store plugins count:', plugins.length);
+                
+                // Cache the results if no filters
+                if (!query && !category) {
+                    pluginStoreCache = plugins;
+                    cacheTimestamp = Date.now();
+                    console.log('Cached plugin store data');
+                }
+                
                 renderPluginStore(plugins);
 
                 // Update count
-                const countEl = document.getElementById('store-count');
                 if (countEl) {
-                    countEl.textContent = plugins.length + ' available';
+                    countEl.innerHTML = `${plugins.length} available`;
                 }
             } else {
                 showError('Failed to search plugin store: ' + data.message);
-                const countEl = document.getElementById('store-count');
                 if (countEl) {
-                    countEl.textContent = 'Error loading';
+                    countEl.innerHTML = 'Error loading';
                 }
             }
         })
         .catch(error => {
             console.error('Error searching plugin store:', error);
+            showStoreLoading(false);
             showError('Error searching plugin store: ' + error.message);
-            const countEl = document.getElementById('store-count');
             if (countEl) {
-                countEl.textContent = 'Error loading';
+                countEl.innerHTML = 'Error loading';
             }
         });
+}
+
+function showStoreLoading(show) {
+    const loading = document.querySelector('.store-loading');
+    if (loading) {
+        loading.style.display = show ? 'block' : 'none';
+    }
 }
 
 function renderPluginStore(plugins) {
