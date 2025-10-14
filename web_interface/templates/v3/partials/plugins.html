@@ -172,10 +172,23 @@ window.pluginManager = {
                 }
 
                 // Update main app's plugin list for navigation tabs
-                if (window.app && window.app.installedPlugins) {
-                    window.app.installedPlugins = installedPlugins;
-                    window.app.updatePluginTabs();
-                }
+                // Use a timeout to ensure Alpine.js is fully initialized
+                setTimeout(() => {
+                    console.log('Updating main app plugin tabs...', {
+                        appExists: !!window.app,
+                        installedPluginsExists: !!(window.app && window.app.installedPlugins),
+                        pluginCount: installedPlugins.length,
+                        installedPlugins: installedPlugins.map(p => p.id)
+                    });
+
+                    if (window.app && window.app.installedPlugins) {
+                        window.app.installedPlugins = installedPlugins;
+                        window.app.updatePluginTabs();
+                        console.log('Plugin tabs updated successfully');
+                    } else {
+                        console.warn('Main app or installedPlugins not available for tab updates');
+                    }
+                }, 100);
             } else {
                 this.showError('Failed to load installed plugins: ' + data.message);
             }
@@ -432,10 +445,19 @@ window.pluginManager = {
                 this.renderInstalledPlugins(installedPlugins);
 
                 // Update main app's plugin list and tabs
-                if (window.app && window.app.installedPlugins) {
-                    window.app.installedPlugins = installedPlugins;
-                    window.app.updatePluginTabs();
-                }
+                setTimeout(() => {
+                    console.log('Updating main app after uninstall...', {
+                        appExists: !!window.app,
+                        installedPluginsExists: !!(window.app && window.app.installedPlugins),
+                        pluginCount: installedPlugins.length
+                    });
+
+                    if (window.app && window.app.installedPlugins) {
+                        window.app.installedPlugins = installedPlugins;
+                        window.app.updatePluginTabs();
+                        console.log('Plugin tabs updated after uninstall');
+                    }
+                }, 100);
 
                 // Also refresh from server to ensure consistency
                 setTimeout(() => {
@@ -787,6 +809,12 @@ window.pluginManager = {
 // Initialize when DOM is ready or when HTMX loads content
 function initPluginsPage() {
     console.log('Initializing plugin manager...');
+
+    // Check if main app is available
+    console.log('Main app availability:', {
+        appExists: !!window.app,
+        alpineExists: !!(window.Alpine)
+    });
 
     // Check GitHub authentication status
     checkGitHubAuthStatus();

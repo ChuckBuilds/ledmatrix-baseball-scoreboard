@@ -457,8 +457,15 @@
                 },
 
                 updatePluginTabs() {
+                    console.log('updatePluginTabs called with:', this.installedPlugins.length, 'plugins');
+
                     const pluginTabsRow = document.getElementById('plugin-tabs-row');
                     const pluginTabsNav = pluginTabsRow?.querySelector('nav');
+
+                    console.log('Plugin tabs elements:', {
+                        pluginTabsRow: !!pluginTabsRow,
+                        pluginTabsNav: !!pluginTabsNav
+                    });
 
                     if (!pluginTabsNav) {
                         console.error('Plugin tabs navigation not found');
@@ -497,7 +504,10 @@
 
                         // Insert before the closing </nav> tag
                         pluginTabsNav.appendChild(tabButton);
+                        console.log('Added tab for plugin:', plugin.id);
                     });
+
+                    console.log('Plugin tabs update completed');
                 },
 
 
