@@ -172,7 +172,7 @@
 
             <!-- Plugins tab -->
             <div x-show="activeTab === 'plugins'" x-transition>
-                <div id="plugins-content" hx-get="/v3/partials/plugins" hx-trigger="load" hx-swap="innerHTML">
+                <div id="plugins-content" hx-get="/v3/partials/plugins" hx-trigger="intersect once" hx-swap="innerHTML">
                     <div class="animate-pulse">
                         <div class="bg-white rounded-lg shadow p-6">
                             <div class="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
@@ -422,18 +422,6 @@
                         this.installedPlugins = window.installedPlugins;
                         console.log('Initialized installedPlugins from global:', this.installedPlugins.length);
                     }
-
-                    // Also load plugins when switching to plugins tab
-                    this.$watch('activeTab', (newTab, oldTab) => {
-                        if (newTab === 'plugins') {
-                            // Trigger HTMX load of plugins content
-                            const pluginsContent = document.getElementById('plugins-content');
-                            if (pluginsContent && !pluginsContent.innerHTML.trim()) {
-                                console.log('Manually triggering HTMX load for plugins content');
-                                htmx.trigger(pluginsContent, 'load');
-                            }
-                        }
-                    });
 
                 },
 
