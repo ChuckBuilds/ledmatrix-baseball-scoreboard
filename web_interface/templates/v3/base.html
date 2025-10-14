@@ -860,13 +860,21 @@
             try {
                 console.log('Saving config for plugin:', pluginId);
                 
-                // Find the active plugin tab's form
-                const pluginTab = document.querySelector(`[x-show="activeTab === '${pluginId}'"]`);
-                if (!pluginTab) {
-                    throw new Error('Plugin tab not found for ' + pluginId);
+                // Find the form in the active plugin tab
+                // Alpine.js hides/shows elements with display:none, so we look for the currently visible one
+                const allForms = document.querySelectorAll('form[x-on\\:submit\\.prevent]');
+                console.log('Found forms:', allForms.length);
+                
+                let form = null;
+                for (const f of allForms) {
+                    const parent = f.closest('[x-show]');
+                    if (parent && parent.style.display !== 'none' && parent.offsetParent !== null) {
+                        form = f;
+                        console.log('Found visible form');
+                        break;
+                    }
                 }
                 
-                const form = pluginTab.querySelector('form');
                 if (!form) {
                     throw new Error('Form not found for plugin ' + pluginId);
                 }
