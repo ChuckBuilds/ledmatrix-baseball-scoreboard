@@ -149,8 +149,8 @@ let currentPluginConfig = null;
 let selectedTags = new Set();
 let loadingStates = { installed: false, store: false };
 
-// Plugin Manager App Object
-const pluginManager = {
+// Plugin Manager App Object (make available globally)
+window.pluginManager = {
     async loadInstalledPlugins() {
         console.log('Loading installed plugins...');
         loadingStates.installed = true;
@@ -169,6 +169,12 @@ const pluginManager = {
                 const countEl = document.getElementById('installed-count');
                 if (countEl) {
                     countEl.textContent = installedPlugins.length + ' installed';
+                }
+
+                // Update main app's plugin list for navigation tabs
+                if (window.app && window.app.installedPlugins) {
+                    window.app.installedPlugins = installedPlugins;
+                    window.app.updatePluginTabs();
                 }
             } else {
                 this.showError('Failed to load installed plugins: ' + data.message);
@@ -424,6 +430,12 @@ const pluginManager = {
                 // Remove from local array immediately for better UX
                 installedPlugins = installedPlugins.filter(p => p.id !== pluginId);
                 this.renderInstalledPlugins(installedPlugins);
+
+                // Update main app's plugin list and tabs
+                if (window.app && window.app.installedPlugins) {
+                    window.app.installedPlugins = installedPlugins;
+                    window.app.updatePluginTabs();
+                }
 
                 // Also refresh from server to ensure consistency
                 setTimeout(() => {
@@ -814,6 +826,7 @@ function initPluginsPage() {
 
     console.log('Plugin manager initialized');
 }
+
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', initPluginsPage);

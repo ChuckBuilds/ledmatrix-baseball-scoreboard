@@ -414,27 +414,39 @@
                 installedPlugins: [],
 
                 init() {
-                    // Load installed plugins when the app initializes
-                    this.loadInstalledPlugins();
+                    // Plugin loading is handled by the pluginManager in plugins.html
+                    // when the plugins tab is loaded via HTMX
 
-                    // Also load plugins when switching to plugins tab
+                    // Also load plugins when switching to plugins tab (if not already loaded)
                     this.$watch('activeTab', (newTab) => {
                         if (newTab === 'plugins' && this.installedPlugins.length === 0) {
-                            this.loadInstalledPlugins();
+                            // Trigger HTMX load of plugins content which will initialize pluginManager
+                            const pluginsContent = document.getElementById('plugins-content');
+                            if (pluginsContent && !pluginsContent.innerHTML.trim()) {
+                                // Force HTMX to load the content
+                                htmx.trigger(pluginsContent, 'load');
+                            }
                         }
                     });
                 },
 
                 async loadInstalledPlugins() {
+                    // If pluginManager exists (plugins.html is loaded), delegate to it
+                    if (window.pluginManager) {
+                        console.log('Delegating plugin loading to pluginManager...');
+                        await window.pluginManager.loadInstalledPlugins();
+                        return;
+                    }
+
+                    // Otherwise, load plugins directly (fallback for when plugins.html isn't loaded)
                     try {
-                        console.log('Loading installed plugins...');
+                        console.log('Loading installed plugins directly...');
                         const response = await fetch('/api/v3/plugins/installed');
                         const data = await response.json();
 
                         if (data.status === 'success') {
                             this.installedPlugins = data.data.plugins || [];
                             console.log(`Loaded ${this.installedPlugins.length} plugins:`, this.installedPlugins.map(p => p.id));
-                            this.renderInstalledPlugins();
                             this.updatePluginTabs();
                         } else {
                             console.error('Failed to load plugins:', data.message);
