@@ -262,7 +262,10 @@ function renderInstalledPlugins(plugins) {
             <div class="flex items-start justify-between mb-3">
                 <div class="flex-1">
                     <div class="flex items-center space-x-2 mb-1">
-                        <h4 class="font-medium text-gray-900">${escapeHtml(plugin.name || plugin.id)}</h4>
+                        <div class="flex items-center space-x-2">
+                            <span class="plugin-icon">${getPluginIcon(plugin)}</span>
+                            <h4 class="font-medium text-gray-900">${escapeHtml(plugin.name || plugin.id)}</h4>
+                        </div>
                         ${plugin.verified ? '<span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">✓ Verified</span>' : ''}
                         ${plugin.enabled ? '<span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded ml-2">Enabled</span>' : '<span class="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded ml-2">Disabled</span>'}
                     </div>
@@ -337,7 +340,12 @@ function showPluginConfigModal(pluginId, config) {
     const title = document.getElementById('plugin-config-title');
     const content = document.getElementById('plugin-config-content');
 
-    title.textContent = `Configure ${pluginId}`;
+    // Find the plugin to get its icon
+    const plugin = installedPlugins.find(p => p.id === pluginId);
+    const iconHTML = plugin ? getPluginIcon(plugin) : '<i class="fas fa-puzzle-piece"></i>';
+    const pluginName = plugin ? (plugin.name || pluginId) : pluginId;
+
+    title.innerHTML = `${iconHTML} Configure ${pluginName}`;
     content.innerHTML = generatePluginConfigForm(pluginId, config);
 
     modal.classList.remove('hidden');
@@ -656,7 +664,10 @@ function renderPluginStore(plugins) {
             <div class="flex items-start justify-between mb-3">
                 <div class="flex-1">
                     <div class="flex items-center space-x-2 mb-1">
-                        <h4 class="font-medium text-gray-900">${escapeHtml(plugin.name || plugin.id)}</h4>
+                        <div class="flex items-center space-x-2">
+                            <span class="plugin-icon">${getPluginIcon(plugin)}</span>
+                            <h4 class="font-medium text-gray-900">${escapeHtml(plugin.name || plugin.id)}</h4>
+                        </div>
                         ${plugin.verified ? '<span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">✓ Verified</span>' : ''}
                     </div>
                     <div class="text-sm text-gray-600 space-y-1">
@@ -819,6 +830,32 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// Plugin icon helper function
+function getPluginIcon(plugin) {
+    // Check if plugin has a custom icon specified
+    if (plugin.icon) {
+        const icon = plugin.icon;
+
+        // Support for Font Awesome icons (e.g., "fas fa-clock")
+        if (icon.includes('fa-')) {
+            return `<i class="${icon}"></i>`;
+        }
+
+        // Support for emoji (single character)
+        if (icon.length <= 4) {  // Emojis can be 1-4 bytes in UTF-8
+            return `<span style="font-size: 1.1em;">${icon}</span>`;
+        }
+
+        // Support for custom image URL
+        if (icon.startsWith('http://') || icon.startsWith('https://') || icon.startsWith('/')) {
+            return `<img src="${icon}" alt="" style="width: 16px; height: 16px; vertical-align: middle;">`;
+        }
+    }
+
+    // Default fallback icon
+    return '<i class="fas fa-puzzle-piece"></i>';
 }
 
 // Debounce utility
