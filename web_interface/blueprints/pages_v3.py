@@ -166,8 +166,42 @@ def _load_stocks_partial():
 def _load_plugins_partial():
     """Load plugins management partial"""
     try:
-        # This would load plugin data from the plugin system
-        plugins_data = []  # Placeholder for plugin data
+        # Load plugin data from the plugin system
+        plugins_data = []
+
+        # Get installed plugins if managers are available
+        if pages_v3.plugin_manager and pages_v3.plugin_store_manager:
+            try:
+                # Get all installed plugin info
+                all_plugin_info = pages_v3.plugin_manager.get_all_plugin_info()
+
+                # Format for the web interface
+                for plugin_info in all_plugin_info:
+                    plugin_id = plugin_info.get('id')
+
+                    # Get enabled status from loaded plugin or config
+                    plugin_instance = pages_v3.plugin_manager.get_plugin(plugin_id)
+                    enabled = plugin_instance.enabled if plugin_instance else False
+
+                    # Get verified status from store registry
+                    store_info = pages_v3.plugin_store_manager.get_plugin_info(plugin_id)
+                    verified = store_info.get('verified', False) if store_info else False
+
+                    plugins_data.append({
+                        'id': plugin_id,
+                        'name': plugin_info.get('name', plugin_id),
+                        'author': plugin_info.get('author', 'Unknown'),
+                        'version': plugin_info.get('version', '1.0.0'),
+                        'category': plugin_info.get('category', 'General'),
+                        'description': plugin_info.get('description', 'No description available'),
+                        'tags': plugin_info.get('tags', []),
+                        'enabled': enabled,
+                        'verified': verified,
+                        'loaded': plugin_info.get('loaded', False)
+                    })
+            except Exception as e:
+                print(f"Error loading plugin data: {e}")
+
         return render_template('v3/partials/plugins.html',
                              plugins=plugins_data)
     except Exception as e:

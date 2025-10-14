@@ -434,6 +434,7 @@
                         if (data.status === 'success') {
                             this.installedPlugins = data.data.plugins || [];
                             console.log(`Loaded ${this.installedPlugins.length} plugins:`, this.installedPlugins.map(p => p.id));
+                            this.renderInstalledPlugins();
                             this.updatePluginTabs();
                         } else {
                             console.error('Failed to load plugins:', data.message);
@@ -487,6 +488,7 @@
                     });
                 },
 
+
                 showNotification(message, type = 'info') {
                     const notifications = document.getElementById('notifications');
                     const notification = document.createElement('div');
@@ -516,14 +518,11 @@
 
                 async refreshPlugins() {
                     await this.loadInstalledPlugins();
+                    await this.searchPluginStore();
                     this.showNotification('Plugin list refreshed', 'success');
                 },
 
-                async togglePluginFromTab(pluginId, enabled) {
-                    await togglePlugin(pluginId, enabled);
-                    // Refresh the plugin list after toggling
-                    await this.loadInstalledPlugins();
-                },
+
 
                 async loadPluginConfig(pluginId) {
                     console.log('Loading config for plugin:', pluginId);
@@ -928,6 +927,7 @@
                 app.showNotification('Error refreshing plugin: ' + error.message, 'error');
             }
         }
+
     </script>
 
     <!-- Custom v3 JavaScript -->
