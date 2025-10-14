@@ -6,13 +6,13 @@ from pathlib import Path
 
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_FILE = os.path.join(PROJECT_DIR, 'config', 'config.json')
-WEB_INTERFACE_SCRIPT = os.path.join(PROJECT_DIR, 'web_interface', 'start.py')
+WEB_INTERFACE_SCRIPT = os.path.join(PROJECT_DIR, 'web_interface_v3.py')
 
 def install_dependencies():
     """Install required dependencies using system Python."""
     print("Installing dependencies...")
     try:
-        requirements_file = os.path.join(PROJECT_DIR, 'web_interface', 'requirements.txt')
+        requirements_file = os.path.join(PROJECT_DIR, 'requirements_web_v2.txt')
         subprocess.check_call([
             sys.executable, '-m', 'pip', 'install', '--break-system-packages', '-r', requirements_file
         ])
@@ -58,7 +58,7 @@ def main():
             # This is important for systemd to correctly manage the web server process.
             # Ensure PYTHONPATH is set correctly if web_interface.py has relative imports to src
             # The WorkingDirectory in systemd service should handle this for web_interface.py
-            print(f"Launching web interface v3: {sys.executable} {WEB_INTERFACE_SCRIPT}")
+            print(f"Launching web interface: {sys.executable} {WEB_INTERFACE_SCRIPT} (USE_THREADING={os.getenv('USE_THREADING','0')}, FORCE_THREADING={os.getenv('FORCE_THREADING','0')})")
             os.execvp(sys.executable, [sys.executable, WEB_INTERFACE_SCRIPT])
         except Exception as e:
             print(f"Failed to exec web interface: {e}")
@@ -68,5 +68,4 @@ def main():
         sys.exit(0) # Exit gracefully, service considered successful
 
 if __name__ == '__main__':
-    main()
-
+    main() 

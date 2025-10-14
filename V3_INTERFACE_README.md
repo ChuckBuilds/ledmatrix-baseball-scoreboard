@@ -67,7 +67,9 @@ The v3 web interface is a complete rewrite of the LED Matrix control panel using
 
 1. **Start the v3 interface**:
    ```bash
-   python web_interface_v3.py
+   python3 web_interface/start.py
+   # Or use the shell script:
+   ./web_interface/run.sh
    ```
 
 2. **Access the interface**:
@@ -112,25 +114,33 @@ The v3 web interface is a complete rewrite of the LED Matrix control panel using
 
 ```
 LEDMatrix/
-├── web_interface_v3.py          # Main Flask app with blueprints
-├── blueprints/
+├── web_interface/               # Web interface package
 │   ├── __init__.py
-│   ├── pages_v3.py             # HTML pages and partials
-│   └── api_v3.py               # API endpoints
-├── templates/v3/
-│   ├── base.html               # Main layout template
-│   ├── index.html              # Overview page
-│   └── partials/               # HTMX partials
-│       ├── overview.html
-│       ├── general.html
-│       ├── display.html
-│       ├── sports.html
-│       ├── plugins.html
-│       ├── fonts.html
-│       └── logs.html
-├── static/v3/
-│   ├── app.css                 # Custom styles
-│   └── app.js                  # JavaScript helpers
+│   ├── app.py                  # Main Flask app with blueprints
+│   ├── start.py                # Startup script
+│   ├── run.sh                  # Shell runner
+│   ├── requirements.txt        # Dependencies
+│   ├── README.md               # Web interface documentation
+│   ├── blueprints/
+│   │   ├── __init__.py
+│   │   ├── pages_v3.py        # HTML pages and partials
+│   │   └── api_v3.py          # API endpoints
+│   ├── templates/v3/
+│   │   ├── base.html          # Main layout template
+│   │   ├── index.html         # Overview page
+│   │   └── partials/          # HTMX partials
+│   │       ├── overview.html
+│   │       ├── general.html
+│   │       ├── display.html
+│   │       ├── sports.html
+│   │       ├── plugins.html
+│   │       ├── fonts.html
+│   │       └── logs.html
+│   └── static/v3/
+│       ├── app.css            # Custom styles
+│       └── app.js             # JavaScript helpers
+├── old_web_interface/          # Legacy v1/v2 (for reference)
+├── start_web_conditionally.py  # Service starter
 └── test_v3_interface.py        # Test script
 ```
 
