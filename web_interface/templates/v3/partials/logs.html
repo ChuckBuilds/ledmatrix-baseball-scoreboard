@@ -299,6 +299,9 @@ function renderLogs() {
         return;
     }
 
+    // Hide empty state first
+    document.getElementById('logs-empty').classList.add('hidden');
+
     logsContent.innerHTML = '';
 
     filteredLogs.forEach(log => {
@@ -316,7 +319,6 @@ function renderLogs() {
 
     logsContent.classList.remove('hidden');
     document.getElementById('logs-loading').classList.add('hidden');
-    document.getElementById('logs-empty').classList.add('hidden');
 }
 
 function getLogLevelClass(level) {
