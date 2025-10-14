@@ -1,9 +1,14 @@
 from flask import Flask, Blueprint, render_template, request, redirect, url_for, flash, jsonify, Response
 import json
 import os
+import sys
 import subprocess
 import time
 from pathlib import Path
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from src.config_manager import ConfigManager
 from src.plugin_system.plugin_manager import PluginManager
 from src.plugin_system.store_manager import PluginStoreManager
@@ -14,7 +19,7 @@ app.secret_key = os.urandom(24)
 config_manager = ConfigManager()
 
 # Initialize plugin managers
-plugins_dir = Path('plugins')
+plugins_dir = Path(__file__).parent.parent / 'plugins'
 plugin_manager = PluginManager(
     plugins_dir=str(plugins_dir),
     config_manager=config_manager,
@@ -28,8 +33,8 @@ plugin_manager.discover_plugins()
 # Note: We don't auto-load plugins here since we only need metadata for the web interface
 
 # Register blueprints
-from blueprints.pages_v3 import pages_v3
-from blueprints.api_v3 import api_v3
+from web_interface.blueprints.pages_v3 import pages_v3
+from web_interface.blueprints.api_v3 import api_v3
 
 # Initialize managers in blueprints
 pages_v3.config_manager = config_manager

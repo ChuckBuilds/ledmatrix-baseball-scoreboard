@@ -13,8 +13,8 @@ def main():
     print("🔍 LED Matrix Web Interface Debug Tool")
     print("=" * 50)
 
-    # Change to project root
-    project_root = Path(__file__).parent.parent
+    # Change to project root (where this script is located)
+    project_root = Path(__file__).parent.resolve()
     os.chdir(project_root)
     print(f"📁 Working directory: {os.getcwd()}")
 

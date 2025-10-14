@@ -11,9 +11,8 @@ from pathlib import Path
 def main():
     print("🔧 Setting up environment like start.py...")
 
-    # Change to project root directory (same as start.py)
-    script_dir = Path(__file__).parent
-    project_root = script_dir.parent
+    # Change to project root directory (where this script is located)
+    project_root = Path(__file__).parent.resolve()
     print(f"📁 Changing to: {project_root}")
     os.chdir(project_root)
 
