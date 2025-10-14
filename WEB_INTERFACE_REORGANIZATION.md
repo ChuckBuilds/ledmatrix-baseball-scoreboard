@@ -150,6 +150,49 @@ If you need to rollback:
 - [ ] Plugin management works
 - [ ] Configuration saves properly
 
+## Troubleshooting
+
+If you encounter issues after reorganization:
+
+### No Logging / Service Not Starting
+
+**Important:** The service logs to **syslog**, not stdout. View logs with:
+```bash
+sudo journalctl -u ledmatrix-web -n 50 --no-pager
+```
+
+### Quick Diagnostic
+
+Run the diagnostic script on your Raspberry Pi:
+```bash
+cd ~/LEDMatrix
+bash scripts/diagnose_web_interface.sh
+```
+
+This will check:
+- Service status
+- Configuration settings
+- File structure
+- Python imports
+- Network ports
+- Recent logs
+
+### Full Troubleshooting Guide
+
+See `docs/WEB_INTERFACE_TROUBLESHOOTING.md` for comprehensive troubleshooting steps including:
+- Common issues and solutions
+- Manual testing procedures
+- Import error diagnosis
+- Service configuration verification
+- Recovery procedures
+
+### Common Quick Fixes
+
+1. **Service not running:** `sudo systemctl start ledmatrix-web`
+2. **Check logs:** `sudo journalctl -u ledmatrix-web -f`
+3. **Test manual start:** `python3 web_interface/start.py`
+4. **Enable autostart:** Set `"web_display_autostart": true` in `config/config.json`
+
 ---
 
 *Date: October 14, 2025*
