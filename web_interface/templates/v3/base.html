@@ -417,6 +417,12 @@
                     // Plugin loading is handled by the pluginManager in plugins.html
                     // when the plugins tab is loaded via HTMX
 
+                    // Initialize installedPlugins from global if available
+                    if (typeof window.installedPlugins !== 'undefined') {
+                        this.installedPlugins = window.installedPlugins;
+                        console.log('Initialized installedPlugins from global:', this.installedPlugins.length);
+                    }
+
                     // Also load plugins when switching to plugins tab
                     this.$watch('activeTab', (newTab, oldTab) => {
                         if (newTab === 'plugins') {
@@ -459,7 +465,10 @@
 
                 updatePluginTabs(retryCount = 0) {
                     const maxRetries = 5;
-                    console.log('updatePluginTabs called with:', this.installedPlugins.length, 'plugins (attempt', retryCount + 1, ')');
+
+                    // Use global installedPlugins if available, otherwise use component's
+                    const pluginsToShow = window.installedPlugins || this.installedPlugins || [];
+                    console.log('updatePluginTabs called with:', pluginsToShow.length, 'plugins (attempt', retryCount + 1, ')');
 
                     const pluginTabsRow = document.getElementById('plugin-tabs-row');
                     const pluginTabsNav = pluginTabsRow?.querySelector('nav');
@@ -468,7 +477,7 @@
                         pluginTabsRow: !!pluginTabsRow,
                         pluginTabsNav: !!pluginTabsNav,
                         bodyExists: !!document.body,
-                        installedPlugins: this.installedPlugins
+                        installedPlugins: pluginsToShow
                     });
 
                     if (!pluginTabsRow || !pluginTabsNav) {
@@ -483,7 +492,7 @@
                         return;
                     }
 
-                    console.log(`Updating plugin tabs for ${this.installedPlugins.length} plugins`);
+                    console.log(`Updating plugin tabs for ${pluginsToShow.length} plugins`);
 
                     // Always show the plugin tabs row (Plugin Manager should always be available)
                     console.log('Ensuring plugin tabs row is visible');
@@ -495,8 +504,8 @@
                     existingTabs.forEach(tab => tab.remove());
 
                     // Add tabs for each installed plugin
-                    console.log('Adding tabs for plugins:', this.installedPlugins.map(p => p.id));
-                    this.installedPlugins.forEach(plugin => {
+                    console.log('Adding tabs for plugins:', pluginsToShow.map(p => p.id));
+                    pluginsToShow.forEach(plugin => {
                         const tabButton = document.createElement('button');
                         tabButton.type = 'button';
                         tabButton.className = `plugin-tab whitespace-nowrap py-2 px-1 lg:px-2 xl:px-3 border-b-2 font-medium text-sm ${this.activeTab === plugin.id ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`;

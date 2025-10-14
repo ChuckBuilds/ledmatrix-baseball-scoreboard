@@ -174,45 +174,53 @@ window.pluginManager = {
                 // Update main app's plugin list for navigation tabs
                 console.log('Starting plugin tabs update process...');
 
-                // Check if Alpine.js is ready and main app is available
+                // Update the global installed plugins array that the main app uses
+                if (typeof window.installedPlugins !== 'undefined') {
+                    window.installedPlugins = installedPlugins;
+                    console.log('Updated global installedPlugins array');
+                }
+
+                // Try to update the main app's Alpine.js component
                 if (window.Alpine && window.Alpine.started) {
                     console.log('Alpine.js is ready, checking main app...');
-                    if (window.app && window.app.installedPlugins !== undefined) {
-                        console.log('Main app is ready, updating plugin tabs...');
-                        window.app.installedPlugins = installedPlugins;
-                        window.app.updatePluginTabs();
-                        console.log('Plugin tabs updated successfully');
+                    // Find the Alpine.js component instance
+                    const appElement = document.querySelector('[x-data="app()"]');
+                    if (appElement && appElement._x_dataStack) {
+                        const alpineApp = appElement._x_dataStack[0];
+                        if (alpineApp && alpineApp.installedPlugins !== undefined) {
+                            console.log('Found Alpine.js app instance, updating...');
+                            alpineApp.installedPlugins = installedPlugins;
+                            alpineApp.updatePluginTabs();
+                            console.log('Plugin tabs updated successfully');
+            } else {
+                            console.warn('Alpine.js app instance not found or no installedPlugins property');
+                        }
                     } else {
-                        console.warn('Main app not ready, retrying...');
-                        setTimeout(() => {
-                            if (window.app && window.app.installedPlugins !== undefined) {
-                                window.app.installedPlugins = installedPlugins;
-                                window.app.updatePluginTabs();
-                                console.log('Plugin tabs updated on retry');
-                            } else {
-                                console.error('Main app still not ready after timeout');
-                            }
-                        }, 500);
+                        console.warn('Alpine.js app element not found');
                     }
                 } else {
-                    console.log('Alpine.js not ready, waiting...');
+                    console.log('Alpine.js not ready, will retry...');
                     // Wait for Alpine.js to be ready
-                    let alpineCheckAttempts = 0;
+                    let attempts = 0;
                     const checkAlpine = () => {
-                        alpineCheckAttempts++;
+                        attempts++;
                         if (window.Alpine && window.Alpine.started) {
                             console.log('Alpine.js is now ready');
-                            if (window.app && window.app.installedPlugins !== undefined) {
-                                window.app.installedPlugins = installedPlugins;
-                                window.app.updatePluginTabs();
-                                console.log('Plugin tabs updated after Alpine.js ready');
-                            } else {
-                                console.error('Main app not available even after Alpine.js ready');
+                            const appElement = document.querySelector('[x-data="app()"]');
+                            if (appElement && appElement._x_dataStack) {
+                                const alpineApp = appElement._x_dataStack[0];
+                                if (alpineApp && alpineApp.installedPlugins !== undefined) {
+                                    alpineApp.installedPlugins = installedPlugins;
+                                    alpineApp.updatePluginTabs();
+                                    console.log('Plugin tabs updated after Alpine.js ready');
+                                    return;
+                                }
                             }
-                        } else if (alpineCheckAttempts < 20) {
-                            setTimeout(checkAlpine, 250);
+                        }
+                        if (attempts < 10) {
+                            setTimeout(checkAlpine, 200);
                         } else {
-                            console.error('Alpine.js not ready after maximum attempts');
+                            console.error('Failed to update plugin tabs after maximum attempts');
                         }
                     };
                     setTimeout(checkAlpine, 100);
@@ -475,23 +483,29 @@ window.pluginManager = {
                 // Update main app's plugin list and tabs
                 console.log('Updating main app after uninstall...');
 
+                // Update the global installed plugins array
+                if (typeof window.installedPlugins !== 'undefined') {
+                    window.installedPlugins = installedPlugins;
+                    console.log('Updated global installedPlugins array after uninstall');
+                }
+
+                // Try to update the Alpine.js component
                 if (window.Alpine && window.Alpine.started) {
-                    if (window.app && window.app.installedPlugins !== undefined) {
-                        window.app.installedPlugins = installedPlugins;
-                        window.app.updatePluginTabs();
-                        console.log('Plugin tabs updated after uninstall');
+                    const appElement = document.querySelector('[x-data="app()"]');
+                    if (appElement && appElement._x_dataStack) {
+                        const alpineApp = appElement._x_dataStack[0];
+                        if (alpineApp && alpineApp.installedPlugins !== undefined) {
+                            alpineApp.installedPlugins = installedPlugins;
+                            alpineApp.updatePluginTabs();
+                            console.log('Plugin tabs updated after uninstall');
+                        } else {
+                            console.warn('Alpine.js app instance not found for uninstall update');
+                        }
                     } else {
-                        console.warn('Main app not ready for uninstall update');
+                        console.warn('Alpine.js app element not found for uninstall update');
                     }
                 } else {
                     console.log('Alpine.js not ready for uninstall update');
-                    setTimeout(() => {
-                        if (window.app && window.app.installedPlugins !== undefined) {
-                            window.app.installedPlugins = installedPlugins;
-                            window.app.updatePluginTabs();
-                            console.log('Plugin tabs updated after uninstall (delayed)');
-                        }
-                    }, 500);
                 }
 
                 // Also refresh from server to ensure consistency
