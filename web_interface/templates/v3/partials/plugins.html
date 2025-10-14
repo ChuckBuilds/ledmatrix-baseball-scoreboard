@@ -130,23 +130,18 @@ function initPluginsPage() {
     document.getElementById('close-plugin-config').addEventListener('click', closePluginConfigModal);
 }
 
-// Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOMContentLoaded - checking if we should initialize...');
+// Initialize immediately when script loads (HTMX has already swapped content)
+console.log('Plugin manager script loaded, initializing...');
+// Small delay to ensure DOM is fully painted
+setTimeout(function() {
+    console.log('Checking for plugin elements...');
     if (document.getElementById('installed-plugins-grid')) {
-        console.log('Plugin elements found, initializing...');
+        console.log('Plugin elements found, initializing now!');
         initPluginsPage();
+    } else {
+        console.error('Plugin elements not found!');
     }
-});
-
-// Initialize when HTMX loads this content
-document.addEventListener('htmx:afterSwap', function(event) {
-    if (event.target.id === 'plugins-content') {
-        console.log('HTMX afterSwap detected for plugins-content, initializing in 100ms...');
-        // Small delay to ensure DOM is fully ready
-        setTimeout(initPluginsPage, 100);
-    }
-});
+}, 100);
 
 function initializePlugins() {
     console.log('Initializing plugins...');
