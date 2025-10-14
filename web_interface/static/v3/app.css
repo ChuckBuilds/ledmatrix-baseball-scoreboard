@@ -185,20 +185,30 @@ body {
     background: #9ca3af;
 }
 
-/* Logs container responsive height */
+/* Smooth scrolling for logs container */
+#logs-container {
+    scroll-behavior: smooth;
+}
+
+/* Ensure logs content doesn't cause overflow issues */
+.log-entry {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+}
+
+/* Logs container responsive height - simplified for better scrolling */
 @media (max-width: 768px) {
     #logs-container {
-        height: calc(100vh - 300px) !important;
+        height: 400px !important;
         min-height: 300px !important;
-        max-height: calc(100vh - 150px) !important;
     }
 }
 
 @media (max-width: 640px) {
     #logs-container {
-        height: calc(100vh - 250px) !important;
+        height: 350px !important;
         min-height: 250px !important;
-        max-height: calc(100vh - 100px) !important;
     }
 }
 

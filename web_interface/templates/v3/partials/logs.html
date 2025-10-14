@@ -55,14 +55,14 @@
 
     <!-- Log Display -->
     <div class="relative">
-        <div id="logs-container" class="bg-gray-900 text-gray-100 font-mono text-sm rounded-lg p-3 border border-gray-700 shadow-inner overflow-y-auto" style="height: calc(100vh - 400px); min-height: 400px; max-height: calc(100vh - 200px);">
+        <div id="logs-container" class="bg-gray-900 text-gray-100 font-mono text-sm rounded-lg p-3 border border-gray-700 shadow-inner overflow-y-auto" style="height: 500px; min-height: 400px; max-height: 70vh;">
             <div id="logs-loading" class="flex items-center justify-center h-full text-gray-400">
                 <div class="text-center">
                     <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
                     <p>Loading logs...</p>
                 </div>
             </div>
-            <div id="logs-display" class="hidden space-y-0.5">
+            <div id="logs-display" class="hidden">
                 <!-- Logs will be inserted here -->
             </div>
             <div id="logs-empty" class="hidden flex items-center justify-center h-full text-gray-400">
@@ -117,10 +117,16 @@ const MAX_LOGS = 500; // Maximum number of logs to keep in memory
     // Handle window resize for responsive height
     window.addEventListener('resize', function() {
         if (logContainer) {
-            // Force a reflow to update calc() values
+            // Force a reflow to update sizing
             logContainer.style.display = 'none';
             logContainer.offsetHeight; // Trigger reflow
             logContainer.style.display = '';
+
+            // Re-evaluate scroll position after resize
+            setTimeout(function() {
+                const distanceFromBottom = logContainer.scrollHeight - logContainer.scrollTop - logContainer.clientHeight;
+                isUserNearBottom = distanceFromBottom <= scrollThreshold;
+            }, 100);
         }
     });
 })();
@@ -178,10 +184,8 @@ function setupRealtimeLogs() {
             processLogs(data.logs, true);
             updateLogStats();
 
-            const autoscrollEl = document.getElementById('log-autoscroll');
-            if (autoscrollEl && autoscrollEl.checked) {
-                scrollToBottom();
-            }
+            // Use the new smart scroll function
+            scrollToBottomIfNeeded();
         }
     };
 
@@ -415,15 +419,52 @@ function downloadLogs() {
     }
 }
 
+// Track if user is near bottom for smart auto-scroll
+let isUserNearBottom = true;
+let scrollThreshold = 100; // pixels from bottom to consider "near bottom"
+
 function setupAutoscroll() {
-    const observer = new MutationObserver(scrollToBottom);
+    const observer = new MutationObserver(function() {
+        // Use requestAnimationFrame for better timing
+        requestAnimationFrame(scrollToBottomIfNeeded);
+    });
     observer.observe(logsContent, { childList: true });
+
+    // Also listen for manual scroll events to detect when user is not at bottom
+    if (logContainer) {
+        logContainer.addEventListener('scroll', function() {
+            const distanceFromBottom = logContainer.scrollHeight - logContainer.scrollTop - logContainer.clientHeight;
+            isUserNearBottom = distanceFromBottom <= scrollThreshold;
+        });
+    }
+}
+
+function scrollToBottomIfNeeded() {
+    const autoscrollEl = document.getElementById('log-autoscroll');
+    if (autoscrollEl && autoscrollEl.checked && logContainer && isUserNearBottom) {
+        // Use requestAnimationFrame for smooth scrolling
+        requestAnimationFrame(function() {
+            // Remember current scroll position
+            const previousScrollHeight = logContainer.scrollHeight;
+
+            // Scroll to bottom
+            logContainer.scrollTop = logContainer.scrollHeight;
+
+            // Ensure we're actually at the bottom after a brief delay
+            setTimeout(function() {
+                if (logContainer.scrollTop + logContainer.clientHeight >= logContainer.scrollHeight - 10) {
+                    isUserNearBottom = true;
+                }
+            }, 50);
+        });
+    }
 }
 
 function scrollToBottom() {
-    const autoscrollEl = document.getElementById('log-autoscroll');
-    if (autoscrollEl && autoscrollEl.checked && logContainer) {
+    // Legacy function for backward compatibility
+    if (logContainer) {
         logContainer.scrollTop = logContainer.scrollHeight;
+        isUserNearBottom = true;
     }
 }
 
@@ -431,11 +472,14 @@ function toggleAutoscroll() {
     const autoscrollEl = document.getElementById('log-autoscroll');
     if (!autoscrollEl || !autoscrollEl.checked) {
         // Don't auto-scroll if unchecked or element doesn't exist
+        isUserNearBottom = false;
         return;
     }
 
-    // Scroll to bottom when re-enabled
-    scrollToBottom();
+    // Scroll to bottom when re-enabled and user was near bottom
+    if (isUserNearBottom) {
+        scrollToBottom();
+    }
 }
 
 function updateLogStats() {
