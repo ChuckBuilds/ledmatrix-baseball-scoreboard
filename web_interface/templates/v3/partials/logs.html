@@ -55,14 +55,14 @@
 
     <!-- Log Display -->
     <div class="relative">
-        <div id="logs-container" class="bg-gray-900 text-gray-100 font-mono text-sm rounded-lg p-3 border border-gray-700 shadow-inner overflow-y-auto" style="height: 500px; min-height: 400px; max-height: 70vh;">
+        <div id="logs-container" class="bg-gray-900 text-gray-100 font-mono text-sm rounded-lg p-3 border border-gray-700 shadow-inner overflow-y-auto" style="height: 500px; min-height: 400px; max-height: 70vh; position: relative;">
             <div id="logs-loading" class="flex items-center justify-center h-full text-gray-400">
                 <div class="text-center">
                     <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
                     <p>Loading logs...</p>
                 </div>
             </div>
-            <div id="logs-display" class="hidden">
+            <div id="logs-display" class="hidden" style="position: relative; z-index: 1;">
                 <!-- Logs will be inserted here -->
             </div>
             <div id="logs-empty" class="hidden flex items-center justify-center h-full text-gray-400">
@@ -102,6 +102,14 @@ const MAX_LOGS = 500; // Maximum number of logs to keep in memory
 (function() {
     logContainer = document.getElementById('logs-container');
     logsContent = document.getElementById('logs-display');
+
+    // Debug logging
+    console.log('Logs container initialized:', {
+        container: logContainer,
+        height: logContainer ? logContainer.offsetHeight : 'null',
+        scrollHeight: logContainer ? logContainer.scrollHeight : 'null',
+        overflow: logContainer ? getComputedStyle(logContainer).overflowY : 'null'
+    });
 
     initializeLogs();
 
@@ -204,6 +212,13 @@ function processLogs(logsText, append = false) {
     if (!append) {
         allLogs = [];
         logsContent.innerHTML = '';
+
+        // Debug container state after clearing
+        console.log('Container after clearing:', {
+            height: logContainer.offsetHeight,
+            scrollHeight: logContainer.scrollHeight,
+            clientHeight: logContainer.clientHeight
+        });
     }
 
     // Parse journalctl output

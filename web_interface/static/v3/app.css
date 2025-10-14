@@ -188,6 +188,8 @@ body {
 /* Smooth scrolling for logs container */
 #logs-container {
     scroll-behavior: smooth;
+    position: relative;
+    overflow-y: auto !important;
 }
 
 /* Ensure logs content doesn't cause overflow issues */
@@ -195,6 +197,13 @@ body {
     word-wrap: break-word;
     overflow-wrap: break-word;
     max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* Ensure proper containment of logs */
+#logs-display {
+    position: relative;
+    z-index: 1;
 }
 
 /* Logs container responsive height - simplified for better scrolling */
