@@ -56,18 +56,18 @@
     <!-- Log Display -->
     <div class="relative">
         <div id="logs-container" class="bg-gray-900 text-gray-100 font-mono text-sm rounded-lg p-3 border border-gray-700 shadow-inner relative" style="height: 500px; min-height: 400px; max-height: 70vh;">
-            <div id="logs-loading" class="flex items-center justify-center h-full text-gray-400">
+            <div id="logs-loading" class="absolute inset-0 flex items-center justify-center text-gray-400 bg-gray-900">
                 <div class="text-center">
                     <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
                     <p>Loading logs...</p>
                 </div>
             </div>
-            <div id="logs-display" class="hidden absolute inset-0 overflow-y-auto">
-                <div class="logs-content">
+            <div id="logs-display" class="hidden absolute inset-0 overflow-y-auto bg-gray-900">
+                <div class="logs-content p-0">
                     <!-- Logs will be inserted here -->
                 </div>
             </div>
-            <div id="logs-empty" class="hidden absolute inset-0 flex items-center justify-center text-gray-400">
+            <div id="logs-empty" class="hidden absolute inset-0 flex items-center justify-center text-gray-400 bg-gray-900">
                 <div class="text-center">
                     <i class="fas fa-file-alt text-4xl mb-2"></i>
                     <p>No logs available</p>
@@ -290,11 +290,7 @@ function renderLogs() {
         return;
     }
 
-    // Hide empty state first
-    document.getElementById('logs-empty').classList.add('hidden');
-    // Show logs display
-    logsContent.classList.remove('hidden');
-    document.getElementById('logs-loading').classList.add('hidden');
+    showLogs();
 
     logsContent.innerHTML = '';
 
@@ -503,6 +499,12 @@ function updateLogStats() {
 function showLoading() {
     document.getElementById('logs-loading').classList.remove('hidden');
     document.getElementById('logs-display').classList.add('hidden');
+    document.getElementById('logs-empty').classList.add('hidden');
+}
+
+function showLogs() {
+    document.getElementById('logs-loading').classList.add('hidden');
+    document.getElementById('logs-display').classList.remove('hidden');
     document.getElementById('logs-empty').classList.add('hidden');
 }
 

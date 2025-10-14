@@ -201,13 +201,31 @@ body {
 }
 
 /* Ensure proper containment of logs */
-#logs-display {
+#logs-loading {
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
     z-index: 1;
+}
+
+#logs-empty {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2;
+}
+
+#logs-display {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 3;
 }
 
 .logs-content {
