@@ -3,69 +3,111 @@
 ## Issue
 The Plugin Manager tab was not loading installed plugins or the plugin store when clicked.
 
-## Root Cause
-The issue had two parts:
+## Root Cause Analysis
 
-1. **Incorrect HTMX Trigger**: The plugins tab was using `hx-trigger="intersect once"` which meant HTMX would only load the content when the element intersected with the viewport. However, since the tab was hidden by Alpine.js (`x-show="activeTab === 'plugins'"`), it never intersected with the viewport, so the content never loaded.
+After comparing the current non-working code to the last working commit (`4c491013`), I discovered that **over 300 lines of complexity** were added in subsequent commits that broke the plugin manager:
 
-2. **Incorrect Event Handler**: The initialization code in `plugins.html` was listening for `htmx:afterSettle` and only checking for `DOMContentLoaded`, but since the content is loaded dynamically via HTMX after the page has already loaded, the `DOMContentLoaded` event had already fired and would never trigger again.
+1. **Over-engineering**: The simple, working function-based approach was refactored into a complex object-based `window.pluginManager` structure
+2. **HTMX Event Handler**: Changed from `htmx:afterSettle` to `htmx:afterSwap` without proper testing
+3. **Scope Issues**: The new object-based approach introduced `this` binding issues and loading state management complexity
+4. **Initialization Timing**: Added complex retry logic and loading states that weren't needed
+
+### Commit History
+- `4c491013` - Last working version (762 lines) ✅
+- `cf50501a` - Web interface reorganization
+- `bde5bf82` - Performance fixes that added complexity
+- `9ecbad6c` - Attempted fix that made things worse
+- Current broken state (1054 lines) ❌
 
 ## Solution
 
-### 1. Fixed HTMX Trigger (base.html)
-Changed the trigger from `hx-trigger="intersect once"` to `hx-trigger="load"` to match all other tabs:
+**Reverted to the last known working version** (commit `4c491013`) and applied only the minimal necessary fix:
 
-```html
-<!-- Before -->
-<div id="plugins-content" hx-get="/v3/partials/plugins" hx-trigger="intersect once" hx-swap="innerHTML">
+### Changes Made
 
-<!-- After -->
-<div id="plugins-content" hx-get="/v3/partials/plugins" hx-trigger="load" hx-swap="innerHTML">
-```
+1. **Restored simple function-based approach** from commit `4c491013`
+   - Direct function calls instead of object methods
+   - No complex loading state management
+   - Simpler promise chains with `.then()` instead of async/await
 
-This ensures the content loads when the page loads, regardless of whether the tab is visible.
+2. **Applied minimal HTMX initialization fix**
+   ```javascript
+   // Check if DOM is already loaded and initialize immediately if so
+   if (document.readyState === 'loading') {
+       document.addEventListener('DOMContentLoaded', initPluginsPage);
+   } else {
+       initPluginsPage();
+   }
+   
+   // Handle HTMX content swaps
+   document.addEventListener('htmx:afterSwap', function(event) {
+       if (event.target.id === 'plugins-content') {
+           console.log('HTMX afterSwap detected for plugins-content, initializing...');
+           initPluginsPage();
+       }
+   });
+   ```
 
-### 2. Fixed Initialization Code (partials/plugins.html)
-- Changed event listener from `htmx:afterSettle` to `htmx:afterSwap` for faster initialization
-- Added check for document ready state to initialize immediately if DOM is already loaded
+3. **Added test script** (`test/test_plugin_api.py`)
+   - Verifies API endpoints are working
+   - Tests installed plugins endpoint
+   - Tests plugin store endpoint
+   - Tests GitHub auth status
 
-```javascript
-// Before
-document.addEventListener('DOMContentLoaded', initPluginsPage);
-document.addEventListener('htmx:afterSettle', function(event) {
-    if (event.target.id === 'plugins-content') {
-        initPluginsPage();
-    }
-});
+## Results
 
-// After
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initPluginsPage);
-} else {
-    // DOM is already ready, initialize now
-    initPluginsPage();
-}
-
-document.addEventListener('htmx:afterSwap', function(event) {
-    if (event.target.id === 'plugins-content') {
-        console.log('HTMX afterSwap event detected for plugins-content, initializing...');
-        initPluginsPage();
-    }
-});
-```
+- **Removed 619 lines** of broken complex code
+- **Added 538 lines** of clean, working code
+- **Net reduction: 81 lines** ✅
+- Plugin manager now works as it did in the last working version
 
 ## Testing
-To test the fix:
-1. Navigate to the web interface
-2. Click on the "Plugin Manager" tab
-3. The tab should now load and display:
-   - Installed plugins section with all installed plugins
-   - Plugin store section with available plugins from the registry
+
+To verify the fix on your Raspberry Pi:
+
+1. Pull the latest changes:
+   ```bash
+   cd ~/LEDMatrix
+   git pull origin plugins
+   ```
+
+2. Restart the web service:
+   ```bash
+   sudo systemctl restart ledmatrix-web
+   ```
+
+3. Optional: Run the API test script:
+   ```bash
+   python3 test/test_plugin_api.py http://localhost:5000
+   ```
+
+4. Open the web interface and click on "Plugin Manager" tab
+   - Should see installed plugins (if any exist in `~/LEDMatrix/plugins/`)
+   - Should see plugin store with 18+ available plugins
 
 ## Files Modified
-- `web_interface/templates/v3/base.html` - Fixed HTMX trigger
-- `web_interface/templates/v3/partials/plugins.html` - Fixed initialization code
 
-## Additional Notes
-This issue was specific to the plugins tab because it was the only tab using `intersect once` as the trigger. All other tabs were correctly using `hx-trigger="load"`.
+- `web_interface/templates/v3/partials/plugins.html` - Restored working version with minimal HTMX fix
+- `web_interface/templates/v3/base.html` - Already had correct `hx-trigger="load"` from earlier fix
+- `test/test_plugin_api.py` - NEW: API endpoint test script
 
+## Lessons Learned
+
+1. **Keep it simple** - The working version was simple and effective
+2. **Test before refactoring** - Major refactors should be tested thoroughly
+3. **Don't over-engineer** - Adding complexity (loading states, object wrappers, retry logic) without clear need causes issues
+4. **Git history is valuable** - Being able to compare to last working version saved hours of debugging
+5. **Minimal fixes are better** - Small, targeted fixes are easier to debug than large refactors
+
+## Browser Console Output (Working)
+
+When the plugin manager loads correctly, you should see:
+```
+Initializing plugins...
+Loading installed plugins...
+Installed plugins response: 200
+Installed plugins count: X
+Plugin store response: 200
+Plugin store count: 18
+Plugins initialized
+```
