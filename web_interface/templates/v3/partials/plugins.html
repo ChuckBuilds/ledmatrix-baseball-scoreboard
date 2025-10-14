@@ -31,7 +31,14 @@
 
         <!-- Plugin Store Section (Always visible at bottom) -->
         <div id="plugin-store-section" class="border-t border-gray-200 pt-8">
-            <!-- GitHub Auth Warning Banner -->
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-md font-medium text-gray-900">Plugin Store</h3>
+                <span id="store-count" class="text-sm text-gray-500">
+                    <i class="fas fa-spinner fa-spin mr-1"></i>Loading...
+                </span>
+            </div>
+            
+            <!-- GitHub Auth Warning Banner (only shown when no token is configured) -->
             <div id="github-auth-warning" class="hidden mb-4 bg-yellow-50 border-l-4 border-yellow-400 p-4">
                 <div class="flex">
                     <div class="flex-shrink-0">
@@ -58,13 +65,6 @@
                         </button>
                     </div>
                 </div>
-            </div>
-
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-md font-medium text-gray-900">Plugin Store</h3>
-                <span id="store-count" class="text-sm text-gray-500">
-                    <i class="fas fa-spinner fa-spin mr-1"></i>Loading...
-                </span>
             </div>
             <div class="mb-4">
                 <div class="flex space-x-4">
