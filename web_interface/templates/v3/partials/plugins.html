@@ -17,16 +17,6 @@
     </div>
 
     <!-- Plugin Content Area -->
-    <div id="plugins-loading" class="hidden animate-pulse">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
-            <div class="bg-gray-200 rounded-lg p-4 h-24"></div>
-            <div class="bg-gray-200 rounded-lg p-4 h-24"></div>
-            <div class="bg-gray-200 rounded-lg p-4 h-24"></div>
-            <div class="bg-gray-200 rounded-lg p-4 h-24"></div>
-            <div class="bg-gray-200 rounded-lg p-4 h-24"></div>
-        </div>
-    </div>
-
     <div id="plugins-content" class="space-y-8">
         <!-- Installed Plugins Section (Always visible at top) -->
         <div id="installed-plugins-section">
@@ -198,7 +188,6 @@ function initializePlugins() {
 
 function loadInstalledPlugins() {
     console.log('Loading installed plugins...');
-    showLoading();
 
     fetch('/api/v3/plugins/installed')
         .then(response => {
@@ -207,7 +196,6 @@ function loadInstalledPlugins() {
         })
         .then(data => {
             console.log('Installed plugins data:', data);
-            hideLoading();
 
             if (data.status === 'success') {
                 installedPlugins = data.data.plugins || [];
@@ -220,13 +208,11 @@ function loadInstalledPlugins() {
                     countEl.textContent = installedPlugins.length + ' installed';
                 }
             } else {
-                hideLoading();
                 showError('Failed to load installed plugins: ' + data.message);
             }
         })
         .catch(error => {
             console.error('Error loading installed plugins:', error);
-            hideLoading();
             showError('Error loading plugins: ' + error.message);
         });
 }
@@ -752,24 +738,6 @@ window.installPlugin = function(pluginId) {
     });
 }
 
-function showLoading() {
-    const loadingEl = document.getElementById('plugins-loading');
-    const contentEl = document.getElementById('plugins-content');
-    if (loadingEl && contentEl) {
-        loadingEl.classList.remove('hidden');
-        contentEl.classList.add('hidden');
-    }
-}
-
-function hideLoading() {
-    const loadingEl = document.getElementById('plugins-loading');
-    const contentEl = document.getElementById('plugins-content');
-    if (loadingEl && contentEl) {
-        loadingEl.classList.add('hidden');
-        contentEl.classList.remove('hidden');
-    }
-}
-
 function showError(message) {
     const content = document.getElementById('plugins-content');
     content.innerHTML = `
@@ -778,7 +746,6 @@ function showError(message) {
             <p class="text-red-600">${escapeHtml(message)}</p>
         </div>
     `;
-    content.classList.remove('hidden');
 }
 
 // Plugin configuration form submission
