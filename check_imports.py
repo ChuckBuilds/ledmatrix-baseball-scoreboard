@@ -17,13 +17,13 @@ if app_py_path.exists():
     with open(app_py_path, 'r') as f:
         lines = f.readlines()
 
-    print("
-🔍 Import lines in app.py:"    for i, line in enumerate(lines, 1):
+    print("\n🔍 Import lines in app.py:")
+    for i, line in enumerate(lines, 1):
         if 'from' in line and 'blueprints' in line and 'import' in line:
             print(f"  Line {i}: {line.strip()}")
 
-    print("
-🔍 Blueprint registration lines:"    for i, line in enumerate(lines, 1):
+    print("\n🔍 Blueprint registration lines:")
+    for i, line in enumerate(lines, 1):
         if 'register_blueprint' in line:
             print(f"  Line {i}: {line.strip()}")
 else:
