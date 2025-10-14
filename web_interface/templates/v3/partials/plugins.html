@@ -313,24 +313,24 @@ function updateToggleText(checkbox) {
 }
 
 window.configurePlugin = function(pluginId) {
-    console.log('Configuring plugin:', pluginId);
-
-    // Load plugin configuration
-    fetch(`/api/v3/plugins/config?plugin_id=${pluginId}`)
-        .then(response => response.json())
-        .then(data => {
-            console.log('Plugin config data:', data);
-            if (data.status === 'success') {
-                currentPluginConfig = { pluginId, config: data.data };
-                showPluginConfigModal(pluginId, data.data);
-            } else {
-                showNotification('Failed to load plugin configuration: ' + data.message, 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error loading plugin configuration:', error);
-            showNotification('Error loading plugin configuration: ' + error.message, 'error');
-        });
+    console.log('Switching to plugin tab:', pluginId);
+    
+    // Switch to the plugin's dedicated tab using Alpine.js
+    const appElement = document.querySelector('[x-data="app()"]');
+    if (appElement && appElement._x_dataStack && appElement._x_dataStack[0]) {
+        appElement._x_dataStack[0].activeTab = pluginId;
+        console.log('Switched to tab:', pluginId);
+    } else {
+        // Fallback: try to trigger the tab button click
+        const pluginTab = document.querySelector(`.plugin-tab[onclick*="${pluginId}"]`);
+        if (pluginTab) {
+            pluginTab.click();
+            console.log('Clicked plugin tab button');
+        } else {
+            console.error('Could not find plugin tab for:', pluginId);
+            showNotification('Plugin tab not found. Please refresh the page.', 'error');
+        }
+    }
 }
 
 function showPluginConfigModal(pluginId, config) {
