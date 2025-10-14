@@ -144,6 +144,7 @@
 let installedPlugins = [];
 let currentPluginConfig = null;
 let selectedTags = new Set();
+let loadingStates = { installed: false, store: false };
 
 // Initialize when DOM is ready or when HTMX loads content
 function initPluginsPage() {
@@ -169,9 +170,6 @@ document.addEventListener('htmx:afterSettle', function(event) {
 function initializePlugins() {
     console.log('Initializing plugins...');
 
-    // Ensure loading is hidden initially
-    hideLoading();
-
     // Check GitHub authentication status
     checkGitHubAuthStatus();
 
@@ -191,7 +189,8 @@ function initializePlugins() {
 
 function loadInstalledPlugins() {
     console.log('Loading installed plugins...');
-    showLoading();
+    loadingStates.installed = true;
+    checkAndShowLoading();
 
     fetch('/api/v3/plugins/installed')
         .then(response => {
@@ -200,7 +199,8 @@ function loadInstalledPlugins() {
         })
         .then(data => {
             console.log('Installed plugins data:', data);
-            hideLoading();
+            loadingStates.installed = false;
+            checkAndHideLoading();
 
             if (data.status === 'success') {
                 installedPlugins = data.data.plugins || [];
@@ -213,13 +213,13 @@ function loadInstalledPlugins() {
                     countEl.textContent = installedPlugins.length + ' installed';
                 }
             } else {
-                hideLoading();
                 showError('Failed to load installed plugins: ' + data.message);
             }
         })
         .catch(error => {
             console.error('Error loading installed plugins:', error);
-            hideLoading();
+            loadingStates.installed = false;
+            checkAndHideLoading();
             showError('Error loading plugins: ' + error.message);
         });
 }
@@ -572,6 +572,9 @@ function restartDisplay() {
 
 function searchPluginStore() {
     console.log('Searching plugin store...');
+    loadingStates.store = true;
+    checkAndShowLoading();
+    
     const query = document.getElementById('plugin-search').value;
     const category = document.getElementById('plugin-category').value;
 
@@ -600,6 +603,9 @@ function searchPluginStore() {
         })
         .then(data => {
             console.log('Store data:', data);
+            loadingStates.store = false;
+            checkAndHideLoading();
+            
             if (data.status === 'success') {
                 const plugins = data.data.plugins || [];
                 console.log('Store plugins count:', plugins.length);
@@ -611,7 +617,6 @@ function searchPluginStore() {
                     countEl.textContent = plugins.length + ' available';
                 }
             } else {
-                showError('Failed to search plugin store: ' + data.message);
                 const countEl = document.getElementById('store-count');
                 if (countEl) {
                     countEl.textContent = 'Error loading';
@@ -620,7 +625,9 @@ function searchPluginStore() {
         })
         .catch(error => {
             console.error('Error searching plugin store:', error);
-            showError('Error searching plugin store: ' + error.message);
+            loadingStates.store = false;
+            checkAndHideLoading();
+            
             const countEl = document.getElementById('store-count');
             if (countEl) {
                 countEl.textContent = 'Error loading';
@@ -729,6 +736,20 @@ function hideLoading() {
         // Force show content
         contentEl.style.display = '';
         contentEl.classList.remove('hidden');
+    }
+}
+
+function checkAndShowLoading() {
+    // Only show loading if either state is loading
+    if (loadingStates.installed || loadingStates.store) {
+        showLoading();
+    }
+}
+
+function checkAndHideLoading() {
+    // Only hide loading when both are done
+    if (!loadingStates.installed && !loadingStates.store) {
+        hideLoading();
     }
 }
 
