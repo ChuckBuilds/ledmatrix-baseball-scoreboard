@@ -281,24 +281,24 @@ def toggle_plugin():
         plugin_id = data['plugin_id']
         enabled = data['enabled']
         
-        # Get plugin instance
-        plugin = api_v3.plugin_manager.get_plugin(plugin_id)
+        # Check if plugin exists in manifests (discovered but may not be loaded)
+        if plugin_id not in api_v3.plugin_manager.plugin_manifests:
+            return jsonify({'status': 'error', 'message': f'Plugin {plugin_id} not found'}), 404
         
-        if not plugin:
-            return jsonify({'status': 'error', 'message': f'Plugin {plugin_id} not loaded'}), 404
-        
-        # Update plugin enabled state
-        if enabled:
-            plugin.on_enable()
-        else:
-            plugin.on_disable()
-        
-        # Update config
+        # Update config (this is what the display controller reads)
         config = api_v3.config_manager.load_config()
         if plugin_id not in config:
             config[plugin_id] = {}
         config[plugin_id]['enabled'] = enabled
         api_v3.config_manager.save_config(config)
+        
+        # If plugin is loaded, also call its lifecycle methods
+        plugin = api_v3.plugin_manager.get_plugin(plugin_id)
+        if plugin:
+            if enabled:
+                plugin.on_enable()
+            else:
+                plugin.on_disable()
         
         return jsonify({'status': 'success', 'message': f'Plugin {plugin_id} {"enabled" if enabled else "disabled"}'})
     except Exception as e:
