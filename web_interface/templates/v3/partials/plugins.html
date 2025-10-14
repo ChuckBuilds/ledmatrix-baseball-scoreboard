@@ -233,6 +233,20 @@ function loadInstalledPlugins() {
 
 function renderInstalledPlugins(plugins) {
     const container = document.getElementById('installed-plugins-grid');
+    
+    // Update global installedPlugins for navigation tabs
+    window.installedPlugins = plugins;
+    console.log('Set window.installedPlugins to:', plugins.length, 'plugins');
+    
+    // Trigger the main app to update plugin tabs
+    if (window.Alpine && document.querySelector('[x-data="app()"]')) {
+        const appElement = document.querySelector('[x-data="app()"]');
+        if (appElement && appElement._x_dataStack && appElement._x_dataStack[0]) {
+            appElement._x_dataStack[0].installedPlugins = plugins;
+            appElement._x_dataStack[0].updatePluginTabs();
+            console.log('Triggered Alpine.js to update plugin tabs');
+        }
+    }
 
     if (plugins.length === 0) {
         container.innerHTML = `
