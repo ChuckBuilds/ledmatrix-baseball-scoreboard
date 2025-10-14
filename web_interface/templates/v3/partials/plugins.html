@@ -256,7 +256,7 @@ function renderInstalledPlugins(plugins) {
                     </div>
                     <div class="text-sm text-gray-600 space-y-1">
                         <p><i class="fas fa-user mr-1"></i>${escapeHtml(plugin.author || 'Unknown')}</p>
-                        <p><i class="fas fa-tag mr-1"></i>v${plugin.version || '1.0.0'}</p>
+                        <p><i class="fas fa-code-branch mr-1"></i>v${plugin.version || '1.0.0'}</p>
                         <p><i class="fas fa-folder mr-1"></i>${escapeHtml(plugin.category || 'General')}</p>
                         <p><i class="fas fa-star mr-1"></i>${plugin.stars || 0} stars</p>
                     </div>
@@ -683,9 +683,12 @@ function renderPluginStore(plugins) {
                     <div class="flex items-center space-x-2 mb-1">
                         <h4 class="font-medium text-gray-900">${escapeHtml(plugin.name || plugin.id)}</h4>
                         ${plugin.verified ? '<span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">✓ Verified</span>' : ''}
+                        ${isNewPlugin(plugin.last_updated) ? '<span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">✨ New</span>' : ''}
                     </div>
                     <div class="text-sm text-gray-600 space-y-1">
                         <p><i class="fas fa-user mr-1"></i>${escapeHtml(plugin.author || 'Unknown')}</p>
+                        <p><i class="fas fa-code-branch mr-1"></i>v${plugin.versions && plugin.versions[0] ? plugin.versions[0].version : '1.0.0'}</p>
+                        <p><i class="fas fa-calendar mr-1"></i>${formatDate(plugin.last_updated)}</p>
                         <p><i class="fas fa-tag mr-1"></i>${escapeHtml(plugin.category || 'General')}</p>
                         <p><i class="fas fa-star mr-1"></i>${plugin.stars || 0} stars</p>
                     </div>
@@ -803,6 +806,50 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// Format date for display
+function formatDate(dateString) {
+    if (!dateString) return 'Unknown';
+    
+    try {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffTime = Math.abs(now - date);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays < 1) {
+            return 'Today';
+        } else if (diffDays < 2) {
+            return 'Yesterday';
+        } else if (diffDays < 7) {
+            return `${diffDays} days ago`;
+        } else if (diffDays < 30) {
+            const weeks = Math.floor(diffDays / 7);
+            return `${weeks} ${weeks === 1 ? 'week' : 'weeks'} ago`;
+        } else {
+            // Return formatted date for older items
+            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+    } catch (e) {
+        return dateString;
+    }
+}
+
+// Check if plugin is new (updated within last 7 days)
+function isNewPlugin(lastUpdated) {
+    if (!lastUpdated) return false;
+    
+    try {
+        const date = new Date(lastUpdated);
+        const now = new Date();
+        const diffTime = Math.abs(now - date);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        return diffDays <= 7;
+    } catch (e) {
+        return false;
+    }
 }
 
 // Debounce utility
