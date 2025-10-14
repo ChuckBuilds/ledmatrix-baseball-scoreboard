@@ -417,17 +417,18 @@
                     // Plugin loading is handled by the pluginManager in plugins.html
                     // when the plugins tab is loaded via HTMX
 
-                    // Also load plugins when switching to plugins tab (if not already loaded)
-                    this.$watch('activeTab', (newTab) => {
-                        if (newTab === 'plugins' && this.installedPlugins.length === 0) {
-                            // Trigger HTMX load of plugins content which will initialize pluginManager
+                    // Also load plugins when switching to plugins tab
+                    this.$watch('activeTab', (newTab, oldTab) => {
+                        if (newTab === 'plugins') {
+                            // Trigger HTMX load of plugins content
                             const pluginsContent = document.getElementById('plugins-content');
                             if (pluginsContent && !pluginsContent.innerHTML.trim()) {
-                                // Force HTMX to load the content
+                                console.log('Manually triggering HTMX load for plugins content');
                                 htmx.trigger(pluginsContent, 'load');
                             }
                         }
                     });
+
                 },
 
                 async loadInstalledPlugins() {
