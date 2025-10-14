@@ -93,7 +93,7 @@
                         <i class="fas fa-search mr-2"></i>Search
                     </button>
                 </div>
-            </div>
+                    </div>
             <div id="plugin-store-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
                 <!-- Loading skeleton -->
                 <div class="store-loading col-span-full">
@@ -103,14 +103,14 @@
                         <div class="bg-gray-200 rounded-lg p-4 h-48 animate-pulse"></div>
                         <div class="bg-gray-200 rounded-lg p-4 h-48 animate-pulse"></div>
                         <div class="bg-gray-200 rounded-lg p-4 h-48 animate-pulse"></div>
-                    </div>
                 </div>
+            </div>
             </div>
         </div>
     </div>
 
     <!-- Plugin Configuration Modal -->
-    <div id="plugin-config-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div id="plugin-config-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style="display: none;">
         <div class="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-4">
                 <h3 id="plugin-config-title" class="text-lg font-semibold">Plugin Configuration</h3>
@@ -132,8 +132,8 @@
     console.log('Plugin manager script starting...');
     
     // Local variables for this instance
-    let installedPlugins = [];
-    let currentPluginConfig = null;
+let installedPlugins = [];
+let currentPluginConfig = null;
     let pluginStoreCache = null; // Cache for plugin store to speed up subsequent loads
     let cacheTimestamp = null;
     const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
@@ -338,17 +338,20 @@ function showPluginConfigModal(pluginId, config) {
     const title = document.getElementById('plugin-config-title');
     const content = document.getElementById('plugin-config-content');
 
+    console.log('Showing modal for:', pluginId);
     title.textContent = `Configure ${pluginId}`;
     
     // Show loading state while form is generated
     content.innerHTML = '<div class="flex items-center justify-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-blue-600"></i></div>';
     
     // Show modal immediately
-    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+    console.log('Modal display set to flex');
     
     // Generate form asynchronously
     generatePluginConfigForm(pluginId, config)
         .then(formHtml => {
+            console.log('Form generated, setting content');
             content.innerHTML = formHtml;
         })
         .catch(error => {
@@ -503,8 +506,10 @@ function generateSimpleConfigForm(config) {
 }
 
 window.closePluginConfigModal = function() {
-    document.getElementById('plugin-config-modal').classList.add('hidden');
+        const modal = document.getElementById('plugin-config-modal');
+    modal.style.display = 'none';
         currentPluginConfig = null;
+    console.log('Modal closed');
 }
 
 window.updatePlugin = function(pluginId) {
@@ -939,12 +944,14 @@ window.showGithubTokenInstructions = function() {
     
     title.textContent = 'GitHub Token Setup';
     content.innerHTML = instructions;
-    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+    console.log('GitHub instructions modal opened');
 }
 
 window.closeInstructionsModal = function() {
     const modal = document.getElementById('plugin-config-modal');
-    modal.classList.add('hidden');
+    modal.style.display = 'none';
+    console.log('Instructions modal closed');
 }
 
 })(); // End IIFE
