@@ -423,6 +423,23 @@
                         console.log('Initialized installedPlugins from global:', this.installedPlugins.length);
                     }
 
+                    // Listen for plugin updates from pluginManager
+                    document.addEventListener('pluginsUpdated', (event) => {
+                        console.log('Received pluginsUpdated event:', event.detail.plugins.length, 'plugins');
+                        this.installedPlugins = event.detail.plugins;
+                        this.updatePluginTabs();
+                    });
+
+                    // Also listen for direct window.installedPlugins changes
+                    Object.defineProperty(window, 'installedPlugins', {
+                        set: (value) => {
+                            console.log('window.installedPlugins changed:', value?.length, 'plugins');
+                            this.installedPlugins = value || [];
+                            this.updatePluginTabs();
+                        },
+                        get: () => this.installedPlugins
+                    });
+
                 },
 
                 async loadInstalledPlugins() {
