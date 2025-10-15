@@ -432,11 +432,25 @@ function generateFormFromSchema(schema, config) {
                 });
                 formHtml += `</select>`;
             } else {
-                // Default to text input
+                // Check if this is a secret field
+                const isSecret = prop['x-secret'] === true;
+                const inputType = isSecret ? 'password' : 'text';
                 const maxLength = prop.maxLength || '';
+                
                 formHtml += `
-                    <input type="text" id="${key}" name="${key}" value="${value || ''}" ${maxLength ? `maxlength="${maxLength}"` : ''} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <div class="relative">
+                        <input type="${inputType}" id="${key}" name="${key}" value="${value || ''}" ${maxLength ? `maxlength="${maxLength}"` : ''} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${isSecret ? 'pr-10' : ''}">
                 `;
+                
+                if (isSecret) {
+                    formHtml += `
+                        <button type="button" onclick="togglePasswordVisibility('${key}')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700">
+                            <i id="${key}-icon" class="fas fa-eye"></i>
+                        </button>
+                    `;
+                }
+                
+                formHtml += `</div>`;
             }
 
             formHtml += `</div>`;
@@ -863,6 +877,24 @@ function debounce(func, wait) {
         clearTimeout(timeout);
         timeout = setTimeout(later, wait);
     };
+}
+
+// Toggle password visibility for secret fields
+function togglePasswordVisibility(fieldId) {
+    const input = document.getElementById(fieldId);
+    const icon = document.getElementById(fieldId + '-icon');
+    
+    if (input && icon) {
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    }
 }
 
 // GitHub Authentication Status

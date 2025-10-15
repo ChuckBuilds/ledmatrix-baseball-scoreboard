@@ -528,7 +528,7 @@ def refresh_plugin_store():
 
 @api_v3.route('/plugins/config', methods=['POST'])
 def save_plugin_config():
-    """Save plugin configuration"""
+    """Save plugin configuration, separating secrets from regular config"""
     try:
         if not api_v3.config_manager:
             return jsonify({'status': 'error', 'message': 'Config manager not initialized'}), 500
@@ -540,19 +540,59 @@ def save_plugin_config():
         plugin_id = data['plugin_id']
         plugin_config = data.get('config', {})
 
-        # Get current config
-        current_config = api_v3.config_manager.load_config()
+        # Load plugin schema to identify secret fields
+        plugins_dir = Path('plugins')
+        schema_path = plugins_dir / plugin_id / 'config_schema.json'
+        secret_fields = set()
+        
+        if schema_path.exists():
+            try:
+                with open(schema_path, 'r', encoding='utf-8') as f:
+                    schema = json.load(f)
+                    # Find fields marked with x-secret: true
+                    if 'properties' in schema:
+                        for field_name, field_props in schema['properties'].items():
+                            if field_props.get('x-secret', False):
+                                secret_fields.add(field_name)
+            except Exception as e:
+                print(f"Error reading schema for secret detection: {e}")
 
-        # Update plugin configuration
+        # Separate secrets from regular config
+        regular_config = {}
+        secrets_config = {}
+        
+        for key, value in plugin_config.items():
+            if key in secret_fields:
+                secrets_config[key] = value
+            else:
+                regular_config[key] = value
+
+        # Get current configs
+        current_config = api_v3.config_manager.load_config()
+        current_secrets = api_v3.config_manager.get_raw_file_content('secrets')
+
+        # Update plugin configuration in main config
         if plugin_id not in current_config:
             current_config[plugin_id] = {}
+        current_config[plugin_id].update(regular_config)
 
-        current_config[plugin_id].update(plugin_config)
+        # Update plugin secrets in secrets config
+        if secrets_config:
+            if plugin_id not in current_secrets:
+                current_secrets[plugin_id] = {}
+            current_secrets[plugin_id].update(secrets_config)
+            # Save secrets file
+            api_v3.config_manager.save_raw_file_content('secrets', current_secrets)
 
-        # Save the updated config
+        # Save the updated main config
         api_v3.config_manager.save_config(current_config)
 
-        return jsonify({'status': 'success', 'message': f'Plugin {plugin_id} configuration saved successfully'})
+        secret_count = len(secrets_config)
+        message = f'Plugin {plugin_id} configuration saved successfully'
+        if secret_count > 0:
+            message += f' ({secret_count} secret field(s) saved to config_secrets.json)'
+
+        return jsonify({'status': 'success', 'message': message})
     except Exception as e:
         import traceback
         error_details = traceback.format_exc()
