@@ -569,6 +569,10 @@ window.uninstallPlugin = function(pluginId) {
 }
 
 function refreshPlugins() {
+    // Clear cache to force fresh data
+    pluginStoreCache = null;
+    cacheTimestamp = null;
+    
     loadInstalledPlugins();
     searchPluginStore();
     showNotification('Plugins refreshed', 'success');
