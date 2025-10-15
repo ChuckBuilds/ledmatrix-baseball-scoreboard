@@ -72,11 +72,75 @@ class BaseballScoreboardPlugin(BasePlugin):
             self.initialized = False
             return
 
-        # Configuration - per-league structure like original managers
+        # Configuration - flattened structure for plugin system compatibility
         self.leagues = {
-            'mlb': config.get('mlb', {}),
-            'milb': config.get('milb', {}),
-            'ncaa_baseball': config.get('ncaa_baseball', {})
+            'mlb': {
+                'enabled': config.get('mlb_enabled', True),
+                'favorite_teams': config.get('mlb_favorite_teams', []),
+                'display_modes': {
+                    'live': config.get('mlb_display_modes_live', True),
+                    'recent': config.get('mlb_display_modes_recent', True),
+                    'upcoming': config.get('mlb_display_modes_upcoming', True)
+                },
+                'recent_games_to_show': config.get('mlb_recent_games_to_show', 5),
+                'upcoming_games_to_show': config.get('mlb_upcoming_games_to_show', 1),
+                'background_service': {
+                    'enabled': config.get('mlb_background_service_enabled', True),
+                    'max_workers': config.get('mlb_background_service_max_workers', 3),
+                    'request_timeout': config.get('mlb_background_service_request_timeout', 30),
+                    'max_retries': config.get('mlb_background_service_max_retries', 3),
+                    'priority': config.get('mlb_background_service_priority', 2)
+                }
+            },
+            'milb': {
+                'enabled': config.get('milb_enabled', False),
+                'live_priority': config.get('milb_live_priority', False),
+                'live_game_duration': config.get('milb_live_game_duration', 30),
+                'test_mode': config.get('milb_test_mode', False),
+                'update_interval_seconds': config.get('milb_update_interval_seconds', 3600),
+                'live_update_interval': config.get('milb_live_update_interval', 30),
+                'recent_update_interval': config.get('milb_recent_update_interval', 3600),
+                'upcoming_update_interval': config.get('milb_upcoming_update_interval', 3600),
+                'recent_games_to_show': config.get('milb_recent_games_to_show', 1),
+                'upcoming_games_to_show': config.get('milb_upcoming_games_to_show', 1),
+                'favorite_teams': config.get('milb_favorite_teams', []),
+                'display_modes': {
+                    'live': config.get('milb_display_modes_live', True),
+                    'recent': config.get('milb_display_modes_recent', True),
+                    'upcoming': config.get('milb_display_modes_upcoming', True)
+                },
+                'logo_dir': config.get('milb_logo_dir', 'assets/sports/milb_logos'),
+                'show_records': config.get('milb_show_records', True),
+                'upcoming_fetch_days': config.get('milb_upcoming_fetch_days', 7),
+                'background_service': {
+                    'enabled': config.get('milb_background_service_enabled', True),
+                    'max_workers': config.get('milb_background_service_max_workers', 3),
+                    'request_timeout': config.get('milb_background_service_request_timeout', 30),
+                    'max_retries': config.get('milb_background_service_max_retries', 3),
+                    'priority': config.get('milb_background_service_priority', 2)
+                }
+            },
+            'ncaa_baseball': {
+                'enabled': config.get('ncaa_baseball_enabled', False),
+                'live_priority': config.get('ncaa_baseball_live_priority', True),
+                'live_game_duration': config.get('ncaa_baseball_live_game_duration', 30),
+                'show_odds': config.get('ncaa_baseball_show_odds', True),
+                'test_mode': config.get('ncaa_baseball_test_mode', False),
+                'update_interval_seconds': config.get('ncaa_baseball_update_interval_seconds', 3600),
+                'live_update_interval': config.get('ncaa_baseball_live_update_interval', 30),
+                'recent_games_to_show': config.get('ncaa_baseball_recent_games_to_show', 1),
+                'upcoming_games_to_show': config.get('ncaa_baseball_upcoming_games_to_show', 1),
+                'show_favorite_teams_only': config.get('ncaa_baseball_show_favorite_teams_only', True),
+                'favorite_teams': config.get('ncaa_baseball_favorite_teams', []),
+                'display_modes': {
+                    'live': config.get('ncaa_baseball_display_modes_live', True),
+                    'recent': config.get('ncaa_baseball_display_modes_recent', True),
+                    'upcoming': config.get('ncaa_baseball_display_modes_upcoming', True)
+                },
+                'logo_dir': config.get('ncaa_baseball_logo_dir', 'assets/sports/ncaa_logos'),
+                'show_records': config.get('ncaa_baseball_show_records', True),
+                'show_all_live': config.get('ncaa_baseball_show_all_live', False)
+            }
         }
 
         # Global settings
@@ -85,13 +149,6 @@ class BaseballScoreboardPlugin(BasePlugin):
         self.show_records = config.get('show_records', False)
         self.show_ranking = config.get('show_ranking', False)
 
-        # Background service configuration (internal only)
-        self.background_config = {
-            'enabled': True,
-            'request_timeout': 30,
-            'max_retries': 3,
-            'priority': 2
-        }
 
         # State
         self.current_games = []
@@ -227,7 +284,7 @@ class BaseballScoreboardPlugin(BasePlugin):
                 return []
 
             self.logger.info(f"Fetching {league_key} data from ESPN API...")
-            response = requests.get(url, timeout=self.background_config.get('request_timeout', 30))
+            response = requests.get(url, timeout=league_config.get('background_service', {}).get('request_timeout', 30))
             response.raise_for_status()
 
             data = response.json()
