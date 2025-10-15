@@ -177,7 +177,7 @@ class PluginStoreManager:
             tags = []
 
         registry = self.fetch_registry()
-        plugins = registry.get('plugins', [])
+        plugins = registry.get('plugins', []) or []
 
         results = []
         for plugin in plugins:
@@ -226,7 +226,8 @@ class PluginStoreManager:
             Plugin metadata or None if not found
         """
         registry = self.fetch_registry()
-        return next((p for p in registry.get('plugins', []) if p['id'] == plugin_id), None)
+        plugins = registry.get('plugins', []) or []
+        return next((p for p in plugins if p['id'] == plugin_id), None)
     
     def install_plugin(self, plugin_id: str, version: str = "latest") -> bool:
         """

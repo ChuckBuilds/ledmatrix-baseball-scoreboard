@@ -122,7 +122,7 @@ class PluginManager:
             self.logger.info(f"Installing dependencies for plugin from {requirements_file}")
 
             result = subprocess.run(
-                ['pip3', 'install', '--break-system-packages', '-r', str(requirements_file)],
+                ['pip3', 'install', '--break-system-packages', '--root-user-action=ignore', '-r', str(requirements_file)],
                 check=True,
                 capture_output=True,
                 text=True
@@ -387,9 +387,10 @@ class PluginManager:
         Returns:
             List of plugin information dicts
         """
-        return [
-            self.get_plugin_info(plugin_id)
-            for plugin_id in self.plugin_manifests.keys()
-            if self.get_plugin_info(plugin_id) is not None
-        ]
+        result = []
+        for plugin_id in self.plugin_manifests.keys():
+            plugin_info = self.get_plugin_info(plugin_id)
+            if plugin_info is not None:
+                result.append(plugin_info)
+        return result
 
