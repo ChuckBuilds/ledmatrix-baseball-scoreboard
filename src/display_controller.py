@@ -63,7 +63,8 @@ class DisplayController:
         # Initialize display modes
         init_time = time.time()
         self.clock = Clock(self.display_manager, self.config) if self.config.get('clock', {}).get('enabled', True) else None
-        self.weather = WeatherManager(self.config, self.display_manager) if self.config.get('weather', {}).get('enabled', False) else None
+        # Built-in weather disabled - use weather plugin instead
+        self.weather = None  # WeatherManager(self.config, self.display_manager) if self.config.get('weather_builtin', {}).get('enabled', False) else None
         self.stocks = StockManager(self.config, self.display_manager) if self.config.get('stocks', {}).get('enabled', False) else None
         self.news = StockNewsManager(self.config, self.display_manager) if self.config.get('stock_news', {}).get('enabled', False) else None
         self.odds_ticker = OddsTickerManager(self.config, self.display_manager) if self.config.get('odds_ticker', {}).get('enabled', False) else None
