@@ -111,6 +111,62 @@ class BasePlugin(ABC):
         """
         return self.config.get('display_duration', 15.0)
     
+    def has_live_priority(self) -> bool:
+        """
+        Check if this plugin has live priority enabled.
+        
+        Live priority allows a plugin to take over the display when it has
+        live/urgent content (e.g., live sports games, breaking news).
+        
+        Returns:
+            True if live priority is enabled in config, False otherwise
+        """
+        return self.config.get('live_priority', False)
+    
+    def has_live_content(self) -> bool:
+        """
+        Check if this plugin currently has live content to display.
+        
+        Override this method in your plugin to implement live content detection.
+        This is called by the display controller to determine if a live priority
+        plugin should take over the display.
+        
+        Returns:
+            True if plugin has live content, False otherwise
+            
+        Example (sports plugin):
+            def has_live_content(self):
+                # Check if there are any live games
+                return hasattr(self, 'live_games') and len(self.live_games) > 0
+                
+        Example (news plugin):
+            def has_live_content(self):
+                # Check if there's breaking news
+                return hasattr(self, 'breaking_news') and self.breaking_news
+        """
+        return False
+    
+    def get_live_modes(self) -> list:
+        """
+        Get list of display modes that should be used during live priority takeover.
+        
+        Override this method to specify which modes should be shown when this
+        plugin has live content. By default, returns all display modes from manifest.
+        
+        Returns:
+            List of mode names to display during live priority
+            
+        Example:
+            def get_live_modes(self):
+                # Only show live game mode, not upcoming/recent
+                return ['nhl_live', 'nba_live']
+        """
+        # Get display modes from manifest via plugin manager
+        if self.plugin_manager and hasattr(self.plugin_manager, 'plugin_manifests'):
+            manifest = self.plugin_manager.plugin_manifests.get(self.plugin_id, {})
+            return manifest.get('display_modes', [self.plugin_id])
+        return [self.plugin_id]
+    
     def validate_config(self) -> bool:
         """
         Validate plugin configuration against schema.

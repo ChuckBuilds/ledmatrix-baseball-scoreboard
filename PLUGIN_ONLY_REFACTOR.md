@@ -135,10 +135,36 @@ After these changes, test that:
 4. Display modes rotate properly
 5. Plugin dependencies install without permission errors
 
+## Plugin Live Priority API (NEW!)
+
+Added a complete plugin-driven live priority system:
+
+### BasePlugin New Methods:
+- `has_live_priority()` - Check if plugin has live priority enabled
+- `has_live_content()` - Override to detect live content
+- `get_live_modes()` - Override to specify which modes during live takeover
+
+### Display Controller Integration:
+- `_get_live_priority_plugins()` - Get plugins with live content
+- `_get_all_live_modes()` - Get all live modes from plugins
+- `_update_live_modes_in_rotation()` - Auto add/remove live modes
+
+### How It Works:
+1. Plugin sets `"live_priority": true` in config
+2. Plugin overrides `has_live_content()` to detect live events
+3. Display controller automatically:
+   - Detects live content
+   - Takes over display
+   - Rotates through live modes
+   - Releases when content ends
+
+**Full documentation:** See `PLUGIN_LIVE_PRIORITY_API.md`
+
 ## Future Enhancements
 
 Consider implementing:
-1. Plugin-level priority system (if needed)
-2. Dynamic live game takeover through plugin API
+1. ~~Plugin-level priority system~~ ✅ **COMPLETED** - See Plugin Live Priority API
+2. ~~Dynamic live game takeover through plugin API~~ ✅ **COMPLETED** - See Plugin Live Priority API
 3. Plugin state management framework
+4. Inter-plugin communication API
 

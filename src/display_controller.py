@@ -873,14 +873,76 @@ class DisplayController:
             self.display_manager.clear()
             self.is_display_active = False
 
-    def _update_live_modes_in_rotation(self):
-        """Update live modes in rotation - delegated to plugins.
+    def _get_live_priority_plugins(self) -> list:
+        """Get list of plugins that have live priority and live content.
         
-        NOTE: Live priority logic is now handled by individual plugins.
-        This method is kept as a stub for backward compatibility.
+        Returns:
+            List of (plugin_id, plugin_instance, live_modes) tuples for plugins with live content
         """
-        # Plugins handle their own live priority and mode rotation
-        pass
+        if not self.plugin_manager:
+            return []
+        
+        live_plugins = []
+        for plugin_id, plugin_instance in self.plugin_manager.plugins.items():
+            if not plugin_instance:
+                continue
+            
+            # Check if plugin has live priority enabled and has live content
+            if plugin_instance.has_live_priority() and plugin_instance.has_live_content():
+                live_modes = plugin_instance.get_live_modes()
+                live_plugins.append((plugin_id, plugin_instance, live_modes))
+                
+        return live_plugins
+    
+    def _get_all_live_modes(self) -> list:
+        """Get all possible live modes from all plugins.
+        
+        Returns:
+            List of mode names that are considered live modes
+        """
+        if not self.plugin_manager:
+            return []
+        
+        live_modes = []
+        for plugin_id, plugin_instance in self.plugin_manager.plugins.items():
+            if not plugin_instance:
+                continue
+            
+            if plugin_instance.has_live_priority():
+                live_modes.extend(plugin_instance.get_live_modes())
+        
+        return live_modes
+    
+    def _update_live_modes_in_rotation(self):
+        """Update live modes in rotation based on plugin live priority.
+        
+        Checks all plugins with live priority enabled to see if they have live content.
+        Manages rotation of live modes automatically.
+        """
+        if not self.plugin_manager:
+            return
+        
+        # Get all loaded plugins
+        for plugin_id, plugin_instance in self.plugin_manager.plugins.items():
+            if not plugin_instance:
+                continue
+                
+            # Check if plugin has live priority enabled
+            if not plugin_instance.has_live_priority():
+                continue
+            
+            # Check if plugin has live content
+            has_live = plugin_instance.has_live_content()
+            live_modes = plugin_instance.get_live_modes() if has_live else []
+            
+            # Add or remove live modes from rotation based on live content
+            for mode in live_modes:
+                if has_live and mode not in self.available_modes:
+                    self.available_modes.append(mode)
+                    logger.debug(f"Added live mode to rotation: {mode} (plugin: {plugin_id})")
+                elif not has_live and mode in self.available_modes:
+                    self.available_modes.remove(mode)
+                    logger.debug(f"Removed live mode from rotation: {mode} (plugin: {plugin_id})")
 
     def run(self):
         """Run the display controller, switching between displays."""
@@ -914,78 +976,49 @@ class DisplayController:
                 # Update live modes in rotation if needed
                 self._update_live_modes_in_rotation()
 
-                # NOTE: Live priority logic removed - plugins now handle their own priority
-                # This legacy code was hard-coded for specific sports
-                is_currently_live = self.current_display_mode.endswith('_live')
-                live_priority_takeover = False  # Disabled - plugins handle their own priority
-                live_priority_sports = []  # Empty - no hard-coded sports
+                # Check for live priority takeover from plugins
+                live_priority_plugins = self._get_live_priority_plugins()
+                live_priority_takeover = len(live_priority_plugins) > 0
+                is_currently_live = self.current_display_mode in self._get_all_live_modes()
                 
                 manager_to_display = None
-                # --- State Machine for Display Logic ---
-                if is_currently_live:
-                    if live_priority_takeover:
-                        # Check if we need to rotate to the next live priority sport
-                        current_sport_type = self.current_display_mode.replace('_live', '')
-                        
-                        # If current sport is not in live priority sports, switch to first one
-                        if current_sport_type not in live_priority_sports:
-                            next_sport = live_priority_sports[0]
-                            new_mode = f"{next_sport}_live"
-                            logger.info(f"Current live sport {current_sport_type} no longer has priority, switching to {new_mode}")
-                            self.current_display_mode = new_mode
-                            if hasattr(self, '_last_logged_duration'):
-                                delattr(self, '_last_logged_duration')
-                            self.force_clear = True
-                            self.last_switch = current_time
-                            manager_to_display = getattr(self, f"{next_sport}_live", None)
-                        else:
-                            # Check if duration has elapsed for current sport
+                
+                # --- Live Priority Takeover Logic ---
+                if live_priority_takeover:
+                    # Get all live modes from plugins with live content
+                    all_live_modes = []
+                    for plugin_id, plugin_instance, live_modes in live_priority_plugins:
+                        all_live_modes.extend(live_modes)
+                    
+                    if is_currently_live:
+                        # Already showing live content - check if we need to rotate
+                        if self.current_display_mode in all_live_modes:
+                            # Current mode is still valid live content
                             current_duration = self.get_current_duration()
                             if current_time - self.last_switch >= current_duration:
-                                # Find next sport in rotation
-                                current_index = live_priority_sports.index(current_sport_type)
-                                next_index = (current_index + 1) % len(live_priority_sports)
-                                next_sport = live_priority_sports[next_index]
-                                new_mode = f"{next_sport}_live"
-                                
-                                logger.info(f"Rotating live priority sports: {current_sport_type} -> {next_sport} (duration: {current_duration}s)")
-                                self.current_display_mode = new_mode
-                                if hasattr(self, '_last_logged_duration'):
-                                    delattr(self, '_last_logged_duration')
+                                # Rotate to next live mode
+                                current_index = all_live_modes.index(self.current_display_mode)
+                                next_index = (current_index + 1) % len(all_live_modes)
+                                self.current_display_mode = all_live_modes[next_index]
                                 self.force_clear = True
                                 self.last_switch = current_time
-                                manager_to_display = getattr(self, f"{next_sport}_live", None)
-                            else:
-                                self.force_clear = False
-                                manager_to_display = getattr(self, f"{current_sport_type}_live", None)
-                    else:
-                        # If no sport has live_priority takeover, treat as regular rotation
-                        is_currently_live = False
-                if not is_currently_live:
-                    previous_mode_before_switch = self.current_display_mode
-                    if live_priority_takeover:
-                        # Switch to first live priority sport
-                        next_sport = live_priority_sports[0]
-                        new_mode = f"{next_sport}_live"
-                        
-                        # Double-check that the manager actually has live games before switching
-                        target_manager = getattr(self, f"{next_sport}_live", None)
-                        if target_manager and hasattr(target_manager, 'live_games') and len(target_manager.live_games) > 0:
-                            logger.info(f"Live priority takeover: Switching to {new_mode} from {self.current_display_mode}")
-                            logger.debug(f"[DisplayController] Live priority takeover details: sport={next_sport}, manager={target_manager}, live_games={target_manager.live_games}")
-                            if previous_mode_before_switch == 'music' and self.music_manager:
-                                self.music_manager.deactivate_music_display()
-                            self.current_display_mode = new_mode
-                            # Reset logged duration when mode changes
-                            if hasattr(self, '_last_logged_duration'):
-                                delattr(self, '_last_logged_duration')
+                                logger.info(f"Rotating live priority modes: {all_live_modes[current_index]} -> {self.current_display_mode}")
+                        else:
+                            # Current mode no longer has live content - switch to first live mode
+                            self.current_display_mode = all_live_modes[0]
                             self.force_clear = True
                             self.last_switch = current_time
-                            manager_to_display = target_manager
-                        else:
-                            logger.warning(f"[DisplayController] Live priority takeover attempted for {new_mode} but manager has no live games, skipping takeover")
-                            live_priority_takeover = False
+                            logger.info(f"Switching to live priority mode: {self.current_display_mode}")
                     else:
+                        # Not currently showing live content - take over!
+                        previous_mode = self.current_display_mode
+                        self.current_display_mode = all_live_modes[0]
+                        self.force_clear = True
+                        self.last_switch = current_time
+                        logger.info(f"Live priority takeover! {previous_mode} -> {self.current_display_mode}")
+                
+                # --- Normal Rotation Logic (when no live priority takeover) ---
+                if not live_priority_takeover:
                         # No live_priority takeover, regular rotation
                         needs_switch = False
                         if self.current_display_mode.endswith('_live'):
