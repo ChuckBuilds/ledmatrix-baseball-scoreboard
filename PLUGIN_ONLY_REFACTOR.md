@@ -160,6 +160,37 @@ Added a complete plugin-driven live priority system:
 
 **Full documentation:** See `PLUGIN_LIVE_PRIORITY_API.md`
 
+## On-Demand Display API (NEW!)
+
+Added manual/user-triggered display control for web UI integration:
+
+### DisplayController New Methods:
+- `show_on_demand(mode, duration, pinned)` - Show specific mode immediately
+- `clear_on_demand()` - Clear on-demand and return to rotation
+- `is_on_demand_active()` - Check if on-demand is active
+- `get_on_demand_info()` - Get current on-demand status
+
+### How It Works:
+1. User clicks "Show Now" button in web UI
+2. Web UI calls `show_on_demand('weather', duration=30)`
+3. Display immediately shows requested mode
+4. After duration expires, returns to normal rotation (or stays if pinned)
+
+### Priority Hierarchy:
+```
+1. On-Demand Display (HIGHEST) ← User explicitly requested
+2. Live Priority (plugins with live content)
+3. Normal Rotation (automatic cycling)
+```
+
+### Use Cases:
+- 📺 "Show Weather Now" button
+- 🏒 "Show Live Game" button
+- 📰 Quick preview of any plugin
+- 🎮 Test plugin configuration
+
+**Full documentation:** See `ON_DEMAND_DISPLAY_API.md`
+
 ## Future Enhancements
 
 Consider implementing:

@@ -271,6 +271,12 @@ class DisplayController:
         # NOTE: Team-based rotation states removed - plugins now handle their own state
         # No need for hard-coded sport-specific rotation tracking
         
+        # On-demand display control
+        self.on_demand_mode = None  # Plugin mode to display on-demand
+        self.on_demand_duration = None  # How long to show on-demand (None = indefinite)
+        self.on_demand_start_time = None  # When on-demand started
+        self.on_demand_pinned = False  # If True, stays on this mode until unpinned
+        
         # Update display durations to include all modes
         self.display_durations = self.config['display'].get('display_durations', {})
         # Backward-compatibility: map legacy weather keys to current keys if provided in config
@@ -873,6 +879,65 @@ class DisplayController:
             self.display_manager.clear()
             self.is_display_active = False
 
+    def show_on_demand(self, mode: str, duration: float = None, pinned: bool = False) -> bool:
+        """
+        Display a specific mode on-demand, interrupting normal rotation.
+        
+        Args:
+            mode: The display mode to show (e.g., 'weather', 'hockey_live')
+            duration: How long to show in seconds (None = use mode's default, 0 = indefinite)
+            pinned: If True, stays on this mode until unpinned
+            
+        Returns:
+            True if mode exists and was activated, False otherwise
+        """
+        # Check if mode exists (either in available_modes or plugin_modes)
+        if mode not in self.available_modes and mode not in self.plugin_modes:
+            logger.warning(f"On-demand mode '{mode}' not found in available modes")
+            return False
+        
+        self.on_demand_mode = mode
+        self.on_demand_duration = duration
+        self.on_demand_start_time = time.time()
+        self.on_demand_pinned = pinned
+        self.force_clear = True
+        
+        logger.info(f"On-demand display activated: {mode} (duration: {duration}s, pinned: {pinned})")
+        return True
+    
+    def clear_on_demand(self) -> None:
+        """Clear on-demand display and return to normal rotation."""
+        if self.on_demand_mode:
+            logger.info(f"Clearing on-demand display: {self.on_demand_mode}")
+            self.on_demand_mode = None
+            self.on_demand_duration = None
+            self.on_demand_start_time = None
+            self.on_demand_pinned = False
+            self.force_clear = True
+    
+    def is_on_demand_active(self) -> bool:
+        """Check if on-demand display is currently active."""
+        return self.on_demand_mode is not None
+    
+    def get_on_demand_info(self) -> dict:
+        """Get information about current on-demand display."""
+        if not self.is_on_demand_active():
+            return {'active': False}
+        
+        elapsed = time.time() - self.on_demand_start_time if self.on_demand_start_time else 0
+        remaining = None
+        if self.on_demand_duration is not None and self.on_demand_duration > 0:
+            remaining = max(0, self.on_demand_duration - elapsed)
+        
+        return {
+            'active': True,
+            'mode': self.on_demand_mode,
+            'duration': self.on_demand_duration,
+            'elapsed': elapsed,
+            'remaining': remaining,
+            'pinned': self.on_demand_pinned
+        }
+    
     def _get_live_priority_plugins(self) -> list:
         """Get list of plugins that have live priority and live content.
         
@@ -976,12 +1041,31 @@ class DisplayController:
                 # Update live modes in rotation if needed
                 self._update_live_modes_in_rotation()
 
-                # Check for live priority takeover from plugins
-                live_priority_plugins = self._get_live_priority_plugins()
-                live_priority_takeover = len(live_priority_plugins) > 0
-                is_currently_live = self.current_display_mode in self._get_all_live_modes()
-                
                 manager_to_display = None
+                
+                # --- On-Demand Display (Highest Priority) ---
+                if self.is_on_demand_active():
+                    # Check if on-demand duration has expired (if not pinned)
+                    if not self.on_demand_pinned and self.on_demand_duration is not None:
+                        if self.on_demand_duration > 0:  # 0 means indefinite
+                            elapsed = current_time - self.on_demand_start_time
+                            if elapsed >= self.on_demand_duration:
+                                logger.info(f"On-demand display expired after {elapsed:.1f}s")
+                                self.clear_on_demand()
+                    
+                    # If still active, display the on-demand mode
+                    if self.is_on_demand_active():
+                        if self.current_display_mode != self.on_demand_mode:
+                            self.current_display_mode = self.on_demand_mode
+                            self.force_clear = True
+                            self.last_switch = current_time
+                        # Skip normal rotation logic - on-demand has control
+                        # Continue to display section below
+
+                # Check for live priority takeover from plugins (only if no on-demand)
+                live_priority_plugins = self._get_live_priority_plugins()
+                live_priority_takeover = len(live_priority_plugins) > 0 and not self.is_on_demand_active()
+                is_currently_live = self.current_display_mode in self._get_all_live_modes()
                 
                 # --- Live Priority Takeover Logic ---
                 if live_priority_takeover:
@@ -1017,8 +1101,8 @@ class DisplayController:
                         self.last_switch = current_time
                         logger.info(f"Live priority takeover! {previous_mode} -> {self.current_display_mode}")
                 
-                # --- Normal Rotation Logic (when no live priority takeover) ---
-                if not live_priority_takeover:
+                # --- Normal Rotation Logic (when no live priority takeover and no on-demand) ---
+                if not live_priority_takeover and not self.is_on_demand_active():
                         # No live_priority takeover, regular rotation
                         needs_switch = False
                         if self.current_display_mode.endswith('_live'):
