@@ -241,7 +241,7 @@ class WeatherManager:
     def get_weather(self) -> Dict[str, Any]:
         """Get current weather data, fetching new data if needed."""
         current_time = time.time()
-        update_interval = self.weather_config.get('update_interval', 300)
+        update_interval = int(self.weather_config.get('update_interval', 300))
         # Add a throttle for log spam
         log_throttle_interval = 600  # 10 minutes
         if not hasattr(self, '_last_weather_log_time'):
