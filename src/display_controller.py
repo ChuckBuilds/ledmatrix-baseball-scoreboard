@@ -61,20 +61,22 @@ class DisplayController:
         logger.info("DisplayManager initialized in %.3f seconds", time.time() - config_time)
         
         # Initialize display modes
+        # NOTE: All built-in managers disabled - use plugins instead
         init_time = time.time()
         self.clock = Clock(self.display_manager, self.config) if self.config.get('clock', {}).get('enabled', True) else None
-        # Built-in weather disabled - use weather plugin instead
-        self.weather = None  # WeatherManager(self.config, self.display_manager) if self.config.get('weather_builtin', {}).get('enabled', False) else None
-        self.stocks = StockManager(self.config, self.display_manager) if self.config.get('stocks', {}).get('enabled', False) else None
-        self.news = StockNewsManager(self.config, self.display_manager) if self.config.get('stock_news', {}).get('enabled', False) else None
-        self.odds_ticker = OddsTickerManager(self.config, self.display_manager) if self.config.get('odds_ticker', {}).get('enabled', False) else None
-        self.leaderboard = LeaderboardManager(self.config, self.display_manager) if self.config.get('leaderboard', {}).get('enabled', False) else None
-        self.calendar = CalendarManager(self.display_manager, self.config) if self.config.get('calendar', {}).get('enabled', False) else None
-        self.youtube = YouTubeDisplay(self.display_manager, self.config) if self.config.get('youtube', {}).get('enabled', False) else None
-        self.text_display = TextDisplay(self.display_manager, self.config) if self.config.get('text_display', {}).get('enabled', False) else None
-        self.static_image = StaticImageManager(self.display_manager, self.config) if self.config.get('static_image', {}).get('enabled', False) else None
-        self.of_the_day = OfTheDayManager(self.display_manager, self.config) if self.config.get('of_the_day', {}).get('enabled', False) else None
-        self.news_manager = NewsManager(self.config, self.display_manager, self.config_manager) if self.config.get('news_manager', {}).get('enabled', False) else None
+        
+        # All built-in modules disabled - use plugin versions instead
+        self.weather = None  # Use weather plugin
+        self.stocks = None  # Use stocks plugin
+        self.news = None  # Use stock-news plugin
+        self.odds_ticker = None  # Use odds-ticker plugin
+        self.leaderboard = None  # Use leaderboard plugin
+        self.calendar = None  # Use calendar plugin
+        self.youtube = None  # Not yet available as plugin
+        self.text_display = None  # Use text-display plugin
+        self.static_image = None  # Use static-image plugin
+        self.of_the_day = None  # Use of-the-day plugin
+        self.news_manager = None  # Use news plugin
         logger.info(f"Calendar Manager initialized: {'Object' if self.calendar else 'None'}")
         logger.info(f"Text Display initialized: {'Object' if self.text_display else 'None'}")
         logger.info(f"Static Image Manager initialized: {'Object' if self.static_image else 'None'}")
@@ -83,309 +85,123 @@ class DisplayController:
         logger.info("Display modes initialized in %.3f seconds", time.time() - init_time)
         
         self.force_change = False
-        # Initialize Music Manager
+        # Music Manager - disabled, use music plugin instead
         music_init_time = time.time()
-        self.music_manager = None
-        
-        if hasattr(self, 'config'):
-            music_config_main = self.config.get('music', {})
-            if music_config_main.get('enabled', False):
-                try:
-                    # Pass display_manager and config. The callback is now optional for MusicManager.
-                    # DisplayController might not need a specific music update callback anymore if MusicManager handles all display.
-                    self.music_manager = MusicManager(display_manager=self.display_manager, config=self.config, update_callback=self._handle_music_update)
-                    if self.music_manager.enabled: 
-                        logger.info("MusicManager initialized successfully.")
-                        self.music_manager.start_polling()
-                    else:
-                        logger.info("MusicManager initialized but is internally disabled or failed to load its own config.")
-                        self.music_manager = None 
-                except Exception as e:
-                    logger.error(f"Failed to initialize MusicManager: {e}", exc_info=True)
-                    self.music_manager = None
-            else:
-                logger.info("Music module is disabled in main configuration (config.json).")
-        else:
-            logger.error("Config not loaded before MusicManager initialization attempt.")
+        self.music_manager = None  # Use music plugin
+        logger.info("Built-in MusicManager disabled - use music plugin instead")
         logger.info("MusicManager initialized in %.3f seconds", time.time() - music_init_time)
         
-        # Initialize NHL managers if enabled
+        # NHL managers - disabled, use hockey-scoreboard plugin instead
         nhl_time = time.time()
-        nhl_enabled = self.config.get('nhl_scoreboard', {}).get('enabled', False)
-        nhl_display_modes = self.config.get('nhl_scoreboard', {}).get('display_modes', {})
-        
-        if nhl_enabled:
-            self.nhl_live = NHLLiveManager(self.config, self.display_manager, self.cache_manager) if nhl_display_modes.get('nhl_live', True) else None
-            self.nhl_recent = NHLRecentManager(self.config, self.display_manager, self.cache_manager) if nhl_display_modes.get('nhl_recent', True) else None
-            self.nhl_upcoming = NHLUpcomingManager(self.config, self.display_manager, self.cache_manager) if nhl_display_modes.get('nhl_upcoming', True) else None
-        else:
-            self.nhl_live = None
-            self.nhl_recent = None
-            self.nhl_upcoming = None
+        self.nhl_live = None
+        self.nhl_recent = None
+        self.nhl_upcoming = None
+        logger.info("NHL managers disabled - use hockey-scoreboard plugin instead")
         logger.info("NHL managers initialized in %.3f seconds", time.time() - nhl_time)
             
-        # Initialize NBA managers if enabled
+        # NBA managers - disabled, use basketball-scoreboard plugin instead
         nba_time = time.time()
-        nba_enabled = self.config.get('nba_scoreboard', {}).get('enabled', False)
-        nba_display_modes = self.config.get('nba_scoreboard', {}).get('display_modes', {})
-        
-        if nba_enabled:
-            self.nba_live = NBALiveManager(self.config, self.display_manager, self.cache_manager) if nba_display_modes.get('nba_live', True) else None
-            self.nba_recent = NBARecentManager(self.config, self.display_manager, self.cache_manager) if nba_display_modes.get('nba_recent', True) else None
-            self.nba_upcoming = NBAUpcomingManager(self.config, self.display_manager, self.cache_manager) if nba_display_modes.get('nba_upcoming', True) else None
-        else:
-            self.nba_live = None
-            self.nba_recent = None
-            self.nba_upcoming = None
+        self.nba_live = None
+        self.nba_recent = None
+        self.nba_upcoming = None
+        logger.info("NBA managers disabled - use basketball-scoreboard plugin instead")
         logger.info("NBA managers initialized in %.3f seconds", time.time() - nba_time)
             
-        # Initialize WNBA managers if enabled
+        # WNBA managers - disabled, use basketball-scoreboard plugin instead
         wnba_time = time.time()
-        wnba_enabled = self.config.get('wnba_scoreboard', {}).get('enabled', False)
-        wnba_display_modes = self.config.get('wnba_scoreboard', {}).get('display_modes', {})
-        
-        if wnba_enabled:
-            self.wnba_live = WNBALiveManager(self.config, self.display_manager, self.cache_manager) if wnba_display_modes.get('wnba_live', True) else None
-            self.wnba_recent = WNBARecentManager(self.config, self.display_manager, self.cache_manager) if wnba_display_modes.get('wnba_recent', True) else None
-            self.wnba_upcoming = WNBAUpcomingManager(self.config, self.display_manager, self.cache_manager) if wnba_display_modes.get('wnba_upcoming', True) else None
-        else:
-            self.wnba_live = None
-            self.wnba_recent = None
-            self.wnba_upcoming = None
+        self.wnba_live = None
+        self.wnba_recent = None
+        self.wnba_upcoming = None
+        logger.info("WNBA managers disabled - use basketball-scoreboard plugin instead")
         logger.info("WNBA managers initialized in %.3f seconds", time.time() - wnba_time)
 
-        # Initialize MLB managers if enabled
+        # MLB managers - disabled, use baseball-scoreboard plugin instead
         mlb_time = time.time()
-        mlb_enabled = self.config.get('mlb_scoreboard', {}).get('enabled', False)
-        mlb_display_modes = self.config.get('mlb_scoreboard', {}).get('display_modes', {})
-        
-        if mlb_enabled:
-            self.mlb_live = MLBLiveManager(self.config, self.display_manager, self.cache_manager) if mlb_display_modes.get('mlb_live', True) else None
-            self.mlb_recent = MLBRecentManager(self.config, self.display_manager, self.cache_manager) if mlb_display_modes.get('mlb_recent', True) else None
-            self.mlb_upcoming = MLBUpcomingManager(self.config, self.display_manager, self.cache_manager) if mlb_display_modes.get('mlb_upcoming', True) else None
-        else:
-            self.mlb_live = None
-            self.mlb_recent = None
-            self.mlb_upcoming = None
+        self.mlb_live = None
+        self.mlb_recent = None
+        self.mlb_upcoming = None
+        logger.info("MLB managers disabled - use baseball-scoreboard plugin instead")
         logger.info("MLB managers initialized in %.3f seconds", time.time() - mlb_time)
 
-        # Initialize MiLB managers if enabled
+        # MiLB managers - disabled, use baseball-scoreboard plugin instead
         milb_time = time.time()
-        milb_enabled = self.config.get('milb_scoreboard', {}).get('enabled', False)
-        milb_display_modes = self.config.get('milb_scoreboard', {}).get('display_modes', {})
-        
-        if milb_enabled:
-            self.milb_live = MiLBLiveManager(self.config, self.display_manager, self.cache_manager) if milb_display_modes.get('milb_live', True) else None
-            self.milb_recent = MiLBRecentManager(self.config, self.display_manager, self.cache_manager) if milb_display_modes.get('milb_recent', True) else None
-            self.milb_upcoming = MiLBUpcomingManager(self.config, self.display_manager, self.cache_manager) if milb_display_modes.get('milb_upcoming', True) else None
-            logger.info(f"MiLB managers initialized - live: {self.milb_live is not None}, recent: {self.milb_recent is not None}, upcoming: {self.milb_upcoming is not None}")
-        else:
-            self.milb_live = None
-            self.milb_recent = None
-            self.milb_upcoming = None
-            logger.info("MiLB managers disabled")
+        self.milb_live = None
+        self.milb_recent = None
+        self.milb_upcoming = None
+        logger.info("MiLB managers disabled - use baseball-scoreboard plugin instead")
         logger.info("MiLB managers initialized in %.3f seconds", time.time() - milb_time)
             
-        # Initialize Soccer managers if enabled
+        # Soccer managers - disabled, use soccer-scoreboard plugin instead
         soccer_time = time.time()
-        soccer_enabled = self.config.get('soccer_scoreboard', {}).get('enabled', False)
-        soccer_display_modes = self.config.get('soccer_scoreboard', {}).get('display_modes', {})
-        
-        if soccer_enabled:
-            self.soccer_live = SoccerLiveManager(self.config, self.display_manager, self.cache_manager) if soccer_display_modes.get('soccer_live', True) else None
-            self.soccer_recent = SoccerRecentManager(self.config, self.display_manager, self.cache_manager) if soccer_display_modes.get('soccer_recent', True) else None
-            self.soccer_upcoming = SoccerUpcomingManager(self.config, self.display_manager, self.cache_manager) if soccer_display_modes.get('soccer_upcoming', True) else None
-        else:
-            self.soccer_live = None
-            self.soccer_recent = None
-            self.soccer_upcoming = None
+        self.soccer_live = None
+        self.soccer_recent = None
+        self.soccer_upcoming = None
+        logger.info("Soccer managers disabled - use soccer-scoreboard plugin instead")
         logger.info("Soccer managers initialized in %.3f seconds", time.time() - soccer_time)
             
-        # Initialize NFL managers if enabled
+        # NFL managers - disabled, use football-scoreboard plugin instead
         nfl_time = time.time()
-        nfl_enabled = self.config.get('nfl_scoreboard', {}).get('enabled', False)
-        nfl_display_modes = self.config.get('nfl_scoreboard', {}).get('display_modes', {})
-        
-        if nfl_enabled:
-            self.nfl_live = NFLLiveManager(self.config, self.display_manager, self.cache_manager) if nfl_display_modes.get('nfl_live', True) else None
-            self.nfl_recent = NFLRecentManager(self.config, self.display_manager, self.cache_manager) if nfl_display_modes.get('nfl_recent', True) else None
-            self.nfl_upcoming = NFLUpcomingManager(self.config, self.display_manager, self.cache_manager) if nfl_display_modes.get('nfl_upcoming', True) else None
-        else:
-            self.nfl_live = None
-            self.nfl_recent = None
-            self.nfl_upcoming = None
+        self.nfl_live = None
+        self.nfl_recent = None
+        self.nfl_upcoming = None
+        logger.info("NFL managers disabled - use football-scoreboard plugin instead")
         logger.info("NFL managers initialized in %.3f seconds", time.time() - nfl_time)
         
-        # Initialize NCAA FB managers if enabled
+        # NCAA FB managers - disabled, use football-scoreboard plugin instead
         ncaa_fb_time = time.time()
-        ncaa_fb_enabled = self.config.get('ncaa_fb_scoreboard', {}).get('enabled', False)
-        ncaa_fb_display_modes = self.config.get('ncaa_fb_scoreboard', {}).get('display_modes', {})
-        
-        if ncaa_fb_enabled:
-            self.ncaa_fb_live = NCAAFBLiveManager(self.config, self.display_manager, self.cache_manager) if ncaa_fb_display_modes.get('ncaa_fb_live', True) else None
-            self.ncaa_fb_recent = NCAAFBRecentManager(self.config, self.display_manager, self.cache_manager) if ncaa_fb_display_modes.get('ncaa_fb_recent', True) else None
-            self.ncaa_fb_upcoming = NCAAFBUpcomingManager(self.config, self.display_manager, self.cache_manager) if ncaa_fb_display_modes.get('ncaa_fb_upcoming', True) else None
-        else:
-            self.ncaa_fb_live = None
-            self.ncaa_fb_recent = None
-            self.ncaa_fb_upcoming = None
+        self.ncaa_fb_live = None
+        self.ncaa_fb_recent = None
+        self.ncaa_fb_upcoming = None
+        logger.info("NCAA FB managers disabled - use football-scoreboard plugin instead")
         logger.info("NCAA FB managers initialized in %.3f seconds", time.time() - ncaa_fb_time)
         
-        # Initialize NCAA Baseball managers if enabled
+        # NCAA Baseball managers - disabled, use baseball-scoreboard plugin instead
         ncaa_baseball_time = time.time()
-        ncaa_baseball_enabled = self.config.get('ncaa_baseball_scoreboard', {}).get('enabled', False)
-        ncaa_baseball_display_modes = self.config.get('ncaa_baseball_scoreboard', {}).get('display_modes', {})
-        
-        if ncaa_baseball_enabled:
-            self.ncaa_baseball_live = NCAABaseballLiveManager(self.config, self.display_manager, self.cache_manager) if ncaa_baseball_display_modes.get('ncaa_baseball_live', True) else None
-            self.ncaa_baseball_recent = NCAABaseballRecentManager(self.config, self.display_manager, self.cache_manager) if ncaa_baseball_display_modes.get('ncaa_baseball_recent', True) else None
-            self.ncaa_baseball_upcoming = NCAABaseballUpcomingManager(self.config, self.display_manager, self.cache_manager) if ncaa_baseball_display_modes.get('ncaa_baseball_upcoming', True) else None
-        else:
-            self.ncaa_baseball_live = None
-            self.ncaa_baseball_recent = None
-            self.ncaa_baseball_upcoming = None
+        self.ncaa_baseball_live = None
+        self.ncaa_baseball_recent = None
+        self.ncaa_baseball_upcoming = None
+        logger.info("NCAA Baseball managers disabled - use baseball-scoreboard plugin instead")
         logger.info("NCAA Baseball managers initialized in %.3f seconds", time.time() - ncaa_baseball_time)
 
-        # Initialize NCAA Men's Basketball managers if enabled
+        # NCAA Men's Basketball managers - disabled, use basketball-scoreboard plugin instead
         ncaam_basketball_time = time.time()
-        ncaam_basketball_enabled = self.config.get('ncaam_basketball_scoreboard', {}).get('enabled', False)
-        ncaam_basketball_display_modes = self.config.get('ncaam_basketball_scoreboard', {}).get('display_modes', {})
-        
-        if ncaam_basketball_enabled:
-            self.ncaam_basketball_live = NCAAMBasketballLiveManager(self.config, self.display_manager, self.cache_manager) if ncaam_basketball_display_modes.get('ncaam_basketball_live', True) else None
-            self.ncaam_basketball_recent = NCAAMBasketballRecentManager(self.config, self.display_manager, self.cache_manager) if ncaam_basketball_display_modes.get('ncaam_basketball_recent', True) else None
-            self.ncaam_basketball_upcoming = NCAAMBasketballUpcomingManager(self.config, self.display_manager, self.cache_manager) if ncaam_basketball_display_modes.get('ncaam_basketball_upcoming', True) else None
-        else:
-            self.ncaam_basketball_live = None
-            self.ncaam_basketball_recent = None
-            self.ncaam_basketball_upcoming = None
+        self.ncaam_basketball_live = None
+        self.ncaam_basketball_recent = None
+        self.ncaam_basketball_upcoming = None
+        logger.info("NCAA Men's Basketball managers disabled - use basketball-scoreboard plugin instead")
         logger.info("NCAA Men's Basketball managers initialized in %.3f seconds", time.time() - ncaam_basketball_time)
 
-        # Initialize NCAA Womens's Basketball managers if enabled
+        # NCAA Women's Basketball managers - disabled, use basketball-scoreboard plugin instead
         ncaaw_basketball_time = time.time()
-        ncaaw_basketball_enabled = self.config.get('ncaaw_basketball_scoreboard', {}).get('enabled', False)
-        ncaaw_basketball_display_modes = self.config.get('ncaaw_basketball_scoreboard', {}).get('display_modes', {})
-        
-        if ncaaw_basketball_enabled:
-            self.ncaaw_basketball_live = NCAAWBasketballLiveManager(self.config, self.display_manager, self.cache_manager) if ncaaw_basketball_display_modes.get('ncaaw_basketball_live', True) else None
-            self.ncaaw_basketball_recent = NCAAWBasketballRecentManager(self.config, self.display_manager, self.cache_manager) if ncaaw_basketball_display_modes.get('ncaaw_basketball_recent', True) else None
-            self.ncaaw_basketball_upcoming = NCAAWBasketballUpcomingManager(self.config, self.display_manager, self.cache_manager) if ncaaw_basketball_display_modes.get('ncaaw_basketball_upcoming', True) else None
-        else:
-            self.ncaaw_basketball_live = None
-            self.ncaaw_basketball_recent = None
-            self.ncaaw_basketball_upcoming = None
-        logger.info("NCAA Womens's Basketball managers initialized in %.3f seconds", time.time() - ncaaw_basketball_time)
+        self.ncaaw_basketball_live = None
+        self.ncaaw_basketball_recent = None
+        self.ncaaw_basketball_upcoming = None
+        logger.info("NCAA Women's Basketball managers disabled - use basketball-scoreboard plugin instead")
+        logger.info("NCAA Women's Basketball managers initialized in %.3f seconds", time.time() - ncaaw_basketball_time)
 
-        # Initialize NCAA Men's Hockey managers if enabled
+        # NCAA Men's Hockey managers - disabled, use hockey-scoreboard plugin instead
         ncaam_hockey_time = time.time()
-        ncaam_hockey_enabled = self.config.get('ncaam_hockey_scoreboard', {}).get('enabled', False)
-        ncaam_hockey_display_modes = self.config.get('ncaam_hockey_scoreboard', {}).get('display_modes', {})
-        
-        if ncaam_hockey_enabled:
-            self.ncaam_hockey_live = NCAAMHockeyLiveManager(self.config, self.display_manager, self.cache_manager) if ncaam_hockey_display_modes.get('ncaam_hockey_live', True) else None
-            self.ncaam_hockey_recent = NCAAMHockeyRecentManager(self.config, self.display_manager, self.cache_manager) if ncaam_hockey_display_modes.get('ncaam_hockey_recent', True) else None
-            self.ncaam_hockey_upcoming = NCAAMHockeyUpcomingManager(self.config, self.display_manager, self.cache_manager) if ncaam_hockey_display_modes.get('ncaam_hockey_upcoming', True) else None
-        else:
-            self.ncaam_hockey_live = None
-            self.ncaam_hockey_recent = None
-            self.ncaam_hockey_upcoming = None
+        self.ncaam_hockey_live = None
+        self.ncaam_hockey_recent = None
+        self.ncaam_hockey_upcoming = None
+        logger.info("NCAA Men's Hockey managers disabled - use hockey-scoreboard plugin instead")
         logger.info("NCAA Men's Hockey managers initialized in %.3f seconds", time.time() - ncaam_hockey_time)
 
-        # Initialize NCAA Men's Hockey managers if enabled
+        # NCAA Women's Hockey managers - disabled, use hockey-scoreboard plugin instead
         ncaaw_hockey_time = time.time()
-        ncaaw_hockey_enabled = self.config.get('ncaaw_hockey_scoreboard', {}).get('enabled', False)
-        ncaaw_hockey_display_modes = self.config.get('ncaaw_hockey_scoreboard', {}).get('display_modes', {})
+        self.ncaaw_hockey_live = None
+        self.ncaaw_hockey_recent = None
+        self.ncaaw_hockey_upcoming = None
+        logger.info("NCAA Women's Hockey managers disabled - use hockey-scoreboard plugin instead")
+        logger.info("NCAA Women's Hockey managers initialized in %.3f seconds", time.time() - ncaaw_hockey_time)
         
-        if ncaaw_hockey_enabled:
-            self.ncaaw_hockey_live = NCAAWHockeyLiveManager(self.config, self.display_manager, self.cache_manager) if ncaaw_hockey_display_modes.get('ncaaw_hockey_live', True) else None
-            self.ncaaw_hockey_recent = NCAAWHockeyRecentManager(self.config, self.display_manager, self.cache_manager) if ncaaw_hockey_display_modes.get('ncaaw_hockey_recent', True) else None
-            self.ncaaw_hockey_upcoming = NCAAWHockeyUpcomingManager(self.config, self.display_manager, self.cache_manager) if ncaaw_hockey_display_modes.get('ncaaw_hockey_upcoming', True) else None
-        else:
-            self.ncaaw_hockey_live = None
-            self.ncaaw_hockey_recent = None
-            self.ncaaw_hockey_upcoming = None
-        logger.info("NCAA Men's Hockey managers initialized in %.3f seconds", time.time() - ncaaw_hockey_time)
+        # NOTE: Rotation state and live priority now handled by individual plugins
         
-        # Track MLB rotation state
-        self.mlb_current_team_index = 0
-        self.mlb_showing_recent = True
-        self.mlb_favorite_teams = self.config.get('mlb_scoreboard', {}).get('favorite_teams', [])
-        self.in_mlb_rotation = False
-        
-        # Read live_priority flags for all sports
-        self.nhl_live_priority = self.config.get('nhl_scoreboard', {}).get('live_priority', True)
-        self.nba_live_priority = self.config.get('nba_scoreboard', {}).get('live_priority', True)
-        self.wnba_live_priority = self.config.get('wnba_scoreboard', {}).get('live_priority', True)
-        self.mlb_live_priority = self.config.get('mlb_scoreboard', {}).get('live_priority', True)
-        self.milb_live_priority = self.config.get('milb_scoreboard', {}).get('live_priority', True)
-        self.soccer_live_priority = self.config.get('soccer_scoreboard', {}).get('live_priority', True)
-        self.nfl_live_priority = self.config.get('nfl_scoreboard', {}).get('live_priority', True)
-        self.ncaa_fb_live_priority = self.config.get('ncaa_fb_scoreboard', {}).get('live_priority', True)
-        self.ncaa_baseball_live_priority = self.config.get('ncaa_baseball_scoreboard', {}).get('live_priority', True)
-        self.ncaam_basketball_live_priority = self.config.get('ncaam_basketball_scoreboard', {}).get('live_priority', True)
-        self.ncaaw_basketball_live_priority = self.config.get('ncaaw_basketball_scoreboard', {}).get('live_priority', True)
-        self.ncaam_hockey_live_priority = self.config.get('ncaam_hockey_scoreboard', {}).get('live_priority', True)
-        self.ncaaw_hockey_live_priority = self.config.get('ncaaw_hockey_scoreboard', {}).get('live_priority', True)
-        
-        # List of available display modes (adjust order as desired)
+        # List of available display modes
+        # NOTE: Built-in managers disabled - plugins will be added below
         self.available_modes = []
         if self.clock: self.available_modes.append('clock')
-        if self.weather: self.available_modes.extend(['weather_current', 'weather_hourly', 'weather_daily'])
-        if self.stocks: self.available_modes.append('stocks')
-        if self.news: self.available_modes.append('stock_news')
-        if self.odds_ticker: self.available_modes.append('odds_ticker')
-        if self.leaderboard: self.available_modes.append('leaderboard')
-        if self.calendar: self.available_modes.append('calendar')
-        if self.youtube: self.available_modes.append('youtube')
-        if self.text_display: self.available_modes.append('text_display')
-        if self.static_image: self.available_modes.append('static_image')
-        if self.of_the_day: self.available_modes.append('of_the_day')
-        if self.news_manager: self.available_modes.append('news_manager')
-        if self.music_manager:
-            self.available_modes.append('music')
-        # Add NHL display modes if enabled
-        if nhl_enabled:
-            if self.nhl_recent: self.available_modes.append('nhl_recent')
-            if self.nhl_upcoming: self.available_modes.append('nhl_upcoming')
-            # nhl_live is handled below for live_priority
-        if nba_enabled:
-            if self.nba_recent: self.available_modes.append('nba_recent')
-            if self.nba_upcoming: self.available_modes.append('nba_upcoming')
-        if wnba_enabled:
-            if self.wnba_recent: self.available_modes.append('wnba_recent')
-            if self.wnba_upcoming: self.available_modes.append('wnba_upcoming')
-        if mlb_enabled:
-            if self.mlb_recent: self.available_modes.append('mlb_recent')
-            if self.mlb_upcoming: self.available_modes.append('mlb_upcoming')
-        if milb_enabled:
-            if self.milb_recent: self.available_modes.append('milb_recent')
-            if self.milb_upcoming: self.available_modes.append('milb_upcoming')
-        if soccer_enabled:
-            if self.soccer_recent: self.available_modes.append('soccer_recent')
-            if self.soccer_upcoming: self.available_modes.append('soccer_upcoming')
-        if nfl_enabled:
-            if self.nfl_recent: self.available_modes.append('nfl_recent')
-            if self.nfl_upcoming: self.available_modes.append('nfl_upcoming')
-        if ncaa_fb_enabled:
-            if self.ncaa_fb_recent: self.available_modes.append('ncaa_fb_recent')
-            if self.ncaa_fb_upcoming: self.available_modes.append('ncaa_fb_upcoming')
-        if ncaa_baseball_enabled:
-            if self.ncaa_baseball_recent: self.available_modes.append('ncaa_baseball_recent')
-            if self.ncaa_baseball_upcoming: self.available_modes.append('ncaa_baseball_upcoming')
-        if ncaam_basketball_enabled:
-            if self.ncaam_basketball_recent: self.available_modes.append('ncaam_basketball_recent')
-            if self.ncaam_basketball_upcoming: self.available_modes.append('ncaam_basketball_upcoming')
-        if ncaaw_basketball_enabled:
-            if self.ncaaw_basketball_recent: self.available_modes.append('ncaaw_basketball_recent')
-            if self.ncaaw_basketball_upcoming: self.available_modes.append('ncaaw_basketball_upcoming')
-        if ncaam_hockey_enabled:
-            if self.ncaam_hockey_recent: self.available_modes.append('ncaam_hockey_recent')
-            if self.ncaam_hockey_upcoming: self.available_modes.append('ncaam_hockey_upcoming')
-        if ncaaw_hockey_enabled:
-            if self.ncaaw_hockey_recent: self.available_modes.append('ncaaw_hockey_recent')
-            if self.ncaaw_hockey_upcoming: self.available_modes.append('ncaaw_hockey_upcoming')
-        # Add live modes to rotation if live_priority is False and there are live games
-        self._update_live_modes_in_rotation()
+        # Plugin modes will be added during plugin initialization
         
         # Initialize Plugin System (Phase 1: Foundation)
         import traceback
