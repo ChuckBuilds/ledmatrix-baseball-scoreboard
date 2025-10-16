@@ -38,6 +38,29 @@ def save_main_config():
         # Merge with existing config (similar to original implementation)
         current_config = api_v3.config_manager.load_config()
 
+        # Handle general settings
+        # Note: Checkboxes don't send data when unchecked, so we need to check if we're updating general settings
+        # If any general setting is present, we're updating the general tab
+        is_general_update = any(k in data for k in ['timezone', 'city', 'state', 'country', 'web_display_autostart'])
+        
+        if is_general_update:
+            # For checkbox: if not present in data during general update, it means unchecked
+            current_config['web_display_autostart'] = data.get('web_display_autostart', False)
+        
+        if 'timezone' in data:
+            current_config['timezone'] = data['timezone']
+        
+        # Handle location settings
+        if 'city' in data or 'state' in data or 'country' in data:
+            if 'location' not in current_config:
+                current_config['location'] = {}
+            if 'city' in data:
+                current_config['location']['city'] = data['city']
+            if 'state' in data:
+                current_config['location']['state'] = data['state']
+            if 'country' in data:
+                current_config['location']['country'] = data['country']
+
         # Merge sports configurations
         if 'nfl_scoreboard' in data:
             current_config['nfl_scoreboard'] = data['nfl_scoreboard']
