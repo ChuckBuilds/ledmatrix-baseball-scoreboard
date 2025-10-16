@@ -118,11 +118,31 @@ class PluginManager:
         """
         try:
             import subprocess
+            import os
 
             self.logger.info(f"Installing dependencies for plugin from {requirements_file}")
 
+            # Check if running as root (systemd service context)
+            running_as_root = os.geteuid() == 0 if hasattr(os, 'geteuid') else False
+            
+            if running_as_root:
+                # System-wide installation for root (systemd service)
+                cmd = ['pip3', 'install', '--break-system-packages', '-r', str(requirements_file)]
+                self.logger.info("Installing plugin dependencies system-wide (running as root)")
+            else:
+                # User installation for development/testing
+                # Note: If you're testing manually as a non-root user, these dependencies
+                # will be installed to ~/.local/ and won't be accessible to the root service.
+                # For production plugin installation, always use the web interface or restart the service.
+                cmd = ['pip3', 'install', '--user', '-r', str(requirements_file)]
+                self.logger.warning(
+                    "Installing plugin dependencies for current user (not root). "
+                    "These will NOT be accessible to the systemd service. "
+                    "For production use, install plugins via the web interface or restart the ledmatrix service."
+                )
+
             result = subprocess.run(
-                ['pip3', 'install', '--break-system-packages', '--root-user-action=ignore', '-r', str(requirements_file)],
+                cmd,
                 check=True,
                 capture_output=True,
                 text=True

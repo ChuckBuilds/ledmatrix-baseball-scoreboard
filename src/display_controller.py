@@ -268,56 +268,8 @@ class DisplayController:
         self.force_clear = True
         self.update_interval = 0.01  # Reduced from 0.1 to 0.01 for smoother scrolling
         
-        # Track team-based rotation states (Add Soccer)
-        self.nhl_current_team_index = 0
-        self.nhl_showing_recent = True
-        self.nhl_favorite_teams = self.config.get('nhl_scoreboard', {}).get('favorite_teams', [])
-        self.in_nhl_rotation = False
-        
-        self.nba_current_team_index = 0
-        self.nba_showing_recent = True
-        self.nba_favorite_teams = self.config.get('nba_scoreboard', {}).get('favorite_teams', [])
-        self.in_nba_rotation = False
-        
-        self.wnba_current_team_index = 0
-        self.wnba_showing_recent = True
-        self.wnba_favorite_teams = self.config.get('wnba_scoreboard', {}).get('favorite_teams', [])
-        self.in_wnba_rotation = False
-        
-        self.soccer_current_team_index = 0 # Soccer rotation state
-        self.soccer_showing_recent = True
-        self.soccer_favorite_teams = self.config.get('soccer_scoreboard', {}).get('favorite_teams', [])
-        self.in_soccer_rotation = False
-        
-        # Add NFL rotation state
-        self.nfl_current_team_index = 0 
-        self.nfl_showing_recent = True
-        self.nfl_favorite_teams = self.config.get('nfl_scoreboard', {}).get('favorite_teams', [])
-        self.in_nfl_rotation = False
-        
-        # Add NCAA FB rotation state
-        self.ncaa_fb_current_team_index = 0
-        self.ncaa_fb_showing_recent = True # Start with recent games
-        self.ncaa_fb_favorite_teams = self.config.get('ncaa_fb_scoreboard', {}).get('favorite_teams', [])
-        self.in_ncaa_fb_rotation = False
-        
-        # Add NCAA Baseball rotation state
-        self.ncaa_baseball_current_team_index = 0
-        self.ncaa_baseball_showing_recent = True
-        self.ncaa_baseball_favorite_teams = self.config.get('ncaa_baseball_scoreboard', {}).get('favorite_teams', [])
-        self.in_ncaa_baseball_rotation = False
-
-        # Add NCAA Men's Basketball rotation state
-        self.ncaam_basketball_current_team_index = 0
-        self.ncaam_basketball_showing_recent = True
-        self.ncaam_basketball_favorite_teams = self.config.get('ncaam_basketball_scoreboard', {}).get('favorite_teams', [])
-        self.in_ncaam_basketball_rotation = False
-
-        # Add NCAA Womens's Basketball rotation state
-        self.ncaaw_basketball_current_team_index = 0
-        self.ncaaw_basketball_showing_recent = True
-        self.ncaaw_basketball_favorite_teams = self.config.get('ncaaw_basketball_scoreboard', {}).get('favorite_teams', [])
-        self.in_ncaaw_basketball_rotation = False
+        # NOTE: Team-based rotation states removed - plugins now handle their own state
+        # No need for hard-coded sport-specific rotation tracking
         
         # Update display durations to include all modes
         self.display_durations = self.config['display'].get('display_durations', {})
@@ -387,29 +339,15 @@ class DisplayController:
             if key not in self.display_durations:
                  self.display_durations[key] = value
         
-        # Log favorite teams only if the respective sport is enabled
-        if nhl_enabled:
-            logger.info(f"NHL Favorite teams: {self.nhl_favorite_teams}")
-        if nba_enabled:
-            logger.info(f"NBA Favorite teams: {self.nba_favorite_teams}")
-        if wnba_enabled:
-            logger.info(f"WNBA Favorite teams: {self.wnba_favorite_teams}")
-        if mlb_enabled:
-            logger.info(f"MLB Favorite teams: {self.mlb_favorite_teams}")
-        if milb_enabled:
-            logger.info(f"MiLB Favorite teams: {self.config.get('milb_scoreboard', {}).get('favorite_teams', [])}")
-        if soccer_enabled: # Check if soccer is enabled
-            logger.info(f"Soccer Favorite teams: {self.soccer_favorite_teams}")
-        if nfl_enabled: # Check if NFL is enabled
-            logger.info(f"NFL Favorite teams: {self.nfl_favorite_teams}")
-        if ncaa_fb_enabled: # Check if NCAA FB is enabled
-            logger.info(f"NCAA FB Favorite teams: {self.ncaa_fb_favorite_teams}")
-        if ncaa_baseball_enabled: # Check if NCAA Baseball is enabled
-            logger.info(f"NCAA Baseball Favorite teams: {self.ncaa_baseball_favorite_teams}")
-        if ncaam_basketball_enabled: # Check if NCAA Men's Basketball is enabled
-            logger.info(f"NCAA Men's Basketball Favorite teams: {self.ncaam_basketball_favorite_teams}")
-        if ncaaw_basketball_enabled: # Check if NCAA Womens's Basketball is enabled
-            logger.info(f"NCAA Womens's Basketball Favorite teams: {self.ncaaw_basketball_favorite_teams}")
+        # Dynamically log favorite teams for any enabled plugin that has them configured
+        # This works for any plugin without hard-coding specific sport names
+        for plugin_id, plugin_config in self.config.items():
+            if isinstance(plugin_config, dict) and plugin_config.get('enabled', False):
+                favorite_teams = plugin_config.get('favorite_teams', [])
+                if favorite_teams:
+                    # Create a readable display name from plugin_id
+                    display_name = plugin_id.replace('_', ' ').replace('-', ' ').title()
+                    logger.info(f"{display_name} Favorite teams: {favorite_teams}")
 
         logger.info(f"Available display modes: {self.available_modes}")
         logger.info(f"Initial display mode: {self.current_display_mode}")
@@ -936,60 +874,13 @@ class DisplayController:
             self.is_display_active = False
 
     def _update_live_modes_in_rotation(self):
-        """Add or remove live modes from available_modes based on live_priority and live games."""
-        # Helper to add/remove live modes for all sports
-        def update_mode(mode_name, manager, live_priority, sport_enabled):
-            # Only process if the sport is enabled in config
-            if not sport_enabled:
-                # If sport is disabled, ensure the mode is removed from rotation
-                if mode_name in self.available_modes:
-                    self.available_modes.remove(mode_name)
-                return
-                
-            if not live_priority:
-                # Only add to rotation if manager exists and has live games
-                if manager and getattr(manager, 'live_games', None):
-                    live_games = getattr(manager, 'live_games', None)
-                    if mode_name not in self.available_modes:
-                        self.available_modes.append(mode_name)
-                        logger.debug(f"Added {mode_name} to rotation (found {len(live_games)} live games)")
-                else:
-                    if mode_name in self.available_modes:
-                        self.available_modes.remove(mode_name)
-            else:
-                # For live_priority=True, never add to regular rotation
-                # These modes are only used for live priority takeover
-                if mode_name in self.available_modes:
-                    self.available_modes.remove(mode_name)
+        """Update live modes in rotation - delegated to plugins.
         
-        # Check if each sport is enabled before processing
-        nhl_enabled = self.config.get('nhl_scoreboard', {}).get('enabled', False)
-        nba_enabled = self.config.get('nba_scoreboard', {}).get('enabled', False)
-        wnba_enabled = self.config.get('wnba_scoreboard', {}).get('enabled', False)
-        mlb_enabled = self.config.get('mlb_scoreboard', {}).get('enabled', False)
-        milb_enabled = self.config.get('milb_scoreboard', {}).get('enabled', False)
-        soccer_enabled = self.config.get('soccer_scoreboard', {}).get('enabled', False)
-        nfl_enabled = self.config.get('nfl_scoreboard', {}).get('enabled', False)
-        ncaa_fb_enabled = self.config.get('ncaa_fb_scoreboard', {}).get('enabled', False)
-        ncaa_baseball_enabled = self.config.get('ncaa_baseball_scoreboard', {}).get('enabled', False)
-        ncaam_basketball_enabled = self.config.get('ncaam_basketball_scoreboard', {}).get('enabled', False)
-        ncaaw_basketball_enabled = self.config.get('ncaaw_basketball_scoreboard', {}).get('enabled', False)
-        ncaam_hockey_enabled = self.config.get('ncaam_hockey_scoreboard', {}).get('enabled', False)
-        ncaaw_hockey_enabled = self.config.get('ncaaw_hockey_scoreboard', {}).get('enabled', False)
-        
-        update_mode('nhl_live', getattr(self, 'nhl_live', None), self.nhl_live_priority, nhl_enabled)
-        update_mode('nba_live', getattr(self, 'nba_live', None), self.nba_live_priority, nba_enabled)
-        update_mode('wnba_live', getattr(self, 'wnba_live', None), self.wnba_live_priority, wnba_enabled)
-        update_mode('mlb_live', getattr(self, 'mlb_live', None), self.mlb_live_priority, mlb_enabled)
-        update_mode('milb_live', getattr(self, 'milb_live', None), self.milb_live_priority, milb_enabled)
-        update_mode('soccer_live', getattr(self, 'soccer_live', None), self.soccer_live_priority, soccer_enabled)
-        update_mode('nfl_live', getattr(self, 'nfl_live', None), self.nfl_live_priority, nfl_enabled)
-        update_mode('ncaa_fb_live', getattr(self, 'ncaa_fb_live', None), self.ncaa_fb_live_priority, ncaa_fb_enabled)
-        update_mode('ncaa_baseball_live', getattr(self, 'ncaa_baseball_live', None), self.ncaa_baseball_live_priority, ncaa_baseball_enabled)
-        update_mode('ncaam_basketball_live', getattr(self, 'ncaam_basketball_live', None), self.ncaam_basketball_live_priority, ncaam_basketball_enabled)
-        update_mode('ncaaw_basketball_live', getattr(self, 'ncaaw_basketball_live', None), self.ncaaw_basketball_live_priority, ncaaw_basketball_enabled)
-        update_mode('ncaam_hockey_live', getattr(self, 'ncaam_hockey_live', None), self.ncaam_hockey_live_priority, ncaam_hockey_enabled)
-        update_mode('ncaaw_hockey_live', getattr(self, 'ncaaw_hockey_live', None), self.ncaaw_hockey_live_priority, ncaaw_hockey_enabled)
+        NOTE: Live priority logic is now handled by individual plugins.
+        This method is kept as a stub for backward compatibility.
+        """
+        # Plugins handle their own live priority and mode rotation
+        pass
 
     def run(self):
         """Run the display controller, switching between displays."""
@@ -1023,42 +914,11 @@ class DisplayController:
                 # Update live modes in rotation if needed
                 self._update_live_modes_in_rotation()
 
-                # Check for live games and live_priority
-                has_live_games, live_sport_type = self._check_live_games()
+                # NOTE: Live priority logic removed - plugins now handle their own priority
+                # This legacy code was hard-coded for specific sports
                 is_currently_live = self.current_display_mode.endswith('_live')
-                
-                # Collect all sports with live_priority=True that have live games
-                live_priority_sports = []
-                for sport, attr, priority in [
-                    ('nhl', 'nhl_live', self.nhl_live_priority),
-                    ('nba', 'nba_live', self.nba_live_priority),
-                    ('wnba', 'wnba_live', self.wnba_live_priority),
-                    ('mlb', 'mlb_live', self.mlb_live_priority),
-                    ('milb', 'milb_live', self.milb_live_priority),
-                    ('soccer', 'soccer_live', self.soccer_live_priority),
-                    ('nfl', 'nfl_live', self.nfl_live_priority),
-                    ('ncaa_fb', 'ncaa_fb_live', self.ncaa_fb_live_priority),
-                    ('ncaa_baseball', 'ncaa_baseball_live', self.ncaa_baseball_live_priority),
-                    ('ncaam_basketball', 'ncaam_basketball_live', self.ncaam_basketball_live_priority),
-                    ('ncaaw_basketball', 'ncaaw_basketball_live', self.ncaaw_basketball_live_priority),
-                    ('ncaam_hockey', 'ncaam_hockey_live', self.ncaam_hockey_live_priority),
-                    ('ncaaw_hockey', 'ncaaw_hockey_live', self.ncaaw_hockey_live_priority)
-                ]:
-                    manager = getattr(self, attr, None)
-                    # Only consider sports that are enabled (manager is not None) and have actual live games
-                    live_games = getattr(manager, 'live_games', None) if manager is not None else None
-                    # Check that manager exists, has live_priority enabled, has live_games attribute, and has at least one live game
-                    if (manager is not None and 
-                        priority and 
-                        live_games is not None and 
-                        len(live_games) > 0):
-                        live_priority_sports.append(sport)
-                        logger.debug(f"Live priority sport found: {sport} with {len(live_games)} live games")
-                    elif manager is not None and priority and live_games is not None:
-                        logger.debug(f"{sport} has live_priority=True but {len(live_games)} live games (not taking over)")
-                
-                # Determine if we have any live priority sports
-                live_priority_takeover = len(live_priority_sports) > 0
+                live_priority_takeover = False  # Disabled - plugins handle their own priority
+                live_priority_sports = []  # Empty - no hard-coded sports
                 
                 manager_to_display = None
                 # --- State Machine for Display Logic ---
