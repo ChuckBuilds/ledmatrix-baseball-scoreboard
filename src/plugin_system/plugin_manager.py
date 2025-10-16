@@ -134,7 +134,8 @@ class PluginManager:
                 # Note: If you're testing manually as a non-root user, these dependencies
                 # will be installed to ~/.local/ and won't be accessible to the root service.
                 # For production plugin installation, always use the web interface or restart the service.
-                cmd = ['pip3', 'install', '--user', '-r', str(requirements_file)]
+                # Need --break-system-packages for Debian 12+ (PEP 668) even with --user
+                cmd = ['pip3', 'install', '--user', '--break-system-packages', '-r', str(requirements_file)]
                 self.logger.warning(
                     "Installing plugin dependencies for current user (not root). "
                     "These will NOT be accessible to the systemd service. "
