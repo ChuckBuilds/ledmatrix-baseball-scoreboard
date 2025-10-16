@@ -396,8 +396,21 @@ class DisplayController:
             return False
         
         try:
+            # Try calling with force_clear parameter (new plugin standard)
             plugin.display(force_clear=force_clear)
             return True
+        except TypeError as e:
+            # If plugin doesn't accept force_clear, try without it (backward compatibility)
+            if "force_clear" in str(e):
+                try:
+                    plugin.display()
+                    return True
+                except Exception as inner_e:
+                    logger.error(f"Error displaying plugin for mode {mode}: {inner_e}", exc_info=True)
+                    return False
+            else:
+                logger.error(f"Error displaying plugin for mode {mode}: {e}", exc_info=True)
+                return False
         except Exception as e:
             logger.error(f"Error displaying plugin for mode {mode}: {e}", exc_info=True)
             return False
