@@ -1382,7 +1382,16 @@ class DisplayController:
                                 if not hasattr(self, '_last_display_method_log_time') or current_time - getattr(self, '_last_display_method_log_time', 0) >= 30:
                                     logger.info(f"Calling display method for {self.current_display_mode}")
                                     self._last_display_method_log_time = current_time
-                                manager_to_display.display(force_clear=self.force_clear)
+                                
+                                # Check if the manager supports display_mode parameter
+                                import inspect
+                                display_signature = inspect.signature(manager_to_display.display)
+                                if 'display_mode' in display_signature.parameters:
+                                    # Manager supports display_mode, pass the current display mode
+                                    manager_to_display.display(display_mode=self.current_display_mode, force_clear=self.force_clear)
+                                else:
+                                    # Manager doesn't support display_mode, use standard call
+                                    manager_to_display.display(force_clear=self.force_clear)
                             else:
                                 logger.warning(f"Manager {type(manager_to_display).__name__} for mode {self.current_display_mode} does not have a standard 'display' method.")
                         
