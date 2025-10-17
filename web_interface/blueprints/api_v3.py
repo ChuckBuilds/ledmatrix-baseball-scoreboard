@@ -378,9 +378,13 @@ def update_plugin():
         success = api_v3.plugin_store_manager.update_plugin(plugin_id)
         
         if success:
-            # Reload the plugin if it was loaded
-            if api_v3.plugin_manager and plugin_id in api_v3.plugin_manager.plugins:
-                api_v3.plugin_manager.reload_plugin(plugin_id)
+            # Rediscover plugins to refresh manifest info (including new version number)
+            if api_v3.plugin_manager:
+                api_v3.plugin_manager.discover_plugins()
+                
+                # Reload the plugin if it was loaded
+                if plugin_id in api_v3.plugin_manager.plugins:
+                    api_v3.plugin_manager.reload_plugin(plugin_id)
             
             return jsonify({'status': 'success', 'message': f'Plugin {plugin_id} updated successfully'})
         else:
