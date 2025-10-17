@@ -257,7 +257,15 @@ class PluginStoreManager:
                 return False
                 
             if version == "latest":
-                version_info = versions[0]  # First is latest
+                # Check for explicit latest_version field, otherwise use first in list
+                latest_ver = plugin_info.get('latest_version')
+                if latest_ver:
+                    version_info = next((v for v in versions if v['version'] == latest_ver), None)
+                    if not version_info:
+                        self.logger.warning(f"latest_version {latest_ver} not found, using first version")
+                        version_info = versions[0]
+                else:
+                    version_info = versions[0]  # First is latest
             else:
                 version_info = next((v for v in versions if v['version'] == version), None)
                 if not version_info:
@@ -279,8 +287,14 @@ class PluginStoreManager:
                 self.logger.info(f"Installing from monorepo subdirectory: {plugin_subpath}")
                 download_url = version_info.get('download_url')
                 if not download_url:
-                    # Construct GitHub download URL
-                    download_url = f"{repo_url}/archive/refs/heads/{plugin_info.get('branch', 'main')}.zip"
+                    # Check for download_url_template at plugin level
+                    download_template = plugin_info.get('download_url_template')
+                    if download_template:
+                        # Use template with version substitution
+                        download_url = download_template.format(version=version_info['version'])
+                    else:
+                        # Construct GitHub download URL
+                        download_url = f"{repo_url}/archive/refs/heads/{plugin_info.get('branch', 'main')}.zip"
                 
                 if not self._install_from_monorepo(download_url, plugin_subpath, plugin_path):
                     self.logger.error(f"Failed to install plugin from monorepo: {plugin_id}")
@@ -295,8 +309,14 @@ class PluginStoreManager:
                     self.logger.info("Git not available or failed, trying download...")
                     download_url = version_info.get('download_url')
                     if not download_url:
-                        # Construct GitHub download URL if not provided
-                        download_url = f"{repo_url}/archive/refs/tags/v{version_info['version']}.zip"
+                        # Check for download_url_template at plugin level
+                        download_template = plugin_info.get('download_url_template')
+                        if download_template:
+                            # Use template with version substitution
+                            download_url = download_template.format(version=version_info['version'])
+                        else:
+                            # Construct GitHub download URL if not provided
+                            download_url = f"{repo_url}/archive/refs/tags/v{version_info['version']}.zip"
                     
                     if not self._install_via_download(download_url, plugin_path):
                         self.logger.error(f"Failed to download plugin: {plugin_id}")
