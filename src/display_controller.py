@@ -18,6 +18,7 @@ from src.weather_manager import WeatherManager
 from src.display_manager import DisplayManager
 from src.config_manager import ConfigManager
 from src.cache_manager import CacheManager
+from src.font_manager import FontManager
 from src.stock_manager import StockManager
 from src.stock_news_manager import StockNewsManager
 from src.odds_ticker_manager import OddsTickerManager
@@ -59,6 +60,11 @@ class DisplayController:
         config_time = time.time()
         self.display_manager = DisplayManager(self.config)
         logger.info("DisplayManager initialized in %.3f seconds", time.time() - config_time)
+        
+        # Initialize Font Manager
+        font_time = time.time()
+        self.font_manager = FontManager(self.config)
+        logger.info("FontManager initialized in %.3f seconds", time.time() - font_time)
         
         # Initialize display modes
         # NOTE: All built-in managers disabled - use plugins instead
@@ -217,7 +223,8 @@ class DisplayController:
                 plugins_dir=os.path.join(os.getcwd(), "plugins"),
                 config_manager=self.config_manager,
                 display_manager=self.display_manager,
-                cache_manager=self.cache_manager
+                cache_manager=self.cache_manager,
+                font_manager=self.font_manager
             )
 
             # Discover plugins

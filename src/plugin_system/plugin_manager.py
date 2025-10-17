@@ -30,7 +30,7 @@ class PluginManager:
     """
     
     def __init__(self, plugins_dir: str = "plugins", 
-                 config_manager=None, display_manager=None, cache_manager=None):
+                 config_manager=None, display_manager=None, cache_manager=None, font_manager=None):
         """
         Initialize the Plugin Manager.
         
@@ -39,11 +39,13 @@ class PluginManager:
             config_manager: Configuration manager instance
             display_manager: Display manager instance
             cache_manager: Cache manager instance
+            font_manager: Font manager instance
         """
         self.plugins_dir = Path(plugins_dir)
         self.config_manager = config_manager
         self.display_manager = display_manager
         self.cache_manager = cache_manager
+        self.font_manager = font_manager
         self.logger = logging.getLogger(__name__)
         
         # Active plugins
