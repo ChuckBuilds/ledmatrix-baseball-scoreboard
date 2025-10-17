@@ -997,7 +997,38 @@ class DisplayController:
                 live_modes.extend(plugin_instance.get_live_modes())
         
         return live_modes
-    
+
+    def _try_display_plugin(self, display_mode: str, force_clear: bool = False) -> bool:
+        """Try to display using a plugin for the given mode.
+        
+        Args:
+            display_mode: The display mode to show
+            force_clear: Whether to force clear the display
+            
+        Returns:
+            True if a plugin handled the display, False otherwise
+        """
+        if not self.plugin_manager:
+            return False
+            
+        # Check if this mode is handled by a plugin
+        if display_mode in self.plugin_modes:
+            plugin_instance = self.plugin_modes[display_mode]
+            if plugin_instance:
+                try:
+                    # Call the plugin's display method with the appropriate mode
+                    if hasattr(plugin_instance, 'display'):
+                        plugin_instance.display(display_mode, force_clear=force_clear)
+                        return True
+                    else:
+                        logger.warning(f"Plugin {plugin_instance.plugin_id} does not have display method")
+                        return False
+                except Exception as e:
+                    logger.error(f"Error displaying plugin {plugin_instance.plugin_id}: {e}")
+                    return False
+        
+        return False
+
     def _update_live_modes_in_rotation(self):
         """Update live modes in rotation based on plugin live priority.
         
