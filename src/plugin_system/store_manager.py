@@ -698,23 +698,41 @@ class PluginStoreManager:
             return False
         
         try:
+            # Force refresh the registry cache to get latest version info
+            self.logger.info(f"Checking for updates to plugin {plugin_id}")
+            self.fetch_registry(force_refresh=True)
+            
             # Check if this is a git repository
             git_dir = plugin_path / ".git"
             if git_dir.exists():
-                # Try git pull
+                # Check if we're on a branch or detached HEAD (tag)
                 result = subprocess.run(
-                    ['git', '-C', str(plugin_path), 'pull'],
+                    ['git', '-C', str(plugin_path), 'symbolic-ref', '-q', 'HEAD'],
                     capture_output=True,
                     text=True,
-                    timeout=60
+                    timeout=10
                 )
+                
                 if result.returncode == 0:
-                    self.logger.info(f"Updated plugin {plugin_id} via git pull")
-                    # Reinstall dependencies in case they changed
-                    self._install_dependencies(plugin_path)
-                    return True
+                    # On a branch, try git pull
+                    pull_result = subprocess.run(
+                        ['git', '-C', str(plugin_path), 'pull'],
+                        capture_output=True,
+                        text=True,
+                        timeout=60
+                    )
+                    if pull_result.returncode == 0:
+                        self.logger.info(f"Updated plugin {plugin_id} via git pull")
+                        # Reinstall dependencies in case they changed
+                        self._install_dependencies(plugin_path)
+                        return True
+                else:
+                    # Detached HEAD (installed from tag), need to fetch and checkout latest tag
+                    self.logger.info(f"Plugin {plugin_id} is on a tag (detached HEAD), fetching latest version from registry")
+                    # For tagged installations, always reinstall from registry to get the latest version
+                    return self.install_plugin(plugin_id, version="latest")
             
-            # Not a git repo or git pull failed, try registry update
+            # Not a git repo, try registry update
             self.logger.info(f"Re-downloading plugin {plugin_id} from registry")
             return self.install_plugin(plugin_id, version="latest")
             
