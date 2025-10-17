@@ -122,6 +122,23 @@ class PluginManager:
             import subprocess
             import os
 
+            # First, check if dependencies are already satisfied using --dry-run
+            try:
+                dry_run_result = subprocess.run(
+                    ['pip3', 'install', '--dry-run', '-r', str(requirements_file)],
+                    capture_output=True,
+                    text=True,
+                    timeout=10
+                )
+                # If nothing would be installed, dependencies are already satisfied
+                # Check for "Requirement already satisfied" which indicates no action needed
+                if 'Requirement already satisfied' in dry_run_result.stdout and 'Would install' not in dry_run_result.stdout:
+                    self.logger.debug(f"Dependencies already satisfied for {requirements_file}")
+                    return True
+            except (subprocess.SubprocessError, FileNotFoundError):
+                # If pip check fails or doesn't exist, proceed with installation
+                pass
+
             self.logger.info(f"Installing dependencies for plugin from {requirements_file}")
 
             # Check if running as root (systemd service context)
