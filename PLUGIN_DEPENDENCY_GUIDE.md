@@ -152,14 +152,27 @@ sudo systemctl restart ledmatrix
 
 ### Permission denied when installing dependencies
 
-**If running as non-root user:**
-- This is expected! The warning tells you to use the web interface or restart the service
-- The `--user` flag should prevent permission errors for user installs
+**If you see errors like:**
+```
+ERROR: Could not install packages due to an OSError: [Errno 13] Permission denied: '/root/.local'
+WARNING: The directory '/root/.cache/pip' or its parent directory is not owned or is not writable
+```
 
-**If running as root:**
-- Check if `/root/.cache/pip` has wrong permissions
-- Try: `sudo rm -rf /root/.cache/pip`
-- The `--break-system-packages` flag should handle this
+**Quick Fix - Use the Helper Script:**
+```bash
+sudo /home/ledpi/LEDMatrix/scripts/install_plugin_dependencies.sh
+sudo systemctl restart ledmatrix
+```
+
+**Manual Fix:**
+```bash
+# Install dependencies with --no-cache-dir to avoid cache permission issues
+cd /home/ledpi/LEDMatrix/plugins/PLUGIN-NAME
+sudo pip3 install --break-system-packages --no-cache-dir -r requirements.txt
+sudo systemctl restart ledmatrix
+```
+
+**For more detailed troubleshooting, see:** [Plugin Dependency Troubleshooting Guide](PLUGIN_DEPENDENCY_TROUBLESHOOTING.md)
 
 ## Architecture Summary
 
@@ -190,9 +203,33 @@ sudo systemctl restart ledmatrix
 3. **For plugin authors:** Test with `sudo systemctl restart ledmatrix` to ensure dependencies install correctly
 4. **For CI/CD:** Always run installation as root or use the service
 
+## Helper Scripts
+
+### Install Plugin Dependencies Script
+
+Located at: `scripts/install_plugin_dependencies.sh`
+
+This script automatically finds and installs dependencies for all plugins:
+
+```bash
+# Run as root (recommended for production)
+sudo /home/ledpi/LEDMatrix/scripts/install_plugin_dependencies.sh
+
+# Make executable if needed
+chmod +x /home/ledpi/LEDMatrix/scripts/install_plugin_dependencies.sh
+```
+
+Features:
+- Auto-detects all plugins with requirements.txt
+- Uses correct installation method (system-wide vs user)
+- Bypasses pip cache to avoid permission issues
+- Provides detailed logging and error messages
+
 ## Files to Reference
 
 - Service configs: `ledmatrix.service`, `ledmatrix-web.service`
 - Plugin manager: `src/plugin_system/plugin_manager.py`
 - Installation script: `first_time_install.sh`
+- Dependency installer: `scripts/install_plugin_dependencies.sh`
+- Troubleshooting guide: `PLUGIN_DEPENDENCY_TROUBLESHOOTING.md`
 

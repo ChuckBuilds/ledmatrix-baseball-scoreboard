@@ -125,9 +125,19 @@ class PluginManager:
             # Check if running as root (systemd service context)
             running_as_root = os.geteuid() == 0 if hasattr(os, 'geteuid') else False
             
+            # Prepare environment to avoid permission issues
+            env = os.environ.copy()
+            env['PYTHONUNBUFFERED'] = '1'
+            
             if running_as_root:
                 # System-wide installation for root (systemd service)
-                cmd = ['pip3', 'install', '--break-system-packages', '-r', str(requirements_file)]
+                # Use --no-cache-dir to avoid cache permission issues
+                cmd = [
+                    'pip3', 'install', 
+                    '--break-system-packages',
+                    '--no-cache-dir',
+                    '-r', str(requirements_file)
+                ]
                 self.logger.info("Installing plugin dependencies system-wide (running as root)")
             else:
                 # User installation for development/testing
@@ -135,7 +145,13 @@ class PluginManager:
                 # will be installed to ~/.local/ and won't be accessible to the root service.
                 # For production plugin installation, always use the web interface or restart the service.
                 # Need --break-system-packages for Debian 12+ (PEP 668) even with --user
-                cmd = ['pip3', 'install', '--user', '--break-system-packages', '-r', str(requirements_file)]
+                cmd = [
+                    'pip3', 'install', 
+                    '--user', 
+                    '--break-system-packages',
+                    '--no-cache-dir',
+                    '-r', str(requirements_file)
+                ]
                 self.logger.warning(
                     "Installing plugin dependencies for current user (not root). "
                     "These will NOT be accessible to the systemd service. "
@@ -146,19 +162,26 @@ class PluginManager:
                 cmd,
                 check=True,
                 capture_output=True,
-                text=True
+                text=True,
+                env=env
             )
 
             self.logger.info(f"Successfully installed dependencies for {requirements_file}")
+            if result.stdout:
+                self.logger.debug(f"pip output: {result.stdout}")
             return True
 
         except subprocess.CalledProcessError as e:
             self.logger.error(f"Error installing dependencies: {e.stderr}")
+            self.logger.info("Dependencies may need to be installed manually. Plugin loading will continue.")
             # Don't fail plugin loading if dependencies fail to install
             # User can manually install them
             return True
-        except FileNotFoundError:
-            self.logger.warning("pip3 not found, skipping dependency installation")
+        except FileNotFoundError as e:
+            self.logger.warning(f"Command not found: {e}. Skipping dependency installation")
+            return True
+        except Exception as e:
+            self.logger.error(f"Unexpected error installing dependencies: {e}")
             return True
 
     def load_plugin(self, plugin_id: str) -> bool:
