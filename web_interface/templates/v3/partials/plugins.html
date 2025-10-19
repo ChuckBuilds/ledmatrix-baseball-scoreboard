@@ -352,14 +352,21 @@ function generatePluginConfigForm(pluginId, config) {
         .then(response => response.json())
         .then(schemaData => {
             if (schemaData.status === 'success' && schemaData.data.schema) {
+                // Store plugin ID and schema for form submission
+                currentPluginConfig = {
+                    pluginId: pluginId,
+                    schema: schemaData.data.schema
+                };
                 return generateFormFromSchema(schemaData.data.schema, config);
             } else {
                 // Fallback to simple form if no schema
+                currentPluginConfig = { pluginId: pluginId, schema: null };
                 return generateSimpleConfigForm(config);
             }
         })
         .catch(error => {
             console.error('Error loading schema:', error);
+            currentPluginConfig = { pluginId: pluginId, schema: null };
             return generateSimpleConfigForm(config);
         });
 }
@@ -776,6 +783,7 @@ document.addEventListener('submit', function(e) {
 
         const formData = new FormData(e.target);
         const config = {};
+        const schema = currentPluginConfig?.schema;
 
         // Get the enabled checkbox state (unchecked checkboxes don't appear in FormData)
         const enabledCheckbox = document.getElementById('enabled');
@@ -786,8 +794,16 @@ document.addEventListener('submit', function(e) {
             // Skip enabled since we already handled it
             if (key === 'enabled') continue;
 
-            if (key === 'display_duration') {
+            // Check if this field is an array type in the schema
+            if (schema?.properties?.[key]?.type === 'array') {
+                // Convert comma-separated string to array
+                config[key] = value.split(',').map(item => item.trim()).filter(item => item.length > 0);
+            } else if (key === 'display_duration' || schema?.properties?.[key]?.type === 'integer') {
                 config[key] = parseInt(value);
+            } else if (schema?.properties?.[key]?.type === 'number') {
+                config[key] = parseFloat(value);
+            } else if (schema?.properties?.[key]?.type === 'boolean') {
+                config[key] = value === 'true' || value === true;
             } else {
                 config[key] = value;
             }
