@@ -433,6 +433,15 @@ class PluginManager:
         
         info = manifest.copy()
         
+        # Auto-extract version from versions array if not present at top level
+        if 'version' not in info or not info['version']:
+            versions = info.get('versions', [])
+            if versions and isinstance(versions, list) and len(versions) > 0:
+                # Get the latest version (first in array)
+                latest = versions[0]
+                if isinstance(latest, dict) and 'version' in latest:
+                    info['version'] = latest['version']
+        
         # Add runtime information if plugin is loaded
         plugin = self.plugins.get(plugin_id)
         if plugin:
