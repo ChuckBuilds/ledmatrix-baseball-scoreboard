@@ -985,7 +985,7 @@ function togglePasswordVisibility(fieldId) {
 }
 
 // GitHub Token Configuration Functions
-function toggleGithubTokenSettings() {
+window.toggleGithubTokenSettings = function() {
     const settings = document.getElementById('github-token-settings');
     if (settings) {
         settings.classList.toggle('hidden');
@@ -995,7 +995,7 @@ function toggleGithubTokenSettings() {
     }
 }
 
-function toggleGithubTokenVisibility() {
+window.toggleGithubTokenVisibility = function() {
     const input = document.getElementById('github-token-input');
     const icon = document.getElementById('github-token-icon');
     
@@ -1012,7 +1012,7 @@ function toggleGithubTokenVisibility() {
     }
 }
 
-function loadGithubToken() {
+window.loadGithubToken = function() {
     fetch('/api/v3/config/secrets')
         .then(response => response.json())
         .then(data => {
@@ -1035,7 +1035,7 @@ function loadGithubToken() {
         });
 }
 
-function saveGithubToken() {
+window.saveGithubToken = function() {
     const input = document.getElementById('github-token-input');
     if (!input) return;
     
