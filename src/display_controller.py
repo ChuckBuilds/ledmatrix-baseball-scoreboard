@@ -1009,23 +1009,30 @@ class DisplayController:
             True if a plugin handled the display, False otherwise
         """
         if not self.plugin_manager:
+            logger.debug(f"_try_display_plugin({display_mode}): No plugin manager")
             return False
             
         # Check if this mode is handled by a plugin
         if display_mode in self.plugin_modes:
             plugin_instance = self.plugin_modes[display_mode]
+            logger.debug(f"_try_display_plugin({display_mode}): Found plugin instance: {plugin_instance.plugin_id if plugin_instance else 'None'}")
+            
             if plugin_instance:
                 try:
                     # Call the plugin's display method with the appropriate mode
                     if hasattr(plugin_instance, 'display'):
+                        logger.info(f"Calling {plugin_instance.plugin_id}.display({display_mode}, force_clear={force_clear})")
                         plugin_instance.display(display_mode, force_clear=force_clear)
+                        logger.debug(f"Plugin {plugin_instance.plugin_id} display returned successfully")
                         return True
                     else:
                         logger.warning(f"Plugin {plugin_instance.plugin_id} does not have display method")
                         return False
                 except Exception as e:
-                    logger.error(f"Error displaying plugin {plugin_instance.plugin_id}: {e}")
+                    logger.error(f"Error displaying plugin {plugin_instance.plugin_id}: {e}", exc_info=True)
                     return False
+        else:
+            logger.debug(f"_try_display_plugin({display_mode}): Mode not in plugin_modes. Available: {list(self.plugin_modes.keys())}")
         
         return False
 
