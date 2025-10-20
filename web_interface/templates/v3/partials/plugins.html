@@ -176,6 +176,52 @@
     </div>
 </div>
 
+<style>
+/* Nested config section styles */
+.nested-section {
+    transition: all 0.2s ease;
+}
+
+.nested-section button:hover {
+    background-color: #f3f4f6;
+}
+
+.nested-section .nested-content {
+    transition: all 0.3s ease;
+}
+
+.nested-section i {
+    transition: transform 0.3s ease;
+}
+
+/* Smooth toggle animation */
+.nested-content[style*="display: none"] {
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+}
+
+.nested-content[style*="display: block"] {
+    opacity: 1;
+    max-height: none;
+}
+
+/* Nested sections within nested sections - add indentation */
+.nested-content .nested-section {
+    margin-left: 1rem;
+}
+
+/* Form group spacing within nested sections */
+.nested-content .form-group {
+    margin-bottom: 0.75rem;
+}
+
+/* Make nested section headers slightly smaller for hierarchy */
+.nested-content .nested-section h4 {
+    font-size: 0.95em;
+}
+</style>
+
 <script>
 (function() {
     'use strict';
@@ -414,6 +460,65 @@ function showPluginConfigModal(pluginId, config) {
         });
 }
 
+// Helper function to find property type in nested schema using dot notation
+function getSchemaPropertyType(schema, path) {
+    const parts = path.split('.');
+    let current = schema;
+    
+    for (let i = 0; i < parts.length; i++) {
+        if (!current || !current.properties) return null;
+        current = current.properties[parts[i]];
+        if (!current) return null;
+        
+        // If this is an object and not the last part, continue traversing
+        if (i < parts.length - 1 && current.type === 'object') {
+            continue;
+        }
+    }
+    
+    return current;
+}
+
+// Helper function to convert dot notation to nested object
+function dotToNested(obj) {
+    const result = {};
+    
+    for (const key in obj) {
+        const parts = key.split('.');
+        let current = result;
+        
+        for (let i = 0; i < parts.length - 1; i++) {
+            if (!current[parts[i]]) {
+                current[parts[i]] = {};
+            }
+            current = current[parts[i]];
+        }
+        
+        current[parts[parts.length - 1]] = obj[key];
+    }
+    
+    return result;
+}
+
+// Helper function to collect all boolean fields from schema (including nested)
+function collectBooleanFields(schema, prefix = '') {
+    const boolFields = [];
+    
+    if (!schema || !schema.properties) return boolFields;
+    
+    Object.entries(schema.properties).forEach(([key, prop]) => {
+        const fullKey = prefix ? `${prefix}.${key}` : key;
+        
+        if (prop.type === 'boolean') {
+            boolFields.push(fullKey);
+        } else if (prop.type === 'object' && prop.properties) {
+            boolFields.push(...collectBooleanFields(prop, fullKey));
+        }
+    });
+    
+    return boolFields;
+}
+
 function handlePluginConfigSubmit(e) {
     e.preventDefault();
     console.log('Form submitted');
@@ -427,52 +532,59 @@ function handlePluginConfigSubmit(e) {
     const schema = currentPluginConfig.schema;
     const form = e.target;
     const formData = new FormData(form);
-    const config = {};
+    const flatConfig = {};
     
     console.log('Schema loaded:', schema ? 'Yes' : 'No');
     
+    // Process form data with type conversion (using dot notation for nested fields)
     for (const [key, value] of formData.entries()) {
-        // Type conversion based on schema
-        if (schema && schema.properties && schema.properties[key]) {
-            const propType = schema.properties[key].type;
+        const propSchema = getSchemaPropertyType(schema, key);
+        
+        if (propSchema) {
+            const propType = propSchema.type;
             
             if (propType === 'array') {
                 // Convert comma-separated string to array
                 const arrayValue = value ? value.split(',').map(v => v.trim()).filter(v => v) : [];
-                config[key] = arrayValue;
+                flatConfig[key] = arrayValue;
                 console.log(`Array field ${key}: "${value}" -> `, arrayValue);
             } else if (propType === 'integer') {
-                config[key] = parseInt(value, 10);
+                flatConfig[key] = parseInt(value, 10);
             } else if (propType === 'number') {
-                config[key] = parseFloat(value);
+                flatConfig[key] = parseFloat(value);
             } else if (propType === 'boolean') {
-                config[key] = form.elements[key].checked;
+                flatConfig[key] = form.elements[key].checked;
             } else {
-                config[key] = value;
+                flatConfig[key] = value;
             }
         } else {
             // No schema, try to infer type
             if (form.elements[key] && form.elements[key].type === 'checkbox') {
-                config[key] = form.elements[key].checked;
+                flatConfig[key] = form.elements[key].checked;
             } else {
-                config[key] = value;
+                flatConfig[key] = value;
             }
         }
     }
     
-    // Handle unchecked checkboxes (not in FormData)
+    // Handle unchecked checkboxes (not in FormData) - including nested ones
     if (schema && schema.properties) {
-        Object.keys(schema.properties).forEach(key => {
-            if (schema.properties[key].type === 'boolean' && !(key in config)) {
-                config[key] = false;
+        const allBoolFields = collectBooleanFields(schema);
+        allBoolFields.forEach(key => {
+            if (!(key in flatConfig)) {
+                flatConfig[key] = false;
             }
         });
     }
     
-    console.log('Final config to save:', config);
+    // Convert dot notation to nested object
+    const config = dotToNested(flatConfig);
+    
+    console.log('Flat config:', flatConfig);
+    console.log('Nested config to save:', config);
     
     // Save the configuration
-    fetch('/api/v3/plugins/configure', {
+    fetch('/api/v3/plugins/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -521,6 +633,133 @@ function generatePluginConfigForm(pluginId, config) {
         });
 }
 
+// Helper to flatten nested config for form display (converts {nfl: {enabled: true}} to {'nfl.enabled': true})
+function flattenConfig(obj, prefix = '') {
+    let result = {};
+    
+    for (const key in obj) {
+        const value = obj[key];
+        const fullKey = prefix ? `${prefix}.${key}` : key;
+        
+        if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+            // Recursively flatten nested objects
+            Object.assign(result, flattenConfig(value, fullKey));
+        } else {
+            result[fullKey] = value;
+        }
+    }
+    
+    return result;
+}
+
+// Generate field HTML for a single property (used recursively)
+function generateFieldHtml(key, prop, value, prefix = '') {
+    const fullKey = prefix ? `${prefix}.${key}` : key;
+    const label = prop.title || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    const description = prop.description || '';
+    let html = '';
+
+    // Handle nested objects
+    if (prop.type === 'object' && prop.properties) {
+        const sectionId = `section-${fullKey.replace(/\./g, '-')}`;
+        const nestedConfig = value || {};
+        const sectionLabel = prop.title || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        
+        html += `
+            <div class="nested-section border border-gray-300 rounded-lg overflow-hidden mb-4">
+                <button type="button" 
+                        class="w-full bg-gray-100 hover:bg-gray-200 px-4 py-3 flex items-center justify-between text-left transition-colors"
+                        onclick="toggleNestedSection('${sectionId}')">
+                    <div class="flex-1">
+                        <h4 class="font-semibold text-gray-900">${sectionLabel}</h4>
+                        ${description ? `<p class="text-sm text-gray-600 mt-1">${description}</p>` : ''}
+                    </div>
+                    <i id="${sectionId}-icon" class="fas fa-chevron-down text-gray-500 transition-transform"></i>
+                </button>
+                <div id="${sectionId}" class="nested-content bg-gray-50 px-4 py-3 space-y-3">
+        `;
+        
+        // Recursively generate fields for nested properties
+        Object.entries(prop.properties).forEach(([nestedKey, nestedProp]) => {
+            const nestedValue = nestedConfig[nestedKey] !== undefined ? nestedConfig[nestedKey] : nestedProp.default;
+            html += generateFieldHtml(nestedKey, nestedProp, nestedValue, fullKey);
+        });
+        
+        html += `
+                </div>
+            </div>
+        `;
+        
+        return html;
+    }
+
+    // Regular (non-nested) field
+    html += `
+        <div class="form-group">
+            <label for="${fullKey}" class="block text-sm font-medium text-gray-700 mb-1">
+                ${label}
+            </label>
+    `;
+
+    if (description) {
+        html += `<p class="text-sm text-gray-600 mb-2">${description}</p>`;
+    }
+
+    // Generate appropriate input based on type
+    if (prop.type === 'boolean') {
+        html += `
+            <label class="flex items-center">
+                <input type="checkbox" id="${fullKey}" name="${fullKey}" ${value ? 'checked' : ''} class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                <span class="ml-2 text-sm">Enabled</span>
+            </label>
+        `;
+    } else if (prop.type === 'number' || prop.type === 'integer') {
+        const min = prop.minimum !== undefined ? `min="${prop.minimum}"` : '';
+        const max = prop.maximum !== undefined ? `max="${prop.maximum}"` : '';
+        const step = prop.type === 'integer' ? 'step="1"' : 'step="any"';
+        html += `
+            <input type="number" id="${fullKey}" name="${fullKey}" value="${value !== undefined ? value : ''}" ${min} ${max} ${step} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+        `;
+    } else if (prop.type === 'array') {
+        const arrayValue = Array.isArray(value) ? value.join(', ') : '';
+        html += `
+            <input type="text" id="${fullKey}" name="${fullKey}" value="${arrayValue}" placeholder="Enter values separated by commas" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            <p class="text-sm text-gray-600 mt-1">Enter values separated by commas</p>
+        `;
+    } else if (prop.enum) {
+        html += `<select id="${fullKey}" name="${fullKey}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">`;
+        prop.enum.forEach(option => {
+            const selected = value === option ? 'selected' : '';
+            html += `<option value="${option}" ${selected}>${option}</option>`;
+        });
+        html += `</select>`;
+    } else {
+        // Check if this is a secret field
+        const isSecret = prop['x-secret'] === true;
+        const inputType = isSecret ? 'password' : 'text';
+        const maxLength = prop.maxLength || '';
+        
+        html += `
+            <div class="relative">
+                <input type="${inputType}" id="${fullKey}" name="${fullKey}" value="${value !== undefined ? value : ''}" ${maxLength ? `maxlength="${maxLength}"` : ''} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${isSecret ? 'pr-10' : ''}">
+        `;
+        
+        if (isSecret) {
+            html += `
+                <button type="button" onclick="togglePasswordVisibility('${fullKey}')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700">
+                    <i id="${fullKey}-icon" class="fas fa-eye"></i>
+                </button>
+            `;
+        }
+        
+        html += `</div>`;
+    }
+
+    html += `</div>`;
+    
+    return html;
+}
+
 function generateFormFromSchema(schema, config) {
     let formHtml = '<form id="plugin-config-form" class="space-y-4">';
 
@@ -546,72 +785,7 @@ function generateFormFromSchema(schema, config) {
             if (key === 'enabled') return;
 
             const value = config[key] !== undefined ? config[key] : prop.default;
-            const label = prop.title || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-            const description = prop.description || '';
-
-            formHtml += `
-                <div class="form-group">
-                    <label for="${key}" class="block text-sm font-medium text-gray-700 mb-1">
-                        ${label}
-                    </label>
-            `;
-
-            if (description) {
-                formHtml += `<p class="text-sm text-gray-600 mb-2">${description}</p>`;
-            }
-
-            // Generate appropriate input based on type
-            if (prop.type === 'boolean') {
-                formHtml += `
-                    <label class="flex items-center">
-                        <input type="checkbox" id="${key}" name="${key}" ${value ? 'checked' : ''} class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                        <span class="ml-2 text-sm">Enabled</span>
-                    </label>
-                `;
-            } else if (prop.type === 'number' || prop.type === 'integer') {
-                const min = prop.minimum !== undefined ? `min="${prop.minimum}"` : '';
-                const max = prop.maximum !== undefined ? `max="${prop.maximum}"` : '';
-                const step = prop.type === 'integer' ? 'step="1"' : 'step="any"';
-                formHtml += `
-                    <input type="number" id="${key}" name="${key}" value="${value || ''}" ${min} ${max} ${step} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                `;
-            } else if (prop.type === 'array') {
-                const arrayValue = Array.isArray(value) ? value.join(', ') : '';
-                console.log(`Loading array field ${key}:`, value, '-> display as:', arrayValue);
-                formHtml += `
-                    <input type="text" id="${key}" name="${key}" value="${arrayValue}" placeholder="Enter values separated by commas" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                    <p class="text-sm text-gray-600 mt-1">Enter values separated by commas</p>
-                `;
-            } else if (prop.enum) {
-                formHtml += `<select id="${key}" name="${key}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">`;
-                prop.enum.forEach(option => {
-                    const selected = value === option ? 'selected' : '';
-                    formHtml += `<option value="${option}" ${selected}>${option}</option>`;
-                });
-                formHtml += `</select>`;
-            } else {
-                // Check if this is a secret field
-                const isSecret = prop['x-secret'] === true;
-                const inputType = isSecret ? 'password' : 'text';
-                const maxLength = prop.maxLength || '';
-                
-                formHtml += `
-                    <div class="relative">
-                        <input type="${inputType}" id="${key}" name="${key}" value="${value || ''}" ${maxLength ? `maxlength="${maxLength}"` : ''} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${isSecret ? 'pr-10' : ''}">
-                `;
-                
-                if (isSecret) {
-                    formHtml += `
-                        <button type="button" onclick="togglePasswordVisibility('${key}')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700">
-                            <i id="${key}-icon" class="fas fa-eye"></i>
-                        </button>
-                    `;
-                }
-                
-                formHtml += `</div>`;
-            }
-
-            formHtml += `</div>`;
+            formHtml += generateFieldHtml(key, prop, value);
         });
     }
 
@@ -628,6 +802,22 @@ function generateFormFromSchema(schema, config) {
     `;
 
     return Promise.resolve(formHtml);
+}
+
+// Function to toggle nested sections
+window.toggleNestedSection = function(sectionId) {
+    const content = document.getElementById(sectionId);
+    const icon = document.getElementById(sectionId + '-icon');
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        icon.classList.remove('fa-chevron-right');
+        icon.classList.add('fa-chevron-down');
+    } else {
+        content.style.display = 'none';
+        icon.classList.remove('fa-chevron-down');
+        icon.classList.add('fa-chevron-right');
+    }
 }
 
 function generateSimpleConfigForm(config) {
