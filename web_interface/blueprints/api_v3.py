@@ -568,6 +568,21 @@ def refresh_plugin_store():
         print(error_details)
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
+def deep_merge(base_dict, update_dict):
+    """
+    Deep merge update_dict into base_dict.
+    For nested dicts, recursively merge. For other types, update_dict takes precedence.
+    """
+    result = base_dict.copy()
+    for key, value in update_dict.items():
+        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            # Recursively merge nested dicts
+            result[key] = deep_merge(result[key], value)
+        else:
+            # For non-dict values or new keys, use the update value
+            result[key] = value
+    return result
+
 @api_v3.route('/plugins/config', methods=['POST'])
 def save_plugin_config():
     """Save plugin configuration, separating secrets from regular config"""
@@ -582,47 +597,72 @@ def save_plugin_config():
         plugin_id = data['plugin_id']
         plugin_config = data.get('config', {})
 
-        # Load plugin schema to identify secret fields
+        # Load plugin schema to identify secret fields (supports nested schemas)
         plugins_dir = Path('plugins')
         schema_path = plugins_dir / plugin_id / 'config_schema.json'
         secret_fields = set()
+        
+        def find_secret_fields(properties, prefix=''):
+            """Recursively find fields marked with x-secret: true"""
+            fields = set()
+            for field_name, field_props in properties.items():
+                full_path = f"{prefix}.{field_name}" if prefix else field_name
+                if field_props.get('x-secret', False):
+                    fields.add(full_path)
+                # Check nested objects
+                if field_props.get('type') == 'object' and 'properties' in field_props:
+                    fields.update(find_secret_fields(field_props['properties'], full_path))
+            return fields
         
         if schema_path.exists():
             try:
                 with open(schema_path, 'r', encoding='utf-8') as f:
                     schema = json.load(f)
-                    # Find fields marked with x-secret: true
+                    # Find fields marked with x-secret: true (supports nested)
                     if 'properties' in schema:
-                        for field_name, field_props in schema['properties'].items():
-                            if field_props.get('x-secret', False):
-                                secret_fields.add(field_name)
+                        secret_fields = find_secret_fields(schema['properties'])
             except Exception as e:
                 print(f"Error reading schema for secret detection: {e}")
 
-        # Separate secrets from regular config
-        regular_config = {}
-        secrets_config = {}
+        # Separate secrets from regular config (handles nested configs)
+        def separate_secrets(config, secrets_set, prefix=''):
+            """Recursively separate secret fields from regular config"""
+            regular = {}
+            secrets = {}
+            
+            for key, value in config.items():
+                full_path = f"{prefix}.{key}" if prefix else key
+                
+                if isinstance(value, dict):
+                    # Recursively handle nested dicts
+                    nested_regular, nested_secrets = separate_secrets(value, secrets_set, full_path)
+                    if nested_regular:
+                        regular[key] = nested_regular
+                    if nested_secrets:
+                        secrets[key] = nested_secrets
+                elif full_path in secrets_set:
+                    secrets[key] = value
+                else:
+                    regular[key] = value
+            
+            return regular, secrets
         
-        for key, value in plugin_config.items():
-            if key in secret_fields:
-                secrets_config[key] = value
-            else:
-                regular_config[key] = value
+        regular_config, secrets_config = separate_secrets(plugin_config, secret_fields)
 
         # Get current configs
         current_config = api_v3.config_manager.load_config()
         current_secrets = api_v3.config_manager.get_raw_file_content('secrets')
 
-        # Update plugin configuration in main config
+        # Deep merge plugin configuration in main config (preserves nested structures)
         if plugin_id not in current_config:
             current_config[plugin_id] = {}
-        current_config[plugin_id].update(regular_config)
+        current_config[plugin_id] = deep_merge(current_config[plugin_id], regular_config)
 
-        # Update plugin secrets in secrets config
+        # Deep merge plugin secrets in secrets config
         if secrets_config:
             if plugin_id not in current_secrets:
                 current_secrets[plugin_id] = {}
-            current_secrets[plugin_id].update(secrets_config)
+            current_secrets[plugin_id] = deep_merge(current_secrets[plugin_id], secrets_config)
             # Save secrets file
             api_v3.config_manager.save_raw_file_content('secrets', current_secrets)
 
