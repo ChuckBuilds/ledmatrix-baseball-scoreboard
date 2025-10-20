@@ -400,11 +400,100 @@ function showPluginConfigModal(pluginId, config) {
         .then(formHtml => {
             console.log('Form generated, setting content');
             content.innerHTML = formHtml;
+            
+            // Attach form submit handler after form is inserted
+            const form = document.getElementById('plugin-config-form');
+            if (form) {
+                form.addEventListener('submit', handlePluginConfigSubmit);
+                console.log('Form submit handler attached');
+            }
         })
         .catch(error => {
             console.error('Error generating config form:', error);
             content.innerHTML = '<p class="text-red-600">Error loading configuration form</p>';
         });
+}
+
+function handlePluginConfigSubmit(e) {
+    e.preventDefault();
+    console.log('Form submitted');
+    
+    if (!currentPluginConfig) {
+        showNotification('Plugin configuration not loaded', 'error');
+        return;
+    }
+    
+    const pluginId = currentPluginConfig.pluginId;
+    const schema = currentPluginConfig.schema;
+    const form = e.target;
+    const formData = new FormData(form);
+    const config = {};
+    
+    console.log('Schema loaded:', schema ? 'Yes' : 'No');
+    
+    for (const [key, value] of formData.entries()) {
+        // Type conversion based on schema
+        if (schema && schema.properties && schema.properties[key]) {
+            const propType = schema.properties[key].type;
+            
+            if (propType === 'array') {
+                // Convert comma-separated string to array
+                const arrayValue = value ? value.split(',').map(v => v.trim()).filter(v => v) : [];
+                config[key] = arrayValue;
+                console.log(`Array field ${key}: "${value}" -> `, arrayValue);
+            } else if (propType === 'integer') {
+                config[key] = parseInt(value, 10);
+            } else if (propType === 'number') {
+                config[key] = parseFloat(value);
+            } else if (propType === 'boolean') {
+                config[key] = form.elements[key].checked;
+            } else {
+                config[key] = value;
+            }
+        } else {
+            // No schema, try to infer type
+            if (form.elements[key] && form.elements[key].type === 'checkbox') {
+                config[key] = form.elements[key].checked;
+            } else {
+                config[key] = value;
+            }
+        }
+    }
+    
+    // Handle unchecked checkboxes (not in FormData)
+    if (schema && schema.properties) {
+        Object.keys(schema.properties).forEach(key => {
+            if (schema.properties[key].type === 'boolean' && !(key in config)) {
+                config[key] = false;
+            }
+        });
+    }
+    
+    console.log('Final config to save:', config);
+    
+    // Save the configuration
+    fetch('/api/v3/plugins/configure', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            plugin_id: pluginId,
+            config: config
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            showNotification('Configuration saved successfully', 'success');
+            closePluginConfigModal();
+            loadInstalledPlugins(); // Refresh to show updated config
+        } else {
+            showNotification('Error saving configuration: ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error saving plugin config:', error);
+        showNotification('Error saving configuration: ' + error.message, 'error');
+    });
 }
 
 function generatePluginConfigForm(pluginId, config) {
