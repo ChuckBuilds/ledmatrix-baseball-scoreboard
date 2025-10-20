@@ -479,15 +479,30 @@ def list_plugin_store():
         # Format plugins for the web interface
         formatted_plugins = []
         for plugin in plugins:
-            # Get the latest version
-            versions = plugin.get('versions', [])
-            latest_version = versions[0] if versions else {}
+            # Get the latest version - check multiple sources
+            version_str = None
+            
+            # First, check for latest_version field
+            if 'latest_version' in plugin:
+                version_str = plugin.get('latest_version')
+            
+            # If not found, extract from versions array
+            if not version_str:
+                versions = plugin.get('versions', [])
+                if versions and isinstance(versions, list) and len(versions) > 0:
+                    latest_version = versions[0]
+                    if isinstance(latest_version, dict):
+                        version_str = latest_version.get('version')
+            
+            # Fallback to top-level version field
+            if not version_str:
+                version_str = plugin.get('version', '1.0.0')
             
             formatted_plugins.append({
                 'id': plugin.get('id'),
                 'name': plugin.get('name'),
                 'author': plugin.get('author'),
-                'version': latest_version.get('version', '1.0.0'),
+                'version': version_str,
                 'category': plugin.get('category'),
                 'description': plugin.get('description'),
                 'tags': plugin.get('tags', []),
