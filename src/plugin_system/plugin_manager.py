@@ -465,4 +465,23 @@ class PluginManager:
             if plugin_info is not None:
                 result.append(plugin_info)
         return result
+    
+    def get_plugin_directory(self, plugin_id: str) -> Optional[str]:
+        """
+        Get the filesystem directory path for a plugin.
+        
+        Args:
+            plugin_id: Plugin identifier
+            
+        Returns:
+            Path to plugin directory as string, or None if plugin not found
+        """
+        if plugin_id not in self.plugin_manifests:
+            return None
+        
+        plugin_dir = self.plugins_dir / plugin_id
+        if plugin_dir.exists():
+            return str(plugin_dir)
+        
+        return None
 
