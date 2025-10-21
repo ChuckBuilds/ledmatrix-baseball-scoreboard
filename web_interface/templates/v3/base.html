@@ -605,49 +605,90 @@
                         return this.generateSimpleConfigForm(config);
                     }
 
-                    let formHtml = '';
-
-                    Object.entries(schema.properties).forEach(([key, prop]) => {
-                        const value = config[key] !== undefined ? config[key] : prop.default;
+                    const generateFieldHtml = (key, prop, value, prefix = '') => {
+                        const fullKey = prefix ? `${prefix}.${key}` : key;
                         const label = prop.title || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
                         const description = prop.description || '';
+                        let html = '';
 
-                        formHtml += `<div class="form-group">`;
-                        formHtml += `<label class="block text-sm font-medium text-gray-700 mb-1">${label}</label>`;
+                        // Handle nested objects
+                        if (prop.type === 'object' && prop.properties) {
+                            const sectionId = `section-${fullKey.replace(/\./g, '-')}`;
+                            const nestedConfig = value || {};
+                            const sectionLabel = prop.title || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                            
+                            html += `
+                                <div class="nested-section border border-gray-300 rounded-lg overflow-hidden mb-4">
+                                    <button type="button" 
+                                            class="w-full bg-gray-100 hover:bg-gray-200 px-4 py-3 flex items-center justify-between text-left transition-colors"
+                                            onclick="toggleNestedSection('${sectionId}')">
+                                        <div class="flex-1">
+                                            <h4 class="font-semibold text-gray-900">${sectionLabel}</h4>
+                                            ${description ? `<p class="text-sm text-gray-600 mt-1">${description}</p>` : ''}
+                                        </div>
+                                        <i id="${sectionId}-icon" class="fas fa-chevron-down text-gray-500 transition-transform"></i>
+                                    </button>
+                                    <div id="${sectionId}" class="nested-content bg-gray-50 px-4 py-3 space-y-3" style="display: block;">
+                            `;
+                            
+                            // Recursively generate fields for nested properties
+                            Object.entries(prop.properties).forEach(([nestedKey, nestedProp]) => {
+                                const nestedValue = nestedConfig[nestedKey] !== undefined ? nestedConfig[nestedKey] : nestedProp.default;
+                                html += generateFieldHtml(nestedKey, nestedProp, nestedValue, fullKey);
+                            });
+                            
+                            html += `
+                                    </div>
+                                </div>
+                            `;
+                            
+                            return html;
+                        }
+
+                        // Regular (non-nested) field
+                        html += `<div class="form-group">`;
+                        html += `<label class="block text-sm font-medium text-gray-700 mb-1">${label}</label>`;
 
                         if (description) {
-                            formHtml += `<p class="text-sm text-gray-600 mb-2">${description}</p>`;
+                            html += `<p class="text-sm text-gray-600 mb-2">${description}</p>`;
                         }
 
                         // Generate appropriate input based on type
                         if (prop.type === 'boolean') {
-                            formHtml += `<label class="flex items-center">`;
-                            formHtml += `<input type="checkbox" name="${key}" ${value ? 'checked' : ''} class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">`;
-                            formHtml += `<span class="ml-2 text-sm">Enabled</span>`;
-                            formHtml += `</label>`;
+                            html += `<label class="flex items-center">`;
+                            html += `<input type="checkbox" name="${fullKey}" ${value ? 'checked' : ''} class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">`;
+                            html += `<span class="ml-2 text-sm">Enabled</span>`;
+                            html += `</label>`;
                         } else if (prop.type === 'number' || prop.type === 'integer') {
                             const min = prop.minimum !== undefined ? `min="${prop.minimum}"` : '';
                             const max = prop.maximum !== undefined ? `max="${prop.maximum}"` : '';
                             const step = prop.type === 'integer' ? 'step="1"' : 'step="any"';
-                            formHtml += `<input type="number" name="${key}" value="${value || ''}" ${min} ${max} ${step} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">`;
+                            html += `<input type="number" name="${fullKey}" value="${value !== undefined ? value : ''}" ${min} ${max} ${step} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">`;
                         } else if (prop.type === 'array') {
                             const arrayValue = Array.isArray(value) ? value.join(', ') : '';
-                            formHtml += `<input type="text" name="${key}" value="${arrayValue}" placeholder="Enter values separated by commas" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">`;
-                            formHtml += `<p class="text-sm text-gray-600 mt-1">Enter values separated by commas</p>`;
+                            html += `<input type="text" name="${fullKey}" value="${arrayValue}" placeholder="Enter values separated by commas" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">`;
+                            html += `<p class="text-sm text-gray-600 mt-1">Enter values separated by commas</p>`;
                         } else if (prop.enum) {
-                            formHtml += `<select name="${key}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">`;
+                            html += `<select name="${fullKey}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">`;
                             prop.enum.forEach(option => {
                                 const selected = value === option ? 'selected' : '';
-                                formHtml += `<option value="${option}" ${selected}>${option}</option>`;
+                                html += `<option value="${option}" ${selected}>${option}</option>`;
                             });
-                            formHtml += `</select>`;
+                            html += `</select>`;
                         } else {
                             // Default to text input
                             const maxLength = prop.maxLength || '';
-                            formHtml += `<input type="text" name="${key}" value="${value || ''}" ${maxLength ? `maxlength="${maxLength}"` : ''} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">`;
+                            html += `<input type="text" name="${fullKey}" value="${value !== undefined ? value : ''}" ${maxLength ? `maxlength="${maxLength}"` : ''} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">`;
                         }
 
-                        formHtml += `</div>`;
+                        html += `</div>`;
+                        return html;
+                    };
+
+                    let formHtml = '';
+                    Object.entries(schema.properties).forEach(([key, prop]) => {
+                        const value = config[key] !== undefined ? config[key] : prop.default;
+                        formHtml += generateFieldHtml(key, prop, value);
                     });
 
                     return formHtml;
@@ -661,9 +702,104 @@
                             <p class="text-sm text-gray-600 mt-1">How long to show this plugin's content</p>
                         </div>
                     `;
+                },
+
+                async savePluginConfig(pluginId) {
+                    try {
+                        // Get the form element for this plugin
+                        const form = event.target;
+                        const formData = new FormData(form);
+                        
+                        // Convert FormData to object with dot notation
+                        const flatConfig = {};
+                        for (const [key, value] of formData.entries()) {
+                            // Handle checkboxes and other types
+                            if (form.elements[key] && form.elements[key].type === 'checkbox') {
+                                flatConfig[key] = form.elements[key].checked;
+                            } else if (key.includes('display_duration') || key.includes('game_display_duration')) {
+                                flatConfig[key] = parseInt(value, 10);
+                            } else if (!isNaN(value) && value !== '') {
+                                flatConfig[key] = parseFloat(value);
+                            } else {
+                                flatConfig[key] = value;
+                            }
+                        }
+                        
+                        // Convert comma-separated arrays
+                        Object.keys(flatConfig).forEach(key => {
+                            if (typeof flatConfig[key] === 'string' && key.includes('favorite_teams')) {
+                                flatConfig[key] = flatConfig[key].split(',').map(v => v.trim()).filter(v => v);
+                            }
+                        });
+                        
+                        // Convert dot notation to nested object
+                        const dotToNested = (obj) => {
+                            const result = {};
+                            for (const key in obj) {
+                                const parts = key.split('.');
+                                let current = result;
+                                for (let i = 0; i < parts.length - 1; i++) {
+                                    if (!current[parts[i]]) {
+                                        current[parts[i]] = {};
+                                    }
+                                    current = current[parts[i]];
+                                }
+                                current[parts[parts.length - 1]] = obj[key];
+                            }
+                            return result;
+                        };
+                        
+                        const config = dotToNested(flatConfig);
+                        
+                        console.log('Saving config for', pluginId, ':', config);
+                        
+                        // Save to backend
+                        const response = await fetch('/api/v3/plugins/config', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                plugin_id: pluginId,
+                                config: config
+                            })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.status === 'success') {
+                            this.showNotification('Configuration saved successfully', 'success');
+                        } else {
+                            this.showNotification('Error saving configuration: ' + data.message, 'error');
+                        }
+                    } catch (error) {
+                        console.error('Error saving plugin config:', error);
+                        this.showNotification('Error saving configuration: ' + error.message, 'error');
+                    }
                 }
             }
         }
+
+        // ===== Nested Section Toggle =====
+        window.toggleNestedSection = function(sectionId) {
+            const content = document.getElementById(sectionId);
+            const icon = document.getElementById(sectionId + '-icon');
+            
+            if (!content || !icon) return;
+            
+            // Check if content is hidden (handle both explicit 'none' and empty string for initial state)
+            const isHidden = content.style.display === 'none';
+            
+            if (isHidden) {
+                // Show the section
+                content.style.display = 'block';
+                icon.classList.remove('fa-chevron-right');
+                icon.classList.add('fa-chevron-down');
+            } else {
+                // Hide the section
+                content.style.display = 'none';
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-right');
+            }
+        };
 
         // ===== Display Preview Functions (from v2) =====
         
