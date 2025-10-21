@@ -361,39 +361,6 @@ def get_plugin_config():
         print(error_details)
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
-@api_v3.route('/plugins/schema', methods=['GET'])
-def get_plugin_schema():
-    """Get plugin configuration schema"""
-    try:
-        if not api_v3.plugin_manager:
-            return jsonify({'status': 'error', 'message': 'Plugin manager not initialized'}), 500
-        
-        plugin_id = request.args.get('plugin_id')
-        if not plugin_id:
-            return jsonify({'status': 'error', 'message': 'plugin_id required'}), 400
-
-        # Get the plugin's directory
-        plugin_dir = api_v3.plugin_manager.get_plugin_directory(plugin_id)
-        if not plugin_dir:
-            return jsonify({'status': 'error', 'message': f'Plugin {plugin_id} not found'}), 404
-        
-        # Look for config_schema.json
-        schema_path = os.path.join(plugin_dir, 'config_schema.json')
-        if not os.path.exists(schema_path):
-            return jsonify({'status': 'error', 'message': f'No schema found for plugin {plugin_id}'}), 404
-        
-        # Load and return the schema
-        with open(schema_path, 'r', encoding='utf-8') as f:
-            schema = json.load(f)
-        
-        return jsonify({'status': 'success', 'data': {'schema': schema}})
-    except Exception as e:
-        import traceback
-        error_details = traceback.format_exc()
-        print(f"Error in get_plugin_schema: {str(e)}")
-        print(error_details)
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-
 @api_v3.route('/plugins/update', methods=['POST'])
 def update_plugin():
     """Update plugin"""
@@ -723,9 +690,17 @@ def get_plugin_schema():
         if not plugin_id:
             return jsonify({'status': 'error', 'message': 'plugin_id required'}), 400
 
-        # Try to read the config_schema.json file from the plugin directory
-        plugins_dir = Path('plugins')
-        schema_path = plugins_dir / plugin_id / 'config_schema.json'
+        # Try to get the plugin directory using plugin manager if available
+        schema_path = None
+        if api_v3.plugin_manager:
+            plugin_dir = api_v3.plugin_manager.get_plugin_directory(plugin_id)
+            if plugin_dir:
+                schema_path = Path(plugin_dir) / 'config_schema.json'
+        
+        # Fallback to direct path if plugin manager not available
+        if not schema_path:
+            plugins_dir = Path('plugins')
+            schema_path = plugins_dir / plugin_id / 'config_schema.json'
 
         if schema_path.exists():
             try:
