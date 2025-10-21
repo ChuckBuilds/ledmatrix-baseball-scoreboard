@@ -676,7 +676,7 @@ function generateFieldHtml(key, prop, value, prefix = '') {
                     </div>
                     <i id="${sectionId}-icon" class="fas fa-chevron-down text-gray-500 transition-transform"></i>
                 </button>
-                <div id="${sectionId}" class="nested-content bg-gray-50 px-4 py-3 space-y-3">
+                <div id="${sectionId}" class="nested-content bg-gray-50 px-4 py-3 space-y-3" style="display: block;">
         `;
         
         // Recursively generate fields for nested properties
@@ -809,11 +809,16 @@ window.toggleNestedSection = function(sectionId) {
     const content = document.getElementById(sectionId);
     const icon = document.getElementById(sectionId + '-icon');
     
-    if (content.style.display === 'none') {
+    // Check if content is hidden (handle both explicit 'none' and empty string for initial state)
+    const isHidden = content.style.display === 'none';
+    
+    if (isHidden) {
+        // Show the section
         content.style.display = 'block';
         icon.classList.remove('fa-chevron-right');
         icon.classList.add('fa-chevron-down');
     } else {
+        // Hide the section
         content.style.display = 'none';
         icon.classList.remove('fa-chevron-down');
         icon.classList.add('fa-chevron-right');
