@@ -215,7 +215,7 @@ class DisplayManager:
             self.offscreen_canvas.SetImage(self.image)
             
             # Swap buffers immediately
-            self.matrix.SwapOnVSync(self.offscreen_canvas, False)
+            self.matrix.SwapOnVSync(self.offscreen_canvas)
             
             # Swap our canvas references
             self.offscreen_canvas, self.current_canvas = self.current_canvas, self.offscreen_canvas

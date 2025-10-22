@@ -220,7 +220,7 @@ class DisplayController:
             from src.plugin_system import PluginManager
             logger.info("Plugin system imported successfully")
             self.plugin_manager = PluginManager(
-                plugins_dir=os.path.join(os.getcwd(), "plugins"),
+                plugins_dir=os.path.join(os.path.dirname(os.getcwd()), "plugin-repos"),
                 config_manager=self.config_manager,
                 display_manager=self.display_manager,
                 cache_manager=self.cache_manager,
@@ -1021,8 +1021,8 @@ class DisplayController:
                 try:
                     # Call the plugin's display method with the appropriate mode
                     if hasattr(plugin_instance, 'display'):
-                        logger.info(f"Calling {plugin_instance.plugin_id}.display({display_mode}, force_clear={force_clear})")
-                        plugin_instance.display(display_mode, force_clear=force_clear)
+                        logger.info(f"Calling {plugin_instance.plugin_id}.display(force_clear={force_clear})")
+                        plugin_instance.display(force_clear=force_clear)
                         logger.debug(f"Plugin {plugin_instance.plugin_id} display returned successfully")
                         return True
                     else:

@@ -1114,6 +1114,11 @@ window.installPlugin = function(pluginId) {
 
 function showError(message) {
     const content = document.getElementById('plugins-content');
+    if (!content) {
+        console.error('plugins-content element not found');
+        showNotification(message, 'error');
+        return;
+    }
     content.innerHTML = `
         <div class="text-center py-8">
             <i class="fas fa-exclamation-triangle text-4xl text-red-400 mb-2"></i>

@@ -231,11 +231,14 @@ class PluginManager:
             return False
         
         try:
-            # Get plugin directory
+            # Get plugin directory - try both plugin_id and ledmatrix-plugin_id formats
             plugin_dir = self.plugins_dir / plugin_id
             if not plugin_dir.exists():
-                self.logger.error(f"Plugin directory not found: {plugin_dir}")
-                return False
+                # Try with ledmatrix- prefix
+                plugin_dir = self.plugins_dir / f"ledmatrix-{plugin_id}"
+                if not plugin_dir.exists():
+                    self.logger.error(f"Plugin directory not found: {plugin_id} or ledmatrix-{plugin_id}")
+                    return False
             
             # Get entry point
             entry_point = manifest.get('entry_point', 'manager.py')

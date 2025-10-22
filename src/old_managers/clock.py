@@ -73,7 +73,8 @@ class Clock:
         day_suffix = self._get_ordinal_suffix(current.day)
         # Full weekday on first line, full month and day on second line
         weekday = current.strftime('%A')
-        date_str = current.strftime(f'%B %-d{day_suffix}')
+        # Use %d instead of %-d for Windows compatibility
+        date_str = current.strftime(f'%B %d{day_suffix}')
         
         return time_str, ampm, weekday, date_str
 
