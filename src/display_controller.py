@@ -157,7 +157,8 @@ class DisplayController:
             return
             
         # Update all loaded plugins
-        for plugin_id, plugin_instance in self.plugin_manager.loaded_plugins.items():
+        plugins_dict = getattr(self.plugin_manager, 'loaded_plugins', None) or getattr(self.plugin_manager, 'plugins', {})
+        for plugin_id, plugin_instance in plugins_dict.items():
             try:
                 if hasattr(plugin_instance, 'update'):
                     plugin_instance.update()
@@ -231,8 +232,25 @@ class DisplayController:
                 # Get duration for current mode
                 duration = self._get_display_duration(self.current_display_mode)
                 
-                # Wait for the duration
-                time.sleep(duration)
+                # For plugins, call display multiple times to allow game rotation
+                if manager_to_display and hasattr(manager_to_display, 'display'):
+                    # Call display method multiple times within the mode duration
+                    # This allows plugins to rotate between games (e.g., every 15 seconds)
+                    display_interval = 1.0  # Call display every 1 second
+                    elapsed = 0
+                    while elapsed < duration:
+                        time.sleep(display_interval)
+                        elapsed += display_interval
+                        
+                        # Call display again to allow game rotation
+                        if elapsed < duration:  # Don't call on the last iteration
+                            try:
+                                manager_to_display.display(force_clear=False)
+                            except Exception as e:
+                                logger.error(f"Error during display update: {e}")
+                else:
+                    # For non-plugin modes, use the original behavior
+                    time.sleep(duration)
                 
                 # Move to next mode
                 self.current_mode_index = (self.current_mode_index + 1) % len(self.available_modes)
