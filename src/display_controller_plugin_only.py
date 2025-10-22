@@ -18,7 +18,7 @@ from src.display_manager import DisplayManager
 from src.config_manager import ConfigManager
 from src.cache_manager import CacheManager
 from src.font_manager import FontManager
-from src.old_managers.calendar_manager import CalendarManager
+from src.calendar_manager import CalendarManager
 
 # Get logger without configuring
 logger = logging.getLogger(__name__)

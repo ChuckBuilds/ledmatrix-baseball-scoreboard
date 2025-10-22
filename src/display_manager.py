@@ -8,7 +8,7 @@ import time
 from typing import Dict, Any, List, Tuple
 import logging
 import math
-from .weather_icons import WeatherIcons
+from .old_managers.weather_icons import WeatherIcons
 import os
 import freetype
 
