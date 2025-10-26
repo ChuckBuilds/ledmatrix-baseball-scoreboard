@@ -129,8 +129,8 @@
             </div>
             <div class="mb-4">
                 <div class="flex gap-3">
-                    <input type="text" id="plugin-search" placeholder="Search plugins by name, description, or tags..." class="form-control text-sm flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-md">
-                    <select id="plugin-category" class="form-control text-sm w-36 px-2 py-2 border border-gray-300 rounded-md">
+                    <input type="text" id="plugin-search" placeholder="Search plugins by name, description, or tags..." class="form-control text-sm flex-[3] min-w-0 px-3 py-2 border border-gray-300 rounded-md">
+                    <select id="plugin-category" class="form-control text-sm flex-1 px-2 py-2 border border-gray-300 rounded-md">
                         <option value="">All Categories</option>
                         <option value="sports">Sports</option>
                         <option value="content">Content</option>
@@ -1411,6 +1411,13 @@ function checkGitHubAuthStatus() {
                     if (warning) {
                         warning.classList.add('hidden');
                         console.log('GitHub token is configured - API limit warning hidden');
+                    }
+                    
+                    // Also hide the GitHub token settings panel if it's visible
+                    const settings = document.getElementById('github-token-settings');
+                    if (settings && !settings.classList.contains('hidden')) {
+                        settings.classList.add('hidden');
+                        console.log('GitHub token is configured - hiding settings panel');
                     }
                 }
             }

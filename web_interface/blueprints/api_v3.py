@@ -129,6 +129,10 @@ def save_raw_secrets_config():
         # Save the secrets config
         api_v3.config_manager.save_raw_file_content('secrets', data)
 
+        # Reload GitHub token in plugin store manager if it exists
+        if api_v3.plugin_store_manager:
+            api_v3.plugin_store_manager.github_token = api_v3.plugin_store_manager._load_github_token()
+
         return jsonify({'status': 'success', 'message': 'Secrets configuration saved successfully'})
     except json.JSONDecodeError as e:
         return jsonify({'status': 'error', 'message': f'Invalid JSON: {str(e)}'}), 400
