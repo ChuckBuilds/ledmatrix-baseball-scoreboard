@@ -16,7 +16,7 @@ fi
 REAL_GROUP=$(id -gn "$REAL_USER")
 
 # Get the project directory
-PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ASSETS_DIR="$PROJECT_DIR/assets"
 
 echo "Project directory: $PROJECT_DIR"
