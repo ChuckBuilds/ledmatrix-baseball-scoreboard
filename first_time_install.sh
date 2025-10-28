@@ -151,6 +151,7 @@ echo "This script will perform the following steps:"
 echo "1. Install system dependencies"
 echo "2. Fix cache permissions"
 echo "3. Fix assets directory permissions"
+echo "3.1. Fix plugin directory permissions"
 echo "4. Install main LED Matrix service"
 echo "5. Install Python project dependencies (requirements.txt)"
 echo "6. Build and install rpi-rgb-led-matrix and test import"
@@ -264,6 +265,41 @@ else
     done
     
     echo "✓ Assets permissions fixed manually"
+fi
+echo ""
+
+CURRENT_STEP="Fix plugin directory permissions"
+echo "Step 3.1: Fixing plugin directory permissions..."
+echo "----------------------------------------------"
+
+# Run the plugin permissions fix
+if [ -f "$PROJECT_ROOT_DIR/scripts/fix_perms/fix_plugin_permissions.sh" ]; then
+    echo "Running plugin permissions fix..."
+    bash "$PROJECT_ROOT_DIR/scripts/fix_perms/fix_plugin_permissions.sh"
+    echo "✓ Plugin permissions fixed"
+else
+    echo "⚠ Plugin permissions script not found, fixing permissions manually..."
+    
+    # Ensure plugins directory exists
+    if [ ! -d "$PROJECT_ROOT_DIR/plugins" ]; then
+        echo "Creating plugins directory..."
+        mkdir -p "$PROJECT_ROOT_DIR/plugins"
+    fi
+    
+    # Set ownership to root:ACTUAL_USER for mixed access
+    # Root service can read/write, web service (ACTUAL_USER) can read/write
+    echo "Setting ownership to root:$ACTUAL_USER..."
+    chown -R root:"$ACTUAL_USER" "$PROJECT_ROOT_DIR/plugins"
+    
+    # Set directory permissions (775: rwxrwxr-x)
+    echo "Setting directory permissions to 775..."
+    find "$PROJECT_ROOT_DIR/plugins" -type d -exec chmod 775 {} \;
+    
+    # Set file permissions (664: rw-rw-r--)
+    echo "Setting file permissions to 664..."
+    find "$PROJECT_ROOT_DIR/plugins" -type f -exec chmod 664 {} \;
+    
+    echo "✓ Plugin permissions fixed manually"
 fi
 echo ""
 
@@ -601,7 +637,7 @@ find "$PROJECT_ROOT_DIR" -path "*/.git*" -prune -o -type f -name "*.sh" -exec ch
 
 # Explicitly ensure common helper scripts are executable (in case paths change)
 chmod 755 "$PROJECT_ROOT_DIR/start_display.sh" "$PROJECT_ROOT_DIR/stop_display.sh" 2>/dev/null || true
-chmod 755 "$PROJECT_ROOT_DIR/scripts/fix_perms/fix_cache_permissions.sh" "$PROJECT_ROOT_DIR/scripts/fix_perms/fix_web_permissions.sh" "$PROJECT_ROOT_DIR/scripts/fix_perms/fix_assets_permissions.sh" 2>/dev/null || true
+chmod 755 "$PROJECT_ROOT_DIR/scripts/fix_perms/fix_cache_permissions.sh" "$PROJECT_ROOT_DIR/scripts/fix_perms/fix_web_permissions.sh" "$PROJECT_ROOT_DIR/scripts/fix_perms/fix_assets_permissions.sh" "$PROJECT_ROOT_DIR/scripts/fix_perms/fix_plugin_permissions.sh" 2>/dev/null || true
 chmod 755 "$PROJECT_ROOT_DIR/install_service.sh" "$PROJECT_ROOT_DIR/install_web_service.sh" 2>/dev/null || true
 
 echo "✓ Project file permissions normalized"
