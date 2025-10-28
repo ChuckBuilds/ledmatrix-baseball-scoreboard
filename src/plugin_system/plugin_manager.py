@@ -253,6 +253,12 @@ class PluginManager:
             if requirements_file.exists():
                 self._install_plugin_dependencies(requirements_file)
 
+            # Add plugin directory to Python path so plugin can import its own modules
+            plugin_dir_str = str(plugin_dir)
+            if plugin_dir_str not in sys.path:
+                sys.path.insert(0, plugin_dir_str)
+                self.logger.debug(f"Added plugin directory to sys.path: {plugin_dir_str}")
+
             # Import the plugin module
             module_name = f"plugin_{plugin_id.replace('-', '_')}"
             spec = importlib.util.spec_from_file_location(module_name, entry_file)

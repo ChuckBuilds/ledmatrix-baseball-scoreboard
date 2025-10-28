@@ -70,8 +70,23 @@ class DisplayController:
             logger.info("Attempting to import plugin system...")
             from src.plugin_system import PluginManager
             logger.info("Plugin system imported successfully")
+            
+            # Get plugin directory from config, default to plugins in project directory
+            plugin_system_config = self.config.get('plugin_system', {})
+            plugins_dir_name = plugin_system_config.get('plugins_directory', 'plugins')
+            
+            # Resolve plugin directory - handle both absolute and relative paths
+            if os.path.isabs(plugins_dir_name):
+                plugins_dir = plugins_dir_name
+            else:
+                # If relative, resolve relative to the project root (LEDMatrix directory)
+                project_root = os.getcwd()
+                plugins_dir = os.path.join(project_root, plugins_dir_name)
+            
+            logger.info(f"Plugin Manager initialized with plugins directory: {plugins_dir}")
+            
             self.plugin_manager = PluginManager(
-                plugins_dir=os.path.join(os.path.dirname(os.getcwd()), "plugin-repos"),
+                plugins_dir=plugins_dir,
                 config_manager=self.config_manager,
                 display_manager=self.display_manager,
                 cache_manager=self.cache_manager,
