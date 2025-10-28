@@ -4,13 +4,13 @@ After=network.target
 
 [Service]
 Type=simple
-User=root
-WorkingDirectory=/home/ledpi/LEDMatrix
-ExecStart=/usr/bin/python3 /home/ledpi/LEDMatrix/run.py
+User=__USER__
+WorkingDirectory=__PROJECT_ROOT_DIR__
+ExecStart=/usr/bin/python3 __PROJECT_ROOT_DIR__/run.py
 Restart=on-failure
 RestartSec=10
-StandardOutput=syslog
-StandardError=syslog
+StandardOutput=journal
+StandardError=journal
 SyslogIdentifier=ledmatrix
 
 [Install]

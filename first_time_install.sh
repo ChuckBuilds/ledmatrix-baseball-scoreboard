@@ -281,6 +281,23 @@ else
     echo "Please ensure you are running this script from the project root: $PROJECT_ROOT_DIR"
     exit 1
 fi
+
+# Configure Python capabilities for hardware timing
+echo "Configuring Python capabilities for hardware timing..."
+if [ -f "/usr/bin/python3.13" ]; then
+    sudo setcap 'cap_sys_nice=eip' /usr/bin/python3.13 2>/dev/null || echo "⚠ Could not set cap_sys_nice on python3.13 (may need manual setup)"
+    echo "✓ Python3.13 capabilities configured"
+elif [ -f "/usr/bin/python3" ]; then
+    PYTHON_VER=$(python3 --version 2>&1 | grep -oP '(?<=Python )\d\.\d+' || echo "unknown")
+    if command -v setcap >/dev/null 2>&1; then
+        sudo setcap 'cap_sys_nice=eip' /usr/bin/python3 2>/dev/null || echo "⚠ Could not set cap_sys_nice on python3"
+        echo "✓ Python3 capabilities configured (version: $PYTHON_VER)"
+    else
+        echo "⚠ setcap not found, skipping capability configuration"
+    fi
+else
+    echo "⚠ Python3 not found, skipping capability configuration"
+fi
 echo ""
 
 CURRENT_STEP="Ensure configuration files exist"
