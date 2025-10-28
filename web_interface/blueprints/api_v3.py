@@ -31,9 +31,25 @@ def save_main_config():
         if not api_v3.config_manager:
             return jsonify({'status': 'error', 'message': 'Config manager not initialized'}), 500
 
-        data = request.get_json()
+        # Try to get JSON data first, fallback to form data
+        data = None
+        if request.content_type == 'application/json':
+            data = request.get_json()
+        else:
+            # Handle form data
+            data = request.form.to_dict()
+            # Convert checkbox values
+            for key in ['web_display_autostart']:
+                if key in data:
+                    data[key] = data[key] == 'on'
+        
         if not data:
             return jsonify({'status': 'error', 'message': 'No data provided'}), 400
+        
+        import logging
+        logging.error(f"DEBUG: save_main_config received data: {data}")
+        logging.error(f"DEBUG: Content-Type header: {request.content_type}")
+        logging.error(f"DEBUG: Headers: {dict(request.headers)}")
 
         # Merge with existing config (similar to original implementation)
         current_config = api_v3.config_manager.load_config()
@@ -61,6 +77,53 @@ def save_main_config():
             if 'country' in data:
                 current_config['location']['country'] = data['country']
 
+        # Handle display settings
+        display_fields = ['rows', 'cols', 'chain_length', 'parallel', 'brightness', 'hardware_mapping', 
+                         'gpio_slowdown', 'scan_mode', 'disable_hardware_pulsing', 'inverse_colors', 'show_refresh_rate',
+                         'pwm_bits', 'pwm_dither_bits', 'pwm_lsb_nanoseconds', 'limit_refresh_rate_hz', 'use_short_date_format']
+        
+        if any(k in data for k in display_fields):
+            if 'display' not in current_config:
+                current_config['display'] = {}
+            if 'hardware' not in current_config['display']:
+                current_config['display']['hardware'] = {}
+            if 'runtime' not in current_config['display']:
+                current_config['display']['runtime'] = {}
+            
+            # Handle hardware settings
+            for field in ['rows', 'cols', 'chain_length', 'parallel', 'brightness', 'hardware_mapping', 'scan_mode', 
+                         'pwm_bits', 'pwm_dither_bits', 'pwm_lsb_nanoseconds', 'limit_refresh_rate_hz']:
+                if field in data:
+                    if field in ['rows', 'cols', 'chain_length', 'parallel', 'brightness', 'scan_mode', 
+                               'pwm_bits', 'pwm_dither_bits', 'pwm_lsb_nanoseconds', 'limit_refresh_rate_hz']:
+                        current_config['display']['hardware'][field] = int(data[field])
+                    else:
+                        current_config['display']['hardware'][field] = data[field]
+            
+            # Handle runtime settings
+            if 'gpio_slowdown' in data:
+                current_config['display']['runtime']['gpio_slowdown'] = int(data['gpio_slowdown'])
+            
+            # Handle checkboxes
+            for checkbox in ['disable_hardware_pulsing', 'inverse_colors', 'show_refresh_rate']:
+                current_config['display']['hardware'][checkbox] = data.get(checkbox, False)
+            
+            # Handle display-level checkboxes
+            if 'use_short_date_format' in data:
+                current_config['display']['use_short_date_format'] = data.get('use_short_date_format', False)
+
+        # Handle display durations
+        duration_fields = [k for k in data.keys() if k.endswith('_duration') or k in ['default_duration', 'transition_duration']]
+        if duration_fields:
+            if 'display' not in current_config:
+                current_config['display'] = {}
+            if 'display_durations' not in current_config['display']:
+                current_config['display']['display_durations'] = {}
+            
+            for field in duration_fields:
+                if field in data:
+                    current_config['display']['display_durations'][field] = int(data[field])
+
         # Merge sports configurations
         if 'nfl_scoreboard' in data:
             current_config['nfl_scoreboard'] = data['nfl_scoreboard']
@@ -80,6 +143,10 @@ def save_main_config():
 
         return jsonify({'status': 'success', 'message': 'Configuration saved successfully'})
     except Exception as e:
+        import logging
+        import traceback
+        error_msg = f"Error saving config: {str(e)}\n{traceback.format_exc()}"
+        logging.error(error_msg)
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @api_v3.route('/config/secrets', methods=['GET'])
