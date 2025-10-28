@@ -109,10 +109,10 @@ def main():
     
     # Install packages that don't have apt equivalents
     special_packages = [
-        'timezonefinder==6.2.0',
-        'google-auth-oauthlib==1.0.0',
-        'google-auth-httplib2==0.1.0',
-        'google-api-python-client==2.86.0',
+        'timezonefinder>=6.5.0,<7.0.0',
+        'google-auth-oauthlib>=1.2.0,<2.0.0',
+        'google-auth-httplib2>=0.2.0,<1.0.0',
+        'google-api-python-client>=2.147.0,<3.0.0',
         'spotipy',
         'icalevents',
         'python-engineio'
