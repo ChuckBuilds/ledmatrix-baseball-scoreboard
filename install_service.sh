@@ -23,7 +23,7 @@ echo "Project root directory: $PROJECT_ROOT_DIR"
 # Create a temporary service file for the main display with the correct paths
 # Assuming ledmatrix.service template exists and uses /home/ledpi as a placeholder for user home
 if [ -f "ledmatrix.service" ]; then
-    sed "s|/home/ledpi|$USER_HOME|g; s|__PROJECT_ROOT_DIR__|$PROJECT_ROOT_DIR|g; s|__USER__|$ACTUAL_USER|g" ledmatrix.service > /tmp/ledmatrix.service.tmp
+    sed "s|/home/ledpi|$USER_HOME|g; s|__PROJECT_ROOT_DIR__|$PROJECT_ROOT_DIR|g; s|__USER__|root|g" ledmatrix.service > /tmp/ledmatrix.service.tmp
     # Copy the service file to the systemd directory
     sudo cp /tmp/ledmatrix.service.tmp /etc/systemd/system/ledmatrix.service
     # Clean up
