@@ -138,7 +138,8 @@ def save_main_config():
         # Handle general settings
         # Note: Checkboxes don't send data when unchecked, so we need to check if we're updating general settings
         # If any general setting is present, we're updating the general tab
-        is_general_update = any(k in data for k in ['timezone', 'city', 'state', 'country', 'web_display_autostart'])
+        is_general_update = any(k in data for k in ['timezone', 'city', 'state', 'country', 'web_display_autostart', 
+                                                     'auto_discover', 'auto_load_enabled', 'development_mode', 'plugins_directory'])
         
         if is_general_update:
             # For checkbox: if not present in data during general update, it means unchecked
@@ -157,6 +158,20 @@ def save_main_config():
                 current_config['location']['state'] = data['state']
             if 'country' in data:
                 current_config['location']['country'] = data['country']
+        
+        # Handle plugin system settings
+        if 'auto_discover' in data or 'auto_load_enabled' in data or 'development_mode' in data or 'plugins_directory' in data:
+            if 'plugin_system' not in current_config:
+                current_config['plugin_system'] = {}
+            
+            # Handle plugin system checkboxes
+            for checkbox in ['auto_discover', 'auto_load_enabled', 'development_mode']:
+                if checkbox in data:
+                    current_config['plugin_system'][checkbox] = data.get(checkbox, False)
+            
+            # Handle plugins_directory
+            if 'plugins_directory' in data:
+                current_config['plugin_system']['plugins_directory'] = data['plugins_directory']
 
         # Handle display settings
         display_fields = ['rows', 'cols', 'chain_length', 'parallel', 'brightness', 'hardware_mapping', 

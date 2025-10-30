@@ -65,8 +65,64 @@
             </div>
         </div>
 
+        <!-- Plugin System Settings -->
+        <div class="border-t border-gray-200 pt-6 mt-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Plugin System Settings</h3>
+            <p class="text-sm text-gray-600 mb-4">Configure the core plugin system behavior.</p>
+
+            <div class="space-y-4">
+                <!-- Auto Discover -->
+                <div class="form-group">
+                    <label class="flex items-center">
+                        <input type="checkbox"
+                               name="auto_discover"
+                               {% if main_config.get('plugin_system', {}).get('auto_discover', True) %}checked{% endif %}
+                               class="form-control h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                        <span class="ml-2 text-sm font-medium text-gray-900">Auto Discover Plugins</span>
+                    </label>
+                    <p class="mt-1 text-sm text-gray-600">Automatically discover plugins in the plugins directory on startup.</p>
+                </div>
+
+                <!-- Auto Load Enabled -->
+                <div class="form-group">
+                    <label class="flex items-center">
+                        <input type="checkbox"
+                               name="auto_load_enabled"
+                               {% if main_config.get('plugin_system', {}).get('auto_load_enabled', True) %}checked{% endif %}
+                               class="form-control h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                        <span class="ml-2 text-sm font-medium text-gray-900">Auto Load Enabled Plugins</span>
+                    </label>
+                    <p class="mt-1 text-sm text-gray-600">Automatically load plugins that are enabled in configuration.</p>
+                </div>
+
+                <!-- Development Mode -->
+                <div class="form-group">
+                    <label class="flex items-center">
+                        <input type="checkbox"
+                               name="development_mode"
+                               {% if main_config.get('plugin_system', {}).get('development_mode', False) %}checked{% endif %}
+                               class="form-control h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                        <span class="ml-2 text-sm font-medium text-gray-900">Development Mode</span>
+                    </label>
+                    <p class="mt-1 text-gray-600 text-sm">Enable verbose logging and development features for plugin debugging.</p>
+                </div>
+
+                <!-- Plugins Directory -->
+                <div class="form-group">
+                    <label for="plugins_directory" class="block text-sm font-medium text-gray-700">Plugins Directory</label>
+                    <input type="text"
+                           id="plugins_directory"
+                           name="plugins_directory"
+                           value="{{ main_config.get('plugin_system', {}).get('plugins_directory', 'plugins') }}"
+                           placeholder="plugins"
+                           class="form-control">
+                    <p class="mt-1 text-sm text-gray-600">Directory where plugins are stored (relative to project root).</p>
+                </div>
+            </div>
+        </div>
+
         <!-- Submit Button -->
-        <div class="flex justify-end">
+        <div class="flex justify-end mt-6">
             <button type="submit"
                     class="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">
                 <i class="fas fa-save mr-2"></i>
