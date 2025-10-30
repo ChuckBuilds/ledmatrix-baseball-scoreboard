@@ -287,7 +287,8 @@ class PluginManager:
             
             # Get plugin config
             if self.config_manager:
-                config = self.config_manager.load_config().get(plugin_id, {})
+                full_config = self.config_manager.load_config()
+                config = full_config.get(plugin_id, {})
             else:
                 config = {}
             

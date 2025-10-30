@@ -249,20 +249,41 @@ class DisplayController:
                 
                 # For plugins, call display multiple times to allow game rotation
                 if manager_to_display and hasattr(manager_to_display, 'display'):
-                    # Call display method multiple times within the mode duration
-                    # This allows plugins to rotate between games (e.g., every 15 seconds)
-                    display_interval = 1.0  # Call display every 1 second
-                    elapsed = 0
-                    while elapsed < duration:
-                        time.sleep(display_interval)
-                        elapsed += display_interval
+                    # Check if plugin needs high FPS (like stock ticker)
+                    has_enable_scrolling = hasattr(manager_to_display, 'enable_scrolling')
+                    enable_scrolling_value = getattr(manager_to_display, 'enable_scrolling', False)
+                    needs_high_fps = has_enable_scrolling and enable_scrolling_value
+                    logger.debug(f"FPS check - has_enable_scrolling: {has_enable_scrolling}, enable_scrolling_value: {enable_scrolling_value}, needs_high_fps: {needs_high_fps}")
+                    
+                    if needs_high_fps:
+                        # Ultra-smooth FPS for scrolling plugins (8ms = 125 FPS)
+                        display_interval = 0.008
                         
-                        # Call display again to allow game rotation
-                        if elapsed < duration:  # Don't call on the last iteration
+                        # Call display continuously for high-FPS plugins
+                        elapsed = 0
+                        while elapsed < duration:
                             try:
                                 manager_to_display.display(force_clear=False)
                             except Exception as e:
                                 logger.error(f"Error during display update: {e}")
+                            
+                            time.sleep(display_interval)
+                            elapsed += display_interval
+                    else:
+                        # Normal FPS for other plugins (1 second)
+                        display_interval = 1.0
+                        
+                        elapsed = 0
+                        while elapsed < duration:
+                            time.sleep(display_interval)
+                            elapsed += display_interval
+                            
+                            # Call display again to allow game rotation
+                            if elapsed < duration:  # Don't call on the last iteration
+                                try:
+                                    manager_to_display.display(force_clear=False)
+                                except Exception as e:
+                                    logger.error(f"Error during display update: {e}")
                 else:
                     # For non-plugin modes, use the original behavior
                     time.sleep(duration)

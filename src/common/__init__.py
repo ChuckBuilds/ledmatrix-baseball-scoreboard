@@ -16,6 +16,7 @@ from .api_helper import APIHelper
 from .display_helper import DisplayHelper
 from .game_helper import GameHelper
 from .config_helper import ConfigHelper
+from .scroll_helper import ScrollHelper
 
 # Import utility functions
 from .utils import (
@@ -34,6 +35,7 @@ __all__ = [
     "DisplayHelper",
     "GameHelper",
     "ConfigHelper",
+    "ScrollHelper",
     
     # Utility functions
     "normalize_team_abbreviation",
