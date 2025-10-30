@@ -928,6 +928,20 @@ def save_plugin_config():
         # Save the updated main config
         api_v3.config_manager.save_config(current_config)
 
+        # If the plugin is loaded, notify it of the config change with merged config
+        try:
+            if api_v3.plugin_manager:
+                plugin_instance = api_v3.plugin_manager.get_plugin(plugin_id)
+                if plugin_instance:
+                    # Reload merged config (includes secrets) and pass the plugin-specific section
+                    merged_config = api_v3.config_manager.load_config()
+                    plugin_full_config = merged_config.get(plugin_id, {})
+                    if hasattr(plugin_instance, 'on_config_change'):
+                        plugin_instance.on_config_change(plugin_full_config)
+        except Exception as hook_err:
+            # Do not fail the save if hook fails; just log
+            print(f"Warning: on_config_change failed for {plugin_id}: {hook_err}")
+
         secret_count = len(secrets_config)
         message = f'Plugin {plugin_id} configuration saved successfully'
         if secret_count > 0:

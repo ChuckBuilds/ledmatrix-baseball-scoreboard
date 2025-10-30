@@ -134,6 +134,25 @@ class PluginStoreManager:
             self.logger.error(f"Error fetching GitHub repo info for {repo_url}: {e}")
             return {'stars': 0, 'forks': 0, 'open_issues': 0, 'updated_at': '', 'language': '', 'license': ''}
 
+    def _http_get_with_retries(self, url: str, *, timeout: int = 10, stream: bool = False, headers: Dict[str, str] = None, max_retries: int = 3, backoff_sec: float = 0.75):
+        """
+        HTTP GET with simple retry strategy and exponential backoff.
+
+        Returns a requests.Response or raises the last exception.
+        """
+        last_exc = None
+        for attempt in range(1, max_retries + 1):
+            try:
+                resp = requests.get(url, timeout=timeout, stream=stream, headers=headers)
+                return resp
+            except requests.RequestException as e:
+                last_exc = e
+                self.logger.warning(f"HTTP GET failed (attempt {attempt}/{max_retries}) for {url}: {e}")
+                if attempt < max_retries:
+                    time.sleep(backoff_sec * attempt)
+        # Exhausted retries
+        raise last_exc
+
     def fetch_registry(self, force_refresh: bool = False) -> Dict:
         """
         Fetch the plugin registry from GitHub.
@@ -149,7 +168,7 @@ class PluginStoreManager:
         
         try:
             self.logger.info(f"Fetching plugin registry from {self.REGISTRY_URL}")
-            response = requests.get(self.REGISTRY_URL, timeout=10)
+            response = self._http_get_with_retries(self.REGISTRY_URL, timeout=10)
             response.raise_for_status()
             self.registry_cache = response.json()
             self.logger.info(f"Fetched registry with {len(self.registry_cache.get('plugins', []))} plugins")
@@ -330,6 +349,21 @@ class PluginStoreManager:
                 shutil.rmtree(plugin_path)
                 return False
             
+            # Validate manifest required fields
+            try:
+                with open(manifest_path, 'r') as mf:
+                    manifest = json.load(mf)
+                required_fields = ['id', 'name', 'version', 'entry_point', 'class_name']
+                missing = [f for f in required_fields if f not in manifest]
+                if missing:
+                    self.logger.error(f"Plugin manifest missing required fields for {plugin_id}: {', '.join(missing)}")
+                    shutil.rmtree(plugin_path)
+                    return False
+            except Exception as me:
+                self.logger.error(f"Failed to read/validate manifest for {plugin_id}: {me}")
+                shutil.rmtree(plugin_path)
+                return False
+            
             # Install Python dependencies
             if not self._install_dependencies(plugin_path):
                 self.logger.warning(f"Some dependencies may not have installed correctly for {plugin_id}")
@@ -505,7 +539,7 @@ class PluginStoreManager:
         """
         try:
             self.logger.info(f"Downloading monorepo from: {download_url}")
-            response = requests.get(download_url, timeout=60, stream=True)
+            response = self._http_get_with_retries(download_url, timeout=60, stream=True)
             response.raise_for_status()
             
             # Download to temporary file
@@ -573,7 +607,7 @@ class PluginStoreManager:
         """
         try:
             self.logger.info(f"Downloading from: {download_url}")
-            response = requests.get(download_url, timeout=60, stream=True)
+            response = self._http_get_with_retries(download_url, timeout=60, stream=True)
             response.raise_for_status()
             
             # Download to temporary file

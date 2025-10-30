@@ -301,6 +301,31 @@ class BasePlugin(ABC):
         """
         self.logger.info(f"Cleaning up plugin: {self.plugin_id}")
 
+    def on_config_change(self, new_config: Dict[str, Any]) -> None:
+        """
+        Called after the plugin configuration has been updated via the web API.
+
+        Plugins may override this to apply changes immediately without a restart.
+        The default implementation updates the in-memory config and refreshes
+        transition settings if relevant keys are present.
+
+        Args:
+            new_config: The full, merged configuration for this plugin (including
+                        any secret-derived values that are merged at runtime).
+        """
+        # Update config reference
+        self.config = new_config or {}
+
+        # Update simple flags
+        self.enabled = self.config.get("enabled", self.enabled)
+        self.high_performance_mode = self.config.get("high_performance_transitions", self.high_performance_mode)
+
+        # Rebuild transition configuration if provided
+        try:
+            self.transition_config = self._load_transition_config()
+        except Exception as e:
+            self.logger.warning(f"Failed to refresh transition configuration after config change: {e}")
+
     def get_info(self) -> Dict[str, Any]:
         """
         Return plugin info for display in web UI.
