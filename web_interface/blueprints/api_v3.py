@@ -10,6 +10,9 @@ config_manager = None
 plugin_manager = None
 plugin_store_manager = None
 
+# Get project root directory (web_interface/../..)
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+
 api_v3 = Blueprint('api_v3', __name__)
 
 @api_v3.route('/config/main', methods=['GET'])
@@ -302,6 +305,49 @@ def get_system_status():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
+def get_git_version(project_dir=None):
+    """Get git version information from the repository"""
+    if project_dir is None:
+        project_dir = PROJECT_ROOT
+    
+    try:
+        # Try to get tag description (e.g., v2.4-10-g123456)
+        result = subprocess.run(
+            ['git', 'describe', '--tags', '--dirty'],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            cwd=str(project_dir)
+        )
+        
+        if result.returncode == 0:
+            return result.stdout.strip()
+        
+        # Fallback to short commit hash
+        result = subprocess.run(
+            ['git', 'rev-parse', '--short', 'HEAD'],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            cwd=str(project_dir)
+        )
+        
+        if result.returncode == 0:
+            return result.stdout.strip()
+        
+        return 'Unknown'
+    except Exception:
+        return 'Unknown'
+
+@api_v3.route('/system/version', methods=['GET'])
+def get_system_version():
+    """Get LEDMatrix repository version"""
+    try:
+        version = get_git_version()
+        return jsonify({'status': 'success', 'data': {'version': version}})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
 @api_v3.route('/system/action', methods=['POST'])
 def execute_system_action():
     """Execute system actions (start/stop/reboot/etc)"""
@@ -351,10 +397,59 @@ def execute_system_action():
             result = subprocess.run(['sudo', 'reboot'],
                                  capture_output=True, text=True)
         elif action == 'git_pull':
-            home_dir = str(Path.home())
-            project_dir = os.path.join(home_dir, 'LEDMatrix')
-            result = subprocess.run(['git', 'pull'],
-                                 capture_output=True, text=True, cwd=project_dir)
+            # Use PROJECT_ROOT instead of hardcoded path
+            project_dir = str(PROJECT_ROOT)
+            
+            # Check if there are local changes that need to be stashed
+            status_result = subprocess.run(
+                ['git', 'status', '--porcelain'],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                cwd=project_dir
+            )
+            
+            has_changes = bool(status_result.stdout.strip())
+            stash_info = ""
+            
+            # Stash local changes if they exist
+            if has_changes:
+                stash_result = subprocess.run(
+                    ['git', 'stash', 'push', '-m', 'LEDMatrix auto-stash before update'],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                    cwd=project_dir
+                )
+                print(f"Stashed local changes: {stash_result.stdout}")
+                stash_info = " Local changes were stashed."
+            
+            # Perform the git pull
+            result = subprocess.run(
+                ['git', 'pull', '--rebase'],
+                capture_output=True,
+                text=True,
+                timeout=60,
+                cwd=project_dir
+            )
+            
+            # Return custom response for git_pull
+            if result.returncode == 0:
+                pull_message = "Code updated successfully."
+                if has_changes:
+                    pull_message = f"Code updated successfully. Local changes were automatically stashed.{stash_info}"
+                if result.stdout and "Already up to date" not in result.stdout:
+                    pull_message = f"Code updated successfully.{stash_info}"
+            else:
+                pull_message = f"Update failed: {result.stderr or 'Unknown error'}"
+            
+            return jsonify({
+                'status': 'success' if result.returncode == 0 else 'error',
+                'message': pull_message,
+                'returncode': result.returncode,
+                'stdout': result.stdout,
+                'stderr': result.stderr
+            })
         elif action == 'restart_display_service':
             result = subprocess.run(['sudo', 'systemctl', 'restart', 'ledmatrix'],
                                  capture_output=True, text=True)

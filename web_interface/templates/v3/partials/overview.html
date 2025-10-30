@@ -63,6 +63,24 @@
         </div>
     </div>
 
+    <!-- Version Info -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center">
+                <i class="fas fa-code-branch text-blue-600 text-xl mr-3"></i>
+                <div>
+                    <dt class="text-sm font-medium text-gray-600">LEDMatrix Version</dt>
+                    <dd class="text-lg font-semibold text-gray-900" id="ledmatrix-version">Loading...</dd>
+                </div>
+            </div>
+            <button onclick="checkForUpdates()" 
+                    class="inline-flex items-center px-3 py-2 border border-blue-300 text-sm font-medium rounded-md text-blue-700 bg-white hover:bg-blue-50">
+                <i class="fas fa-sync-alt mr-2"></i>
+                Check Updates
+            </button>
+        </div>
+    </div>
+
     <!-- Quick Actions -->
     <div class="border-b border-gray-200 pb-4 mb-6">
         <h3 class="text-md font-medium text-gray-900 mb-4">Quick Actions</h3>
@@ -85,6 +103,7 @@
 
             <button hx-post="/api/v3/system/action"
                     hx-vals='{"action": "git_pull"}'
+                    hx-confirm="This will stash any local changes and update the code. Continue?"
                     hx-swap="none"
                     class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                 <i class="fas fa-download mr-2"></i>
@@ -170,6 +189,65 @@
 <!-- Stats are updated via the global updateSystemStats function in base.html -->
 
 <script>
+// Load LEDMatrix version
+(function() {
+    fetch('/api/v3/system/version')
+        .then(response => response.json())
+        .then(data => {
+            const versionEl = document.getElementById('ledmatrix-version');
+            if (versionEl && data.status === 'success') {
+                versionEl.textContent = data.data.version;
+            }
+        })
+        .catch(error => {
+            const versionEl = document.getElementById('ledmatrix-version');
+            if (versionEl) versionEl.textContent = 'Unknown';
+        });
+})();
+
+// Check for updates function
+window.checkForUpdates = function() {
+    const btn = event.target.closest('button');
+    if (btn) {
+        const originalContent = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Checking...';
+        
+        fetch('/api/v3/system/action', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'git_pull' })
+        })
+        .then(response => response.json())
+        .then(data => {
+            btn.innerHTML = originalContent;
+            btn.disabled = false;
+            
+            if (data.status === 'success') {
+                showNotification('Update successful: ' + (data.stdout || 'Code updated'), 'success');
+                // Reload version after a short delay
+                setTimeout(() => {
+                    fetch('/api/v3/system/version')
+                        .then(response => response.json())
+                        .then(data => {
+                            const versionEl = document.getElementById('ledmatrix-version');
+                            if (versionEl && data.status === 'success') {
+                                versionEl.textContent = data.data.version;
+                            }
+                        });
+                }, 1000);
+            } else {
+                showNotification('Update failed: ' + (data.stderr || data.message || 'Unknown error'), 'error');
+            }
+        })
+        .catch(error => {
+            btn.innerHTML = originalContent;
+            btn.disabled = false;
+            showNotification('Error checking for updates: ' + error.message, 'error');
+        });
+    }
+};
+
 // Setup display preview controls (runs when this partial loads)
 (function() {
     const scaleRange = document.getElementById('scaleRange');
