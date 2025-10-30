@@ -3,7 +3,44 @@
     "schedule": {
         "enabled": true,
         "start_time": "07:00",
-        "end_time": "23:00"
+        "end_time": "23:00",
+        "days": {
+            "monday": {
+                "enabled": true,
+                "start_time": "07:00",
+                "end_time": "23:00"
+            },
+            "tuesday": {
+                "enabled": true,
+                "start_time": "07:00",
+                "end_time": "23:00"
+            },
+            "wednesday": {
+                "enabled": true,
+                "start_time": "07:00",
+                "end_time": "23:00"
+            },
+            "thursday": {
+                "enabled": true,
+                "start_time": "07:00",
+                "end_time": "23:00"
+            },
+            "friday": {
+                "enabled": true,
+                "start_time": "07:00",
+                "end_time": "23:00"
+            },
+            "saturday": {
+                "enabled": true,
+                "start_time": "07:00",
+                "end_time": "23:00"
+            },
+            "sunday": {
+                "enabled": true,
+                "start_time": "07:00",
+                "end_time": "23:00"
+            }
+        }
     },
     "timezone": "America/Chicago",
     "location": {

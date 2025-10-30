@@ -24,6 +24,84 @@ def get_main_config():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
+@api_v3.route('/config/schedule', methods=['POST'])
+def save_schedule_config():
+    """Save schedule configuration"""
+    try:
+        if not api_v3.config_manager:
+            return jsonify({'status': 'error', 'message': 'Config manager not initialized'}), 500
+
+        data = request.get_json()
+        if not data:
+            return jsonify({'status': 'error', 'message': 'No data provided'}), 400
+
+        # Load current config
+        current_config = api_v3.config_manager.load_config()
+        
+        # Build schedule configuration
+        # Handle enabled checkbox - can be True, False, or 'on'
+        enabled_value = data.get('enabled', False)
+        if isinstance(enabled_value, str):
+            enabled_value = enabled_value.lower() in ('true', 'on', '1')
+        schedule_config = {
+            'enabled': enabled_value
+        }
+        
+        mode = data.get('mode', 'global')
+        
+        if mode == 'global':
+            # Simple global schedule
+            schedule_config['start_time'] = data.get('start_time', '07:00')
+            schedule_config['end_time'] = data.get('end_time', '23:00')
+        else:
+            # Per-day schedule
+            schedule_config['days'] = {}
+            days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+            
+            for day in days:
+                day_config = {}
+                enabled_key = f'{day}_enabled'
+                start_key = f'{day}_start'
+                end_key = f'{day}_end'
+                
+                # Check if day is enabled
+                if enabled_key in data:
+                    enabled_val = data[enabled_key]
+                    # Handle checkbox values that may come as 'on', True, or False
+                    if isinstance(enabled_val, str):
+                        day_config['enabled'] = enabled_val.lower() in ('true', 'on', '1')
+                    else:
+                        day_config['enabled'] = bool(enabled_val)
+                else:
+                    # Default to enabled if not specified
+                    day_config['enabled'] = True
+                
+                # Only add times if day is enabled
+                if day_config.get('enabled', True):
+                    if start_key in data and data[start_key]:
+                        day_config['start_time'] = data[start_key]
+                    else:
+                        day_config['start_time'] = '07:00'
+                    
+                    if end_key in data and data[end_key]:
+                        day_config['end_time'] = data[end_key]
+                    else:
+                        day_config['end_time'] = '23:00'
+                
+                schedule_config['days'][day] = day_config
+        
+        # Update and save config
+        current_config['schedule'] = schedule_config
+        api_v3.config_manager.save_config(current_config)
+        
+        return jsonify({'status': 'success', 'message': 'Schedule configuration saved successfully'})
+    except Exception as e:
+        import logging
+        import traceback
+        error_msg = f"Error saving schedule config: {str(e)}\n{traceback.format_exc()}"
+        logging.error(error_msg)
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
 @api_v3.route('/config/main', methods=['POST'])
 def save_main_config():
     """Save main configuration"""

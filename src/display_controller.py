@@ -147,13 +147,32 @@ class DisplayController:
             return
             
         current_time = datetime.now()
-        start_time_str = schedule_config.get('start_time', '07:00')
-        end_time_str = schedule_config.get('end_time', '23:00')
+        current_day = current_time.strftime('%A').lower()  # Get day name (monday, tuesday, etc.)
+        current_time_only = current_time.time()
+        
+        # Check if per-day schedule is configured
+        days_config = schedule_config.get('days')
+        
+        if days_config and current_day in days_config:
+            # Use per-day schedule
+            day_config = days_config[current_day]
+            
+            # Check if this day is enabled
+            if not day_config.get('enabled', True):
+                self.is_display_active = False
+                logger.debug(f"Display inactive - {current_day} is disabled in schedule")
+                return
+            
+            start_time_str = day_config.get('start_time', '07:00')
+            end_time_str = day_config.get('end_time', '23:00')
+        else:
+            # Use global schedule
+            start_time_str = schedule_config.get('start_time', '07:00')
+            end_time_str = schedule_config.get('end_time', '23:00')
         
         try:
             start_time = datetime.strptime(start_time_str, '%H:%M').time()
             end_time = datetime.strptime(end_time_str, '%H:%M').time()
-            current_time_only = current_time.time()
             
             if start_time <= end_time:
                 # Normal case: start and end on same day
