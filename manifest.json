@@ -1,6 +1,7 @@
 {
   "id": "baseball-scoreboard",
   "name": "Baseball Scoreboard",
+  "class_name": "BaseballScoreboardPlugin",
   "description": "Live, recent, and upcoming baseball games across MLB, MiLB, and NCAA Baseball with real-time scores and schedules",
   "author": "ChuckBuilds",
   "category": "sports",

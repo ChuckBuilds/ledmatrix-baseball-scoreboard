@@ -2,6 +2,8 @@
 
 A plugin for LEDMatrix that displays live, recent, and upcoming baseball games across MLB, MiLB, and NCAA Baseball leagues.
 
+*Note: The season ended before I finished migrating this to a plugin so there may be issues to fix in the 2026 season*
+
 ## Features
 
 - **Multiple League Support**: MLB, MiLB (Minor League Baseball), NCAA Baseball
