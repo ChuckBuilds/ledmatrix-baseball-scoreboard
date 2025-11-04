@@ -21,7 +21,10 @@ from src.cache_manager import CacheManager
 from src.display_manager import DisplayManager
 from src.dynamic_team_resolver import DynamicTeamResolver
 from src.logo_downloader import LogoDownloader, download_missing_logo
-from src.odds_manager import OddsManager
+try:
+    from src.base_odds_manager import BaseOddsManager as OddsManager
+except ImportError:
+    OddsManager = None
 
 
 class SportsCore(ABC):
@@ -30,8 +33,16 @@ class SportsCore(ABC):
         self.config = config
         self.cache_manager = cache_manager
         self.config_manager = self.cache_manager.config_manager
-        self.odds_manager = OddsManager(
-            self.cache_manager, self.config_manager)
+        if OddsManager:
+            try:
+                self.odds_manager = OddsManager(
+                    self.cache_manager, self.config_manager)
+            except Exception as e:
+                self.logger.warning(f"Failed to initialize OddsManager: {e}")
+                self.odds_manager = None
+        else:
+            self.odds_manager = None
+            self.logger.warning("OddsManager not available - odds functionality disabled")
         self.display_manager = display_manager
         self.display_width = self.display_manager.matrix.width
         self.display_height = self.display_manager.matrix.height
@@ -313,6 +324,9 @@ class SportsCore(ABC):
         """Fetch odds for a specific game using the new architecture."""
         try:
             if not self.show_odds:
+                return
+            
+            if not self.odds_manager:
                 return
             
             # Determine update interval based on game state

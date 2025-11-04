@@ -217,6 +217,17 @@ class ConfigManager:
         """Get clock configuration."""
         return self.config.get('clock', {})
 
+    def get_config(self) -> Dict[str, Any]:
+        """Get the full configuration dictionary.
+        
+        Returns:
+            The complete configuration dictionary. If config hasn't been loaded yet,
+            it will be loaded first.
+        """
+        if not self.config:
+            self.load_config()
+        return self.config
+
     def get_raw_file_content(self, file_type: str) -> Dict[str, Any]:
         """Load raw content of 'main' config or 'secrets' config file."""
         path_to_load = ""
