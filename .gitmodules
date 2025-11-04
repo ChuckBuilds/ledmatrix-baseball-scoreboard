@@ -1,0 +1,3 @@
+[submodule "plugins/hockey-scoreboard"]
+	path = plugins/hockey-scoreboard
+	url = https://github.com/ChuckBuilds/ledmatrix-hockey-scoreboard.git
