@@ -18,8 +18,19 @@ app = Flask(__name__)
 app.secret_key = os.urandom(24)
 config_manager = ConfigManager()
 
-# Initialize plugin managers
-plugins_dir = Path(__file__).parent.parent / 'plugins'
+# Initialize plugin managers - read plugins directory from config
+config = config_manager.load_config()
+plugin_system_config = config.get('plugin_system', {})
+plugins_dir_name = plugin_system_config.get('plugins_directory', 'plugin-repos')
+
+# Resolve plugin directory - handle both absolute and relative paths
+if os.path.isabs(plugins_dir_name):
+    plugins_dir = Path(plugins_dir_name)
+else:
+    # If relative, resolve relative to the project root (LEDMatrix directory)
+    project_root = Path(__file__).parent.parent
+    plugins_dir = project_root / plugins_dir_name
+
 plugin_manager = PluginManager(
     plugins_dir=str(plugins_dir),
     config_manager=config_manager,

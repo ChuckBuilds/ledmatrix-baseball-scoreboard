@@ -113,8 +113,8 @@
                     <input type="text"
                            id="plugins_directory"
                            name="plugins_directory"
-                           value="{{ main_config.get('plugin_system', {}).get('plugins_directory', 'plugins') }}"
-                           placeholder="plugins"
+                           value="{{ main_config.get('plugin_system', {}).get('plugins_directory', 'plugin-repos') }}"
+                           placeholder="plugin-repos"
                            class="form-control">
                     <p class="mt-1 text-sm text-gray-600">Directory where plugins are stored (relative to project root).</p>
                 </div>

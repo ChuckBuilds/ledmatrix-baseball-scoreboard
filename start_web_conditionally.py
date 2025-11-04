@@ -18,14 +18,19 @@ def install_dependencies():
         ])
         print("Dependencies installed successfully")
         
-        # Install rgbmatrix module from local source
-        print("Installing rgbmatrix module...")
+        # Install rgbmatrix module from local source (optional - not required for web interface)
+        print("Installing rgbmatrix module (optional)...")
         rgbmatrix_path = Path(PROJECT_DIR) / 'rpi-rgb-led-matrix-master' / 'bindings' / 'python'
         if rgbmatrix_path.exists():
-            subprocess.check_call([
-                sys.executable, '-m', 'pip', 'install', '--break-system-packages', '-e', str(rgbmatrix_path)
-            ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            print("rgbmatrix module installed successfully")
+            try:
+                subprocess.check_call([
+                    sys.executable, '-m', 'pip', 'install', '--break-system-packages', '-e', str(rgbmatrix_path)
+                ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                print("rgbmatrix module installed successfully")
+            except subprocess.CalledProcessError:
+                print("Warning: rgbmatrix module installation failed (not required for web interface, continuing...)")
+        else:
+            print("rgbmatrix module path not found (not required for web interface, continuing...)")
         
         return True
     except subprocess.CalledProcessError as e:

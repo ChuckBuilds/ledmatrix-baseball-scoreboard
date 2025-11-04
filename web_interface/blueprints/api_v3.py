@@ -860,7 +860,18 @@ def save_plugin_config():
         plugin_config = data.get('config', {})
 
         # Load plugin schema to identify secret fields (supports nested schemas)
-        plugins_dir = Path('plugins')
+        # Use plugin_manager's plugins_dir if available, otherwise read from config
+        if api_v3.plugin_manager:
+            plugins_dir = api_v3.plugin_manager.plugins_dir
+        else:
+            # Fallback: read from config
+            config = api_v3.config_manager.load_config()
+            plugin_system_config = config.get('plugin_system', {})
+            plugins_dir_name = plugin_system_config.get('plugins_directory', 'plugin-repos')
+            if os.path.isabs(plugins_dir_name):
+                plugins_dir = Path(plugins_dir_name)
+            else:
+                plugins_dir = PROJECT_ROOT / plugins_dir_name
         schema_path = plugins_dir / plugin_id / 'config_schema.json'
         secret_fields = set()
         
@@ -975,7 +986,14 @@ def get_plugin_schema():
         
         # Fallback to direct path if plugin manager not available
         if not schema_path:
-            plugins_dir = Path('plugins')
+            # Read plugins directory from config
+            config = api_v3.config_manager.load_config()
+            plugin_system_config = config.get('plugin_system', {})
+            plugins_dir_name = plugin_system_config.get('plugins_directory', 'plugin-repos')
+            if os.path.isabs(plugins_dir_name):
+                plugins_dir = Path(plugins_dir_name)
+            else:
+                plugins_dir = PROJECT_ROOT / plugins_dir_name
             schema_path = plugins_dir / plugin_id / 'config_schema.json'
 
         if schema_path.exists():
