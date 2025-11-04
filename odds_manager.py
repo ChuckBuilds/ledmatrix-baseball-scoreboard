@@ -10,12 +10,9 @@ from typing import Any, Dict, Optional
 from PIL import ImageDraw
 
 try:
-    from src.odds_manager import OddsManager
+    from src.base_odds_manager import BaseOddsManager as OddsManager
 except ImportError:
-    try:
-        from src.base_odds_manager import BaseOddsManager as OddsManager
-    except ImportError:
-        OddsManager = None
+    OddsManager = None
 
 
 class BaseballOddsManager:
