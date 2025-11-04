@@ -3,6 +3,9 @@ import json
 import os
 import subprocess
 import time
+import hashlib
+import uuid
+from datetime import datetime
 from pathlib import Path
 
 # Will be initialized when blueprint is registered
@@ -1108,6 +1111,224 @@ def upload_font():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
+@api_v3.route('/plugins/assets/upload', methods=['POST'])
+def upload_plugin_asset():
+    """Upload asset files for a plugin"""
+    try:
+        plugin_id = request.form.get('plugin_id')
+        if not plugin_id:
+            return jsonify({'status': 'error', 'message': 'plugin_id is required'}), 400
+        
+        if 'files' not in request.files:
+            return jsonify({'status': 'error', 'message': 'No files provided'}), 400
+        
+        files = request.files.getlist('files')
+        if not files or all(not f.filename for f in files):
+            return jsonify({'status': 'error', 'message': 'No files provided'}), 400
+        
+        # Validate file count
+        if len(files) > 10:
+            return jsonify({'status': 'error', 'message': 'Maximum 10 files per upload'}), 400
+        
+        # Setup plugin assets directory
+        assets_dir = PROJECT_ROOT / 'assets' / 'plugins' / plugin_id / 'uploads'
+        assets_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Load metadata file
+        metadata_file = assets_dir / '.metadata.json'
+        if metadata_file.exists():
+            with open(metadata_file, 'r') as f:
+                metadata = json.load(f)
+        else:
+            metadata = {}
+        
+        uploaded_files = []
+        total_size = 0
+        max_size_per_file = 5 * 1024 * 1024  # 5MB
+        max_total_size = 50 * 1024 * 1024  # 50MB
+        
+        # Calculate current total size
+        for entry in metadata.values():
+            if 'size' in entry:
+                total_size += entry.get('size', 0)
+        
+        for file in files:
+            if not file.filename:
+                continue
+            
+            # Validate file type
+            allowed_extensions = ['.png', '.jpg', '.jpeg', '.bmp', '.gif']
+            file_ext = '.' + file.filename.lower().split('.')[-1]
+            if file_ext not in allowed_extensions:
+                return jsonify({
+                    'status': 'error', 
+                    'message': f'Invalid file type: {file_ext}. Allowed: {allowed_extensions}'
+                }), 400
+            
+            # Read file to check size and validate
+            file.seek(0, os.SEEK_END)
+            file_size = file.tell()
+            file.seek(0)
+            
+            if file_size > max_size_per_file:
+                return jsonify({
+                    'status': 'error',
+                    'message': f'File {file.filename} exceeds 5MB limit'
+                }), 400
+            
+            if total_size + file_size > max_total_size:
+                return jsonify({
+                    'status': 'error',
+                    'message': f'Upload would exceed 50MB total storage limit'
+                }), 400
+            
+            # Validate file is actually an image (check magic bytes)
+            file_content = file.read(8)
+            file.seek(0)
+            is_valid_image = False
+            if file_content.startswith(b'\x89PNG\r\n\x1a\n'):  # PNG
+                is_valid_image = True
+            elif file_content[:2] == b'\xff\xd8':  # JPEG
+                is_valid_image = True
+            elif file_content[:2] == b'BM':  # BMP
+                is_valid_image = True
+            elif file_content[:6] in [b'GIF87a', b'GIF89a']:  # GIF
+                is_valid_image = True
+            
+            if not is_valid_image:
+                return jsonify({
+                    'status': 'error',
+                    'message': f'File {file.filename} is not a valid image file'
+                }), 400
+            
+            # Generate unique filename
+            timestamp = int(time.time())
+            file_hash = hashlib.md5(file_content + file.filename.encode()).hexdigest()[:8]
+            safe_filename = f"image_{timestamp}_{file_hash}{file_ext}"
+            file_path = assets_dir / safe_filename
+            
+            # Ensure filename is unique
+            counter = 1
+            while file_path.exists():
+                safe_filename = f"image_{timestamp}_{file_hash}_{counter}{file_ext}"
+                file_path = assets_dir / safe_filename
+                counter += 1
+            
+            # Save file
+            file.save(str(file_path))
+            
+            # Make file readable
+            os.chmod(file_path, 0o644)
+            
+            # Generate unique ID
+            image_id = str(uuid.uuid4())
+            
+            # Store metadata
+            relative_path = f"assets/plugins/{plugin_id}/uploads/{safe_filename}"
+            metadata[image_id] = {
+                'id': image_id,
+                'filename': safe_filename,
+                'path': relative_path,
+                'size': file_size,
+                'uploaded_at': datetime.utcnow().isoformat() + 'Z',
+                'original_filename': file.filename
+            }
+            
+            uploaded_files.append({
+                'id': image_id,
+                'filename': safe_filename,
+                'path': relative_path,
+                'size': file_size,
+                'uploaded_at': metadata[image_id]['uploaded_at']
+            })
+            
+            total_size += file_size
+        
+        # Save metadata
+        with open(metadata_file, 'w') as f:
+            json.dump(metadata, f, indent=2)
+        
+        return jsonify({
+            'status': 'success',
+            'uploaded_files': uploaded_files,
+            'total_files': len(metadata)
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({'status': 'error', 'message': str(e), 'traceback': traceback.format_exc()}), 500
+
+@api_v3.route('/plugins/assets/delete', methods=['POST'])
+def delete_plugin_asset():
+    """Delete an asset file for a plugin"""
+    try:
+        data = request.get_json()
+        plugin_id = data.get('plugin_id')
+        image_id = data.get('image_id')
+        
+        if not plugin_id or not image_id:
+            return jsonify({'status': 'error', 'message': 'plugin_id and image_id are required'}), 400
+        
+        # Get asset directory
+        assets_dir = PROJECT_ROOT / 'assets' / 'plugins' / plugin_id / 'uploads'
+        metadata_file = assets_dir / '.metadata.json'
+        
+        if not metadata_file.exists():
+            return jsonify({'status': 'error', 'message': 'Metadata file not found'}), 404
+        
+        # Load metadata
+        with open(metadata_file, 'r') as f:
+            metadata = json.load(f)
+        
+        if image_id not in metadata:
+            return jsonify({'status': 'error', 'message': 'Image not found'}), 404
+        
+        # Delete file
+        file_path = PROJECT_ROOT / metadata[image_id]['path']
+        if file_path.exists():
+            file_path.unlink()
+        
+        # Remove from metadata
+        del metadata[image_id]
+        
+        # Save metadata
+        with open(metadata_file, 'w') as f:
+            json.dump(metadata, f, indent=2)
+        
+        return jsonify({'status': 'success', 'message': 'Image deleted successfully'})
+        
+    except Exception as e:
+        import traceback
+        return jsonify({'status': 'error', 'message': str(e), 'traceback': traceback.format_exc()}), 500
+
+@api_v3.route('/plugins/assets/list', methods=['GET'])
+def list_plugin_assets():
+    """List asset files for a plugin"""
+    try:
+        plugin_id = request.args.get('plugin_id')
+        if not plugin_id:
+            return jsonify({'status': 'error', 'message': 'plugin_id is required'}), 400
+        
+        # Get asset directory
+        assets_dir = PROJECT_ROOT / 'assets' / 'plugins' / plugin_id / 'uploads'
+        metadata_file = assets_dir / '.metadata.json'
+        
+        if not metadata_file.exists():
+            return jsonify({'status': 'success', 'data': {'assets': []}})
+        
+        # Load metadata
+        with open(metadata_file, 'r') as f:
+            metadata = json.load(f)
+        
+        # Convert to list
+        assets = list(metadata.values())
+        
+        return jsonify({'status': 'success', 'data': {'assets': assets}})
+        
+    except Exception as e:
+        import traceback
+        return jsonify({'status': 'error', 'message': str(e), 'traceback': traceback.format_exc()}), 500
+
 @api_v3.route('/fonts/delete/<font_family>', methods=['DELETE'])
 def delete_font(font_family):
     """Delete font"""
@@ -1152,4 +1373,145 @@ def get_logs():
         return jsonify({
             'status': 'error',
             'message': f'Error fetching logs: {str(e)}'
+        }), 500
+
+# WiFi Management Endpoints
+@api_v3.route('/wifi/status', methods=['GET'])
+def get_wifi_status():
+    """Get current WiFi connection status"""
+    try:
+        from src.wifi_manager import WiFiManager
+        
+        wifi_manager = WiFiManager()
+        status = wifi_manager.get_wifi_status()
+        
+        return jsonify({
+            'status': 'success',
+            'data': {
+                'connected': status.connected,
+                'ssid': status.ssid,
+                'ip_address': status.ip_address,
+                'signal': status.signal,
+                'ap_mode_active': status.ap_mode_active
+            }
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'Error getting WiFi status: {str(e)}'
+        }), 500
+
+@api_v3.route('/wifi/scan', methods=['GET'])
+def scan_wifi_networks():
+    """Scan for available WiFi networks"""
+    try:
+        from src.wifi_manager import WiFiManager
+        
+        wifi_manager = WiFiManager()
+        networks = wifi_manager.scan_networks()
+        
+        # Convert to dict format
+        networks_data = [
+            {
+                'ssid': net.ssid,
+                'signal': net.signal,
+                'security': net.security,
+                'frequency': net.frequency
+            }
+            for net in networks
+        ]
+        
+        return jsonify({
+            'status': 'success',
+            'data': networks_data
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'Error scanning WiFi networks: {str(e)}'
+        }), 500
+
+@api_v3.route('/wifi/connect', methods=['POST'])
+def connect_wifi():
+    """Connect to a WiFi network"""
+    try:
+        from src.wifi_manager import WiFiManager
+        
+        data = request.get_json()
+        if not data or 'ssid' not in data:
+            return jsonify({
+                'status': 'error',
+                'message': 'SSID is required'
+            }), 400
+        
+        ssid = data['ssid']
+        password = data.get('password', '')
+        
+        wifi_manager = WiFiManager()
+        success, message = wifi_manager.connect_to_network(ssid, password)
+        
+        if success:
+            return jsonify({
+                'status': 'success',
+                'message': message
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': message
+            }), 400
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'Error connecting to WiFi: {str(e)}'
+        }), 500
+
+@api_v3.route('/wifi/ap/enable', methods=['POST'])
+def enable_ap_mode():
+    """Enable access point mode"""
+    try:
+        from src.wifi_manager import WiFiManager
+        
+        wifi_manager = WiFiManager()
+        success, message = wifi_manager.enable_ap_mode()
+        
+        if success:
+            return jsonify({
+                'status': 'success',
+                'message': message
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': message
+            }), 400
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'Error enabling AP mode: {str(e)}'
+        }), 500
+
+@api_v3.route('/wifi/ap/disable', methods=['POST'])
+def disable_ap_mode():
+    """Disable access point mode"""
+    try:
+        from src.wifi_manager import WiFiManager
+        
+        wifi_manager = WiFiManager()
+        success, message = wifi_manager.disable_ap_mode()
+        
+        if success:
+            return jsonify({
+                'status': 'success',
+                'message': message
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': message
+            }), 400
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'Error disabling AP mode: {str(e)}'
         }), 500

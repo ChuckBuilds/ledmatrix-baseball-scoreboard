@@ -75,6 +75,11 @@
                             class="whitespace-nowrap py-2 px-1 lg:px-2 xl:px-3 border-b-2 font-medium text-sm">
                         <i class="fas fa-sliders-h mr-2"></i>General
                     </button>
+                    <button @click="activeTab = 'wifi'"
+                            :class="activeTab === 'wifi' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                            class="whitespace-nowrap py-2 px-1 lg:px-2 xl:px-3 border-b-2 font-medium text-sm">
+                        <i class="fas fa-wifi mr-2"></i>WiFi
+                    </button>
                     <button @click="activeTab = 'schedule'"
                             :class="activeTab === 'schedule' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
                             class="whitespace-nowrap py-2 px-1 lg:px-2 xl:px-3 border-b-2 font-medium text-sm">
@@ -133,6 +138,22 @@
             <!-- General tab -->
             <div x-show="activeTab === 'general'" x-transition>
                 <div id="general-content" hx-get="/v3/partials/general" hx-trigger="load" hx-swap="innerHTML">
+                    <div class="animate-pulse">
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <div class="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+                            <div class="space-y-4">
+                                <div class="h-10 bg-gray-200 rounded"></div>
+                                <div class="h-10 bg-gray-200 rounded"></div>
+                                <div class="h-10 bg-gray-200 rounded"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WiFi tab -->
+            <div x-show="activeTab === 'wifi'" x-transition>
+                <div id="wifi-content" hx-get="/v3/partials/wifi" hx-trigger="load" hx-swap="innerHTML">
                     <div class="animate-pulse">
                         <div class="bg-white rounded-lg shadow p-6">
                             <div class="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
@@ -686,9 +707,115 @@
                             const step = prop.type === 'integer' ? 'step="1"' : 'step="any"';
                             html += `<input type="number" name="${fullKey}" value="${value !== undefined ? value : ''}" ${min} ${max} ${step} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">`;
                         } else if (prop.type === 'array') {
-                            const arrayValue = Array.isArray(value) ? value.join(', ') : '';
-                            html += `<input type="text" name="${fullKey}" value="${arrayValue}" placeholder="Enter values separated by commas" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">`;
-                            html += `<p class="text-sm text-gray-600 mt-1">Enter values separated by commas</p>`;
+                            // Check if this is a file upload widget
+                            if (prop['x-widget'] === 'file-upload') {
+                                // Use the file upload widget from plugins.html
+                                // We'll need to call a function that exists in the global scope
+                                const uploadConfig = prop['x-upload-config'] || {};
+                                const maxFiles = uploadConfig.max_files || 10;
+                                const allowedTypes = uploadConfig.allowed_types || ['image/png', 'image/jpeg', 'image/bmp', 'image/gif'];
+                                const maxSizeMB = uploadConfig.max_size_mb || 5;
+                                
+                                const currentImages = Array.isArray(value) ? value : [];
+                                const fieldId = fullKey.replace(/\./g, '_');
+                                const safePluginId = (uploadConfig.plugin_id || pluginId || 'static-image').toString().replace(/[^a-zA-Z0-9_-]/g, '_');
+                                
+                                html += `
+                                    <div id="${fieldId}_upload_widget" class="mt-1">
+                                        <!-- File Upload Drop Zone -->
+                                        <div id="${fieldId}_drop_zone" 
+                                             class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors cursor-pointer"
+                                             ondrop="window.handleFileDrop(event, this.dataset.fieldId)" 
+                                             ondragover="event.preventDefault()" 
+                                             data-field-id="${fieldId}"
+                                             onclick="document.getElementById(this.dataset.fieldId + '_file_input').click()">
+                                            <input type="file" 
+                                                   id="${fieldId}_file_input" 
+                                                   multiple 
+                                                   accept="${allowedTypes.join(',')}"
+                                                   style="display: none;"
+                                                   data-field-id="${fieldId}"
+                                                   onchange="window.handleFileSelect(event, this.dataset.fieldId)">
+                                            <i class="fas fa-cloud-upload-alt text-3xl text-gray-400 mb-2"></i>
+                                            <p class="text-sm text-gray-600">Drag and drop images here or click to browse</p>
+                                            <p class="text-xs text-gray-500 mt-1">Max ${maxFiles} files, ${maxSizeMB}MB each (PNG, JPG, GIF, BMP)</p>
+                                        </div>
+                                        
+                                        <!-- Uploaded Images List -->
+                                        <div id="${fieldId}_image_list" class="mt-4 space-y-2">
+                                            ${currentImages.map((img, idx) => {
+                                                const imgSchedule = img.schedule || {};
+                                                const hasSchedule = imgSchedule.enabled && imgSchedule.mode && imgSchedule.mode !== 'always';
+                                                let scheduleSummary = 'Always shown';
+                                                if (hasSchedule && window.getScheduleSummary) {
+                                                    try {
+                                                        scheduleSummary = window.getScheduleSummary(imgSchedule) || 'Scheduled';
+                                                    } catch (e) {
+                                                        scheduleSummary = 'Scheduled';
+                                                    }
+                                                } else if (hasSchedule) {
+                                                    scheduleSummary = 'Scheduled';
+                                                }
+                                                // Escape the summary for HTML
+                                                scheduleSummary = String(scheduleSummary).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+                                                
+                                                return `
+                                                <div id="img_${(img.id || idx).toString().replace(/[^a-zA-Z0-9_-]/g, '_')}" class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                                    <div class="flex items-center justify-between mb-2">
+                                                        <div class="flex items-center space-x-3 flex-1">
+                                                            <img src="/${(img.path || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;')}" 
+                                                                 alt="${(img.filename || '').replace(/"/g, '&quot;')}" 
+                                                                 class="w-16 h-16 object-cover rounded"
+                                                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                                            <div style="display:none;" class="w-16 h-16 bg-gray-200 rounded flex items-center justify-center">
+                                                                <i class="fas fa-image text-gray-400"></i>
+                                                            </div>
+                                                            <div class="flex-1 min-w-0">
+                                                                <p class="text-sm font-medium text-gray-900 truncate">${String(img.original_filename || img.filename || 'Image').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
+                                                                <p class="text-xs text-gray-500">${img.size ? (Math.round(img.size / 1024) + ' KB') : ''} • ${(img.uploaded_at || '').replace(/&/g, '&amp;')}</p>
+                                                                <p class="text-xs text-blue-600 mt-1">
+                                                                    <i class="fas fa-clock mr-1"></i>${scheduleSummary}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        <div class="flex items-center space-x-2 ml-4">
+                                                            <button type="button" 
+                                                                    data-field-id="${fieldId}"
+                                                                    data-image-id="${img.id || ''}"
+                                                                    data-image-idx="${idx}"
+                                                                    onclick="window.openImageSchedule(this.dataset.fieldId, this.dataset.imageId || null, parseInt(this.dataset.imageIdx))"
+                                                                    class="text-blue-600 hover:text-blue-800 p-2" 
+                                                                    title="Schedule this image">
+                                                                <i class="fas fa-calendar-alt"></i>
+                                                            </button>
+                                                            <button type="button" 
+                                                                    data-field-id="${fieldId}"
+                                                                    data-image-id="${img.id || ''}"
+                                                                    data-plugin-id="${safePluginId}"
+                                                                    onclick="window.deleteUploadedImage(this.dataset.fieldId, this.dataset.imageId, this.dataset.pluginId)"
+                                                                    class="text-red-600 hover:text-red-800 p-2"
+                                                                    title="Delete image">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <!-- Schedule widget will be inserted here when opened -->
+                                                    <div id="schedule_${(img.id || idx).toString().replace(/[^a-zA-Z0-9_-]/g, '_')}" class="hidden mt-3 pt-3 border-t border-gray-300"></div>
+                                                </div>
+                                                `;
+                                            }).join('')}
+                                        </div>
+                                        
+                                        <!-- Hidden input to store image data -->
+                                        <input type="hidden" id="${fieldId}_images_data" name="${fullKey}" value="${JSON.stringify(currentImages).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')}">
+                                    </div>
+                                `;
+                            } else {
+                                // Regular array input
+                                const arrayValue = Array.isArray(value) ? value.join(', ') : '';
+                                html += `<input type="text" name="${fullKey}" value="${arrayValue}" placeholder="Enter values separated by commas" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">`;
+                                html += `<p class="text-sm text-gray-600 mt-1">Enter values separated by commas</p>`;
+                            }
                         } else if (prop.enum) {
                             html += `<select name="${fullKey}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">`;
                             prop.enum.forEach(option => {
@@ -699,7 +826,8 @@
                         } else {
                             // Default to text input
                             const maxLength = prop.maxLength || '';
-                            html += `<input type="text" name="${fullKey}" value="${value !== undefined ? value : ''}" ${maxLength ? `maxlength="${maxLength}"` : ''} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">`;
+                            const maxLengthAttr = maxLength ? `maxlength="${maxLength}"` : '';
+                            html += `<input type="text" name="${fullKey}" value="${value !== undefined ? value : ''}" ${maxLengthAttr} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">`;
                         }
 
                         html += `</div>`;

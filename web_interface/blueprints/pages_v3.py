@@ -74,6 +74,8 @@ def load_partial(partial_name):
             return _load_logs_partial()
         elif partial_name == 'raw-json':
             return _load_raw_json_partial()
+        elif partial_name == 'wifi':
+            return _load_wifi_partial()
         else:
             return f"Partial '{partial_name}' not found", 404
 
@@ -238,5 +240,12 @@ def _load_raw_json_partial():
                                  secrets_config_json=secrets_config_json,
                                  main_config_path=pages_v3.config_manager.get_config_path(),
                                  secrets_config_path=pages_v3.config_manager.get_secrets_path())
+    except Exception as e:
+        return f"Error: {str(e)}", 500
+
+def _load_wifi_partial():
+    """Load WiFi setup partial"""
+    try:
+        return render_template('v3/partials/wifi.html')
     except Exception as e:
         return f"Error: {str(e)}", 500

@@ -157,6 +157,7 @@ echo "5. Install Python project dependencies (requirements.txt)"
 echo "6. Build and install rpi-rgb-led-matrix and test import"
 echo "7. Install web interface dependencies"
 echo "8. Install web interface service"
+echo "8.5. Install WiFi monitor service"
 echo "9. Configure web interface permissions"
 echo "10. Configure passwordless sudo access"
 echo "11. Set up proper file ownership"
@@ -512,7 +513,7 @@ echo ""
 CURRENT_STEP="Harden systemd unit file permissions"
 echo "Step 8.1: Setting systemd unit file permissions..."
 echo "-----------------------------------------------"
-for unit in "/etc/systemd/system/ledmatrix.service" "/etc/systemd/system/ledmatrix-web.service"; do
+for unit in "/etc/systemd/system/ledmatrix.service" "/etc/systemd/system/ledmatrix-web.service" "/etc/systemd/system/ledmatrix-wifi-monitor.service"; do
     if [ -f "$unit" ]; then
         chown root:root "$unit" || true
         chmod 644 "$unit" || true
@@ -520,6 +521,41 @@ for unit in "/etc/systemd/system/ledmatrix.service" "/etc/systemd/system/ledmatr
 done
 systemctl daemon-reload || true
 echo "✓ Systemd unit file permissions set"
+echo ""
+
+CURRENT_STEP="Install WiFi monitor service"
+echo "Step 8.5: Installing WiFi monitor service..."
+echo "---------------------------------------------"
+
+# Install WiFi monitor service if script exists
+if [ -f "$PROJECT_ROOT_DIR/install_wifi_monitor.sh" ]; then
+    echo "Installing WiFi monitor service..."
+    bash "$PROJECT_ROOT_DIR/install_wifi_monitor.sh"
+    
+    # Harden service file permissions (if service was created)
+    if [ -f "/etc/systemd/system/ledmatrix-wifi-monitor.service" ]; then
+        chown root:root "/etc/systemd/system/ledmatrix-wifi-monitor.service" || true
+        chmod 644 "/etc/systemd/system/ledmatrix-wifi-monitor.service" || true
+        systemctl daemon-reload || true
+    fi
+    
+    # Check if service was installed successfully
+    if systemctl list-unit-files | grep -q "ledmatrix-wifi-monitor.service"; then
+        echo "✓ WiFi monitor service installed"
+        
+        # Check if service is running
+        if systemctl is-active --quiet ledmatrix-wifi-monitor.service 2>/dev/null; then
+            echo "✓ WiFi monitor service is running"
+        else
+            echo "⚠ WiFi monitor service installed but not running (may need required packages)"
+        fi
+    else
+        echo "⚠ WiFi monitor service installation may have failed"
+    fi
+else
+    echo "⚠ install_wifi_monitor.sh not found; skipping WiFi monitor installation"
+    echo "  You can install it later by running: sudo ./install_wifi_monitor.sh"
+fi
 echo ""
 
 CURRENT_STEP="Configure web interface permissions"
@@ -769,6 +805,14 @@ else
     echo "⚠ Web interface service is not running"
 fi
 
+if systemctl list-unit-files | grep -q "ledmatrix-wifi-monitor.service"; then
+    if systemctl is-active --quiet ledmatrix-wifi-monitor.service 2>/dev/null; then
+        echo "✓ WiFi monitor service is running"
+    else
+        echo "⚠ WiFi monitor service is not running"
+    fi
+fi
+
 echo ""
 if [ "$SKIP_REBOOT_PROMPT" = "1" ]; then
     echo "Skipping reboot prompt as requested (--no-reboot-prompt)."
@@ -800,10 +844,12 @@ echo ""
 echo "Check service status:"
 echo "  sudo systemctl status ledmatrix.service"
 echo "  sudo systemctl status ledmatrix-web.service"
+echo "  sudo systemctl status ledmatrix-wifi-monitor.service"
 echo ""
 echo "View logs:"
 echo "  journalctl -u ledmatrix.service -f"
 echo "  journalctl -u ledmatrix-web.service -f"
+echo "  journalctl -u ledmatrix-wifi-monitor.service -f"
 echo ""
 echo "Control the display:"
 echo "  sudo systemctl start ledmatrix.service"
