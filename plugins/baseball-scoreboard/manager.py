@@ -801,10 +801,11 @@ class BaseballScoreboardPlugin(BasePlugin):
         # Get current game for the selected mode across all leagues
         current_game, league_key = self._get_current_game_for_mode(display_mode, current_time)
 
-        # If no current game found, return early without updating display
-        # This matches old manager behavior (SportsUpcoming/SportsRecent just return)
-        # They don't show "No Games" messages - they preserve the last displayed content
+        # If no current game found, clear display to avoid showing stale content (like "Initializing")
+        # This matches old manager behavior but ensures display is cleared when no games available
         if not current_game:
+            self.display_manager.clear()
+            self.display_manager.update_display()
             return
 
         # Render the game
