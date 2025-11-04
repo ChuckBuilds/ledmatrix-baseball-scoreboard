@@ -144,3 +144,6 @@ Thumbs.db
 *.log
 config.json
 *.pem
+credentials.json
+*.credentials
+*.oauth
