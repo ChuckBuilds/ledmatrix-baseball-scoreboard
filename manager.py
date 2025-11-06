@@ -416,17 +416,20 @@ class BaseballScoreboardPlugin(BasePlugin):
 
         return home_abbrev in favorites or away_abbrev in favorites
 
-    def display(self, display_mode: str = None, force_clear: bool = False) -> None:
+    def display(self, display_mode: str = None, force_clear: bool = False) -> bool:
         """
         Display baseball games.
 
         Args:
             display_mode: Which mode to display (baseball_live, baseball_recent, baseball_upcoming)
             force_clear: If True, clear display before rendering
+        
+        Returns:
+            True if content was displayed, False if no games available
         """
         if not self.initialized:
             self._display_error("Baseball plugin not initialized")
-            return
+            return False
 
         # Determine which display mode to use - prioritize live games if enabled
         if not display_mode:
@@ -444,11 +447,16 @@ class BaseballScoreboardPlugin(BasePlugin):
 
         if not filtered_games:
             self._display_no_games(display_mode)
-            return
+            return False
 
         # Display the first game (rotation handled by LEDMatrix)
-        game = filtered_games[0]
-        self._display_game(game, display_mode)
+        try:
+            game = filtered_games[0]
+            self._display_game(game, display_mode)
+            return True
+        except Exception as e:
+            self.logger.error(f"Error displaying game: {e}", exc_info=True)
+            return False
 
     def _filter_games_by_mode(self, mode: str) -> List[Dict]:
         """Filter games based on display mode and per-league settings."""
