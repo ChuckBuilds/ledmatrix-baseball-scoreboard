@@ -42,5 +42,7 @@
   "stars": 0,
   "downloads": 0,
   "verified": true,
-  "screenshot": ""
+  "screenshot": "",
+  "class_name": "BaseballScoreboardPlugin",
+  "entry_point": "manager.py"
 }
