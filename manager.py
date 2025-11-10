@@ -474,6 +474,11 @@ class BaseballScoreboardPlugin(BasePlugin):
             if not mode_enabled:
                 continue
 
+            show_favorites_only = league_config.get('show_favorite_teams_only', False)
+            show_all_live = league_config.get('show_all_live', False)
+            if show_favorites_only and not (mode == 'baseball_live' and show_all_live) and not self._is_favorite_game(game):
+                continue
+
             # Filter by game state and per-league limits
             if mode == 'baseball_live' and state == 'in':
                 filtered.append(game)
