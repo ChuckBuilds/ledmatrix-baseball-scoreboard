@@ -39,9 +39,10 @@ class BaseballLogoManager:
         if display_manager and hasattr(display_manager, 'matrix') and display_manager.matrix is not None:
             self.display_width = display_manager.matrix.width
             self.display_height = display_manager.matrix.height
-        elif display_manager and hasattr(display_manager, 'display_width'):
-            self.display_width = display_manager.display_width
-            self.display_height = display_manager.display_height
+        elif display_manager:
+            # Fallback to width/height properties (which also check matrix)
+            self.display_width = getattr(display_manager, "width", 128)
+            self.display_height = getattr(display_manager, "height", 32)
         else:
             # Fallback dimensions
             self.display_width = 128
