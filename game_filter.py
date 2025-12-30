@@ -269,13 +269,62 @@ class BaseballGameFilter:
                 )
                 return favorite_team_games[:recent_games_to_show]
         else:
-            # Show all recent games if no favorites defined
-            processed_games.sort(
+            # No favorite teams: apply per-team limit to ALL teams
+            # Example: recent_games_to_show=1 with 30 teams = up to 30 games total (1 per team)
+            # Extract all unique teams from processed games
+            all_teams = set()
+            for game in processed_games:
+                # Baseball supports multiple team field formats
+                home_abbr = game.get('home_abbr') or game.get('home_team')
+                away_abbr = game.get('away_abbr') or game.get('away_team')
+                if home_abbr:
+                    all_teams.add(home_abbr)
+                if away_abbr:
+                    all_teams.add(away_abbr)
+            
+            # Apply per-team limit to all teams
+            team_games = []
+            for team in all_teams:
+                # Find games where this team is playing
+                team_specific_games = [
+                    game for game in processed_games
+                    if (game.get('home_abbr') == team or game.get('away_abbr') == team or
+                        game.get('home_team') == team or game.get('away_team') == team)
+                ]
+                
+                if team_specific_games:
+                    # Sort by game time and take the most recent N games
+                    team_specific_games.sort(
+                        key=lambda g: g.get('start_time_utc') or 
+                        (datetime.fromisoformat(g.get('start_time', '').replace('Z', '+00:00')) if g.get('start_time') else datetime.min.replace(tzinfo=timezone.utc)),
+                        reverse=True
+                    )
+                    # Take up to recent_games_to_show games for this team
+                    team_games.extend(team_specific_games[:recent_games_to_show])
+            
+            # Sort the final list by game time (most recent first)
+            team_games.sort(
                 key=lambda g: g.get('start_time_utc') or 
                 (datetime.fromisoformat(g.get('start_time', '').replace('Z', '+00:00')) if g.get('start_time') else datetime.min.replace(tzinfo=timezone.utc)),
                 reverse=True
             )
-            return processed_games[:recent_games_to_show]
+            # Remove duplicates (in case a game involves multiple teams)
+            seen_ids = set()
+            unique_team_games = []
+            for game in team_games:
+                game_id = game.get('id')
+                if game_id and game_id not in seen_ids:
+                    seen_ids.add(game_id)
+                    unique_team_games.append(game)
+                elif not game_id:
+                    # If no ID, use a combination of teams and time as identifier
+                    team_key = (game.get('home_abbr') or game.get('home_team'), 
+                               game.get('away_abbr') or game.get('away_team'),
+                               game.get('start_time_utc') or game.get('start_time'))
+                    if team_key not in seen_ids:
+                        seen_ids.add(team_key)
+                        unique_team_games.append(game)
+            return unique_team_games
 
     def filter_upcoming_games(self, games: List[Dict], league_config: Dict) -> List[Dict]:
         """
@@ -359,12 +408,60 @@ class BaseballGameFilter:
             )
             return team_games
         else:
-            # Show all upcoming games, limit to upcoming_games_to_show
-            processed_games.sort(
+            # No favorite teams: apply per-team limit to ALL teams
+            # Example: upcoming_games_to_show=1 with 30 teams = up to 30 games total (1 per team)
+            # Extract all unique teams from processed games
+            all_teams = set()
+            for game in processed_games:
+                # Baseball supports multiple team field formats
+                home_abbr = game.get('home_abbr') or game.get('home_team')
+                away_abbr = game.get('away_abbr') or game.get('away_team')
+                if home_abbr:
+                    all_teams.add(home_abbr)
+                if away_abbr:
+                    all_teams.add(away_abbr)
+            
+            # Apply per-team limit to all teams
+            team_games = []
+            for team in all_teams:
+                # Find games where this team is playing
+                team_specific_games = [
+                    game for game in processed_games
+                    if (game.get('home_abbr') == team or game.get('away_abbr') == team or
+                        game.get('home_team') == team or game.get('away_team') == team)
+                ]
+                
+                if team_specific_games:
+                    # Sort by game time and take the earliest N games
+                    team_specific_games.sort(
+                        key=lambda g: g.get('start_time_utc') or 
+                        (datetime.fromisoformat(g.get('start_time', '').replace('Z', '+00:00')) if g.get('start_time') else datetime.max.replace(tzinfo=timezone.utc))
+                    )
+                    # Take up to upcoming_games_to_show games for this team
+                    team_games.extend(team_specific_games[:upcoming_games_to_show])
+            
+            # Sort the final list by game time (earliest first)
+            team_games.sort(
                 key=lambda g: g.get('start_time_utc') or 
                 (datetime.fromisoformat(g.get('start_time', '').replace('Z', '+00:00')) if g.get('start_time') else datetime.max.replace(tzinfo=timezone.utc))
             )
-            return processed_games[:upcoming_games_to_show]
+            # Remove duplicates (in case a game involves multiple teams)
+            seen_ids = set()
+            unique_team_games = []
+            for game in team_games:
+                game_id = game.get('id')
+                if game_id and game_id not in seen_ids:
+                    seen_ids.add(game_id)
+                    unique_team_games.append(game)
+                elif not game_id:
+                    # If no ID, use a combination of teams and time as identifier
+                    team_key = (game.get('home_abbr') or game.get('home_team'), 
+                               game.get('away_abbr') or game.get('away_team'),
+                               game.get('start_time_utc') or game.get('start_time'))
+                    if team_key not in seen_ids:
+                        seen_ids.add(team_key)
+                        unique_team_games.append(game)
+            return unique_team_games
 
     def sort_games(self, games: List[Dict], mode: str) -> List[Dict]:
         """
